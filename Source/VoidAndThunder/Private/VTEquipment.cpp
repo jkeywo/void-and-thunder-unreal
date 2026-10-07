@@ -49,8 +49,9 @@ void UVTCombatComponent::EquipmentWeapons() {
   AVTShip* Target=nullptr; double Best=DBL_MAX;
   for(AVTShip* Other:Sim->SystemShips[S->SystemIndex]) if(Hostile(Other)) {
    auto Offset=Other->Movement->Motion.Position-S->Movement->Motion.Position;
+   if(Offset.SizeSquared()>E.EMPRange*E.EMPRange) continue;
    float Angle=FMath::UnwindRadians(FMath::Atan2(Offset.Y,Offset.X)-S->Movement->Motion.Heading);
-   if(Offset.SizeSquared()>E.EMPRange*E.EMPRange||FMath::Abs(Angle)>E.EMPArc*0.5f) continue;
+   if(FMath::Abs(Angle)>E.EMPArc*0.5f) continue;
    double Distance=(Offset-S->Intent.CursorOffset).SizeSquared(); if(Distance<Best) {Target=Other; Best=Distance;}
   }
   float Desired=0;

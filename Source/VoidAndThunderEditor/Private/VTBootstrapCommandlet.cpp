@@ -368,5 +368,5 @@ int32 UVTBenchmarkCommandlet::Main(const FString& Params) {
  IFileManager::Get().MakeDirectory(*FPaths::GetPath(Path),true); FFileHelper::SaveStringToFile(Report,*Path);
  UE_LOG(LogTemp,Display,TEXT("Population %d simulation p95 %.3f ms"),Sim->Ships.Num(),P95);
  World->BeginTearingDown(); World->EndPlay(EEndPlayReason::Quit); World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
- return Count>500||P95<8 ? 0 : 1;
+ return (Count>500&&!FParse::Param(*Params,TEXT("RequireBudget")))||P95<8 ? 0 : 1;
 }

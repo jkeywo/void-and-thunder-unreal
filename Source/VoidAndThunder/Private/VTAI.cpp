@@ -15,7 +15,8 @@ void Beam(AVTShip* Ship,AVTShip* Target,const FVTAITuning& T,bool Flee) {
  float Error=FMath::UnwindRadians(Desired-Heading); Ship->Intent.Turn=FMath::Clamp(Error*T.turn_gain,-1.f,1.f); Ship->Intent.Throttle=Cruise*(1-T.turn_ease*FMath::Abs(Error)/PI);
 }
 struct Solution {bool Valid=false; float Distance=FLT_MAX; FVector2D Direction=FVector2D::ZeroVector;};
-Solution Gun(AVTShip* Ship,const TArray<AVTShip*>& Targets,bool Port) {
+template<typename Allocator>
+Solution Gun(AVTShip* Ship,const TArray<AVTShip*,Allocator>& Targets,bool Port) {
  if((Port ? Ship->PortReload : Ship->StarboardReload)>0) return {};
  for(auto* Target:Targets) {
   auto P=Target->Movement->Motion.Position-Ship->Movement->Motion.Position, V=Target->Movement->Motion.Velocity-Ship->Movement->Motion.Velocity; float Speed=Ship->Definition.MuzzleSpeed;
@@ -52,16 +53,30 @@ void AVTShipAI::DecideShip(AVTShip* Ship,float Dt) {
   if(Device==EVTDevice::Mine)E.Mines=false;
  }
  auto& R=Ship->Combat->EquipmentState; auto& Brain=Ship->Brain; const auto& M=Ship->Movement->Motion;
- Ship->Intent=FVTPilotIntent(); TArray<AVTShip*> Targets,Prizes; float Threat=0,Danger=0;
+ Ship->Intent=FVTPilotIntent(); TArray<AVTShip*,TInlineAllocator<64>> Targets,Prizes;
+ const bool Utility=(D.AIAbilities||Ship->Autopilot)&&Ship->ShipRole!=1;
+ struct Contact {AVTShip* Ship; double DistanceSquared;};
+ TArray<Contact,TInlineAllocator<64>> OrderedTargets;
+ AVTShip* NearestTarget=nullptr; double NearestDistance=DBL_MAX; bool NearestTied=false;
+ float Threat=0,Danger=0;
  for(auto* Other:Sim->SystemShips[Ship->SystemIndex]) if(IsValid(Other)&&Other!=Ship&&!Other->Docked) {
   if(Other->Disabled) {if(!Other->Invulnerable&&Other->Faction!=Ship->Faction) Prizes.Add(Other); continue;}
   bool Hostile=Ship->ShipRole==1 ? Ship->Faction!=Other->Faction : Sim->BehaviorHostile(Ship,Other);
   // Ordinary skirmish enemies fight player ships without the campaign reputation gate.
   if(Ship->ShipRole==0&&Ship->Faction==Houses&&!Other->IsNPC) Hostile=true;
-  if(Hostile&&!(Ship->ShipRole==2&&!Other->IsNPC&&(Brain.ScanTarget!=Other->PersistentId||Brain.ScanProgress<1))) {Targets.Add(Other); float Distance=float((Other->Movement->Motion.Position-M.Position).Size()); Threat+=FMath::Clamp(1-Distance/T.surround_radius,0.f,1.f); Danger+=FMath::Clamp(1-Distance/(D.MuzzleSpeed*2.5f),0.f,1.f);}
+  if(Hostile&&!(Ship->ShipRole==2&&!Other->IsNPC&&(Brain.ScanTarget!=Other->PersistentId||Brain.ScanProgress<1))) {
+   double Squared=(Other->Movement->Motion.Position-M.Position).SizeSquared();
+   if(Squared<NearestDistance) {NearestTarget=Other;NearestDistance=Squared;NearestTied=false;}
+   else if(Squared==NearestDistance) NearestTied=true;
+   if(Utility) {OrderedTargets.Add({Other,Squared});float Distance=float(FMath::Sqrt(Squared));Threat+=FMath::Clamp(1-Distance/T.surround_radius,0.f,1.f);Danger+=FMath::Clamp(1-Distance/(D.MuzzleSpeed*2.5f),0.f,1.f);}
+   else Targets.Add(Other);
+  }
  }
- auto Near=[&](const AVTShip& A,const AVTShip& B){return (A.Movement->Motion.Position-M.Position).SizeSquared()<(B.Movement->Motion.Position-M.Position).SizeSquared();}; Targets.Sort(Near); Prizes.Sort(Near);
- auto* Target=Targets.IsEmpty() ? nullptr : Targets[0]; auto* Prize=Prizes.IsEmpty() ? nullptr : Prizes[0];
+ auto Near=[&](const AVTShip& A,const AVTShip& B){return (A.Movement->Motion.Position-M.Position).SizeSquared()<(B.Movement->Motion.Position-M.Position).SizeSquared();};
+ if(Utility) {OrderedTargets.Sort([](const Contact& A,const Contact& B){return A.DistanceSquared<B.DistanceSquared;});for(const Contact& Contact:OrderedTargets)Targets.Add(Contact.Ship);}
+ else if(NearestTied) {Targets.Sort(Near);NearestTarget=Targets[0];}
+ Prizes.Sort(Near);
+ auto* Target=Utility ? (Targets.IsEmpty() ? nullptr : Targets[0]) : NearestTarget; auto* Prize=Prizes.IsEmpty() ? nullptr : Prizes[0];
  if(Ship->ShipRole==1) {if(Target&&(Target->Movement->Motion.Position-M.Position).SizeSquared()<=400*400) Face(Ship,M.Position-Target->Movement->Motion.Position,1,T); return;}
  float Hull=Ship->Attributes->Hull.GetCurrentValue()/D.Hull;
  if(Ship->ShipRole==2) {

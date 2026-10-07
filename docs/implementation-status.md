@@ -27,7 +27,7 @@ individual world attribution, background distress, scenarios and station recover
 The 500-NPC acceptance fixture exercises concentrated mixed combat and preserves
 population through invulnerability. Ordinary Shared sandbox ships are mortal and
 retain the source behavior proportions; their population can decline through combat.
-The 1,000-NPC case is a stress measurement, not an extension of the 500-NPC promise.
+The latest optimisation passed all 18 native gates and 21 automation groups. The optimised 1,000-NPC fixed-step case measures 6.33 ms p95 and now passes the 8 ms stress budget on the reference machine; it is not an extension of the 500-NPC rendered/network promise. See [stress optimisation](validation/optimisation-2026-10-08/README.md).
 
 Native materials, Niagara and UMG rebuild the source presentation rather than
 reproducing Rust shaders/web layout pixel-for-pixel. Source feel is imported, but

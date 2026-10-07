@@ -123,4 +123,21 @@ bool FVTManualBroadside::RunTest(const FString& Params) {
  Captain->LocalIntent=FVTPilotIntent();Captain->ReadFlight(FInputActionValue(true),4);Captain->CancelFlight(FInputActionValue(false),4);TestEqual("Cancelled bank aim never releases a shot",Captain->LocalIntent.Buttons,uint16(0));
  Captain->ReadFlight(FInputActionValue(false),4);TestEqual("An unheld release does not manufacture fire",Captain->LocalIntent.Buttons,uint16(0));return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTTargetPriority,"VT.AI.NearestContactAndVolleyPriority",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTTargetPriority::RunTest(const FString& Params) {
+ for(bool Utility:{false,true}) {
+  FAIFixture F;auto& D=F.Pilot->Definition;D.AIAbilities=Utility;D.AIAim=true;D.MuzzleSpeed=325;D.Arc=1.2;
+  D.Equipment.EMP=false;D.Equipment.Torpedoes=false;D.Equipment.Boost=false;D.Equipment.Warp=false;D.Equipment.PointDefense=false;D.Equipment.Mines=false;
+  auto Origin=F.Pilot->Movement->Motion.Position;F.Target->Movement->Motion.Position=Origin+FVector2D(20,150);
+  FVTMotion M;M.Position=Origin+FVector2D(100,600);auto* Far=F.Sim->SpawnShip("house_patrol",0,M,true,"Guild");
+  M.Position=Origin+FVector2D(0,25);auto* Friendly=F.Sim->SpawnShip("house_patrol",0,M,true,"Freebooters");
+  for(bool Reverse:{false,true}) {
+   F.Sim->SystemShips[0]=Reverse?TArray<AVTShip*>{F.Target,Friendly,F.Pilot,Far}:TArray<AVTShip*>{Far,F.Pilot,Friendly,F.Target};F.Pilot->Brain=FVTBrainState();
+   F.Controller->Decide(VT::Step);
+   TestTrue(Utility?"Utility volley aims at the nearer valid interception":"Simple pilot aims at its nearest hostile",F.Pilot->Intent.Aim.Equals(FVector2D(20,150).GetSafeNormal(),0.0001));
+   TestTrue("Nearest port target requests the port bank",bool(F.Pilot->Intent.Buttons&VTButtons::Port));
+  }
+ }
+ return true;
+}
 #endif

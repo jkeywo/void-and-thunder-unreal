@@ -75,3 +75,14 @@ The PlayerController retains possession and camera ownership; AVTShipAI supplies
 intent through its shared decision entry point. Remote clients interpolate that
 authoritative motion while AI is active, and resume sequenced prediction on return
 to manual control. Loading/reconnecting starts in manual mode and cancels held inputs.
+
+## Simulation query optimisation
+
+Simple beam/civilian/patrol pilots select their nearest hostile contact in one pass.
+Utility pilots retain a full ordered target list, sorting cached squared distances
+rather than repeatedly reading component poses. Threat sums retain system order.
+Boarding uses a phase-local per-system list of disabled, non-invulnerable ships;
+claim, validity, faction and range checks remain live for every captain. These
+lists contain Actor pointers, not independent state, and are rebuilt at the phase
+where they are consumed. EMP rejects out-of-range contacts before angular tests.
+All systems and movement/combat still advance at 64 Hz.

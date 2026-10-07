@@ -1,0 +1,9 @@
+{
+  "population": 1000,
+  "systems": 10,
+  "budget_ms": 8,
+  "source_commit": "d8464adcc72970f07007ef8cb4741dc74ef4a955",
+  "passed": false,
+  "p95_ms": 12.5174,
+  "samples": 1000
+}

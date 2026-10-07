@@ -1,5 +1,8 @@
 # Native validation — 7 October 2026
 
+The subsequent [1,000-NPC stress optimisation](optimisation-2026-10-08/README.md)
+records the new fixed-step result.
+
 Current expanded evidence and the downloadable release are in
 [acceptance-2026-10-07](acceptance-2026-10-07/README.md). The measurements below
 are the earlier transfer milestone, retained for comparison.

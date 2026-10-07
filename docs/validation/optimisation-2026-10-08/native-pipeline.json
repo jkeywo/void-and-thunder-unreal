@@ -1,0 +1,92 @@
+[
+  {
+    "seconds": 5.26372,
+    "passed": true,
+    "gate": "source"
+  },
+  {
+    "seconds": 13.6247163,
+    "passed": true,
+    "gate": "editor"
+  },
+  {
+    "seconds": 8.3660102,
+    "passed": true,
+    "gate": "bootstrap"
+  },
+  {
+    "seconds": 9.3765712,
+    "passed": true,
+    "gate": "assets"
+  },
+  {
+    "seconds": 17.2071403,
+    "passed": true,
+    "gate": "automation"
+  },
+  {
+    "seconds": 10.3761043,
+    "passed": true,
+    "gate": "scale-500"
+  },
+  {
+    "seconds": 39.962385,
+    "passed": true,
+    "gate": "development"
+  },
+  {
+    "seconds": 77.8552843,
+    "passed": true,
+    "gate": "gameplay-clean"
+  },
+  {
+    "seconds": 77.6802829,
+    "passed": true,
+    "gate": "gameplay-latency"
+  },
+  {
+    "seconds": 77.7304176,
+    "passed": true,
+    "gate": "gameplay-blackout"
+  },
+  {
+    "seconds": 82.888236,
+    "passed": true,
+    "gate": "reconnect"
+  },
+  {
+    "seconds": 49.5424642,
+    "passed": true,
+    "gate": "create"
+  },
+  {
+    "seconds": 49.4820844,
+    "passed": true,
+    "gate": "continue"
+  },
+  {
+    "seconds": 24.215083,
+    "passed": true,
+    "gate": "host-departure"
+  },
+  {
+    "seconds": 38.1708793,
+    "passed": true,
+    "gate": "render"
+  },
+  {
+    "seconds": 38.0401669,
+    "passed": true,
+    "gate": "menu"
+  },
+  {
+    "seconds": 43.2063865,
+    "passed": true,
+    "gate": "shipping"
+  },
+  {
+    "seconds": 62.1095681,
+    "passed": true,
+    "gate": "shipping-multiplayer"
+  }
+]
