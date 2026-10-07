@@ -3,6 +3,18 @@
 #include "VTTypes.generated.h"
 
 USTRUCT(BlueprintType)
+struct FVTShieldBanks {
+ GENERATED_BODY()
+ UPROPERTY(EditAnywhere, BlueprintReadWrite) float X = 0;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite) float Y = 0;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite) float Z = 0;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite) float W = 0;
+ FVTShieldBanks() = default;
+ FVTShieldBanks(float Fore,float Aft,float Port,float Starboard):X(Fore),Y(Aft),Z(Port),W(Starboard) {}
+ float& operator[](int32 I) {check(I>=0&&I<4); return I==0 ? X : I==1 ? Y : I==2 ? Z : W;}
+ float operator[](int32 I) const {check(I>=0&&I<4); return I==0 ? X : I==1 ? Y : I==2 ? Z : W;}
+};
+USTRUCT(BlueprintType)
 struct FVTShipStats {
  GENERATED_BODY()
  UPROPERTY(EditAnywhere, BlueprintReadWrite) float Thrust = 115;
@@ -36,6 +48,7 @@ struct FVTMotion {
  UPROPERTY(BlueprintReadOnly) float Heading = 0;
  UPROPERTY(BlueprintReadOnly) float Omega = 0;
  UPROPERTY() uint32 Ack = 0;
+ UPROPERTY() double SimulationTime = 0;
 };
 USTRUCT(BlueprintType)
 struct FVTShipDefinition {
@@ -50,6 +63,12 @@ struct FVTShipDefinition {
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float Arc = 1.1780972f;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float ChargeTime = 0;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) int32 Guns = 3;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float BatteryMax = 3;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float BatteryRecharge = 0.6f;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) int32 ShieldArcs = 2;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) FVTShieldBanks ShieldMax = FVTShieldBanks(0,0,0,0);
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float ShieldRegen = 7;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float ShieldDelay = 2.5f;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftObjectPtr<UStaticMesh> Mesh;
 };
 USTRUCT(BlueprintType)
@@ -68,6 +87,13 @@ struct FVTSystemDefinition {
 USTRUCT(BlueprintType)
 struct FVTRules {
  GENERATED_BODY()
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float RamDamagePerSpeed = 0.22f;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float RamThreshold = 45;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float RamRestitution = 0.35f;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float RamSeparation = 0.6f;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float BoardRepairFraction = 0.1f;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float HullLength = 40;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly) float MuzzleStandoff = 22;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float ReverseThrottle = 0.25f;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float BoundsSpring = 3;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float BraceDamageFactor = 0.35f;
@@ -83,6 +109,7 @@ struct FVTRules {
 namespace VT {
  constexpr float Step = 1.0f / 64.0f;
  VOIDANDTHUNDER_API void HelmStep(FVTMotion& Motion, const FVTShipStats& Stats, const FVTPilotIntent& Intent, float Reverse, float Dt);
+ VOIDANDTHUNDER_API float LcgNext(uint32& Seed);
  VOIDANDTHUNDER_API bool ValidIntent(const FVTPilotIntent& Intent);
  VOIDANDTHUNDER_API FVector ArenaOrigin(int32 System);
  VOIDANDTHUNDER_API FVector ToWorld(const FVector2D& Position, int32 System);

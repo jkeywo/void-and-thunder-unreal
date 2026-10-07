@@ -22,6 +22,8 @@ class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 class AVTShip;
+class AVTProjectile;
+class UVTCombatComponent;
 
 UCLASS()
 class VOIDANDTHUNDER_API UVTAttributes : public UAttributeSet {
@@ -47,6 +49,9 @@ public:
  FVTMotion Motion;
  FVTMotion Previous;
  float Accumulator = 0;
+ TArray<FVTMotion> ReplicaFrames;
+ double LastAuthorityReceived = 0;
+ int32 ReplicaSystem = INDEX_NONE;
  struct FPending { FVTPilotIntent Intent; };
  TArray<FPending> Pending;
  void Step(const FVTPilotIntent& Intent, bool Predict);
@@ -62,6 +67,7 @@ class VOIDANDTHUNDER_API AVTShip : public APawn, public IAbilitySystemInterface 
 public:
  AVTShip();
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UVTShipMovement> Movement;
+ UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UVTCombatComponent> Combat;
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UAbilitySystemComponent> Abilities;
  UPROPERTY(VisibleAnywhere) TObjectPtr<UVTAttributes> Attributes;
  UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Mesh;
@@ -80,6 +86,7 @@ public:
  uint32 LastReceived = 0;
  double LastInputTime = 0;
  UPROPERTY(Replicated, BlueprintReadOnly) bool IsNPC = false;
+ bool Invulnerable = false;
  bool Anchored = false;
  virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return Abilities; }
  virtual void BeginPlay() override;
@@ -124,6 +131,7 @@ class VOIDANDTHUNDER_API AVTController : public APlayerController {
  GENERATED_BODY()
 public:
  AVTController();
+ virtual void PawnLeavingGame() override;
  virtual void BeginPlay() override;
  virtual void SetupInputComponent() override;
  void ReadFlight(const FInputActionValue& Value, int32 Index);
@@ -132,9 +140,15 @@ public:
  UPROPERTY() TArray<TObjectPtr<UInputAction>> Actions;
  FVTPilotIntent LocalIntent;
  uint32 NextSequence = 0;
+ bool UsingGamepadAim=false;
  bool ProbeJumped=false;
  void ValidationInput(float Dt);
  float SendAccumulator = 0;
+ UFUNCTION(Client,Reliable) void ClientIdentify(FGuid World);
+ UFUNCTION(Server,Reliable) void ServerIdentify(FGuid Profile,FGuid Token);
+ UFUNCTION(Client,Reliable) void ClientAcceptIdentity(FGuid World,FGuid Token);
+ UFUNCTION(Exec) void VTRecover();
+ UFUNCTION(Server,Reliable) void ServerRecover();
  UFUNCTION(Exec) void VTJump(FString Destination);
  UFUNCTION(Server, Reliable) void ServerJump(FName Destination);
  UFUNCTION(Exec) void VTHost();
@@ -150,10 +164,16 @@ class VOIDANDTHUNDER_API UVTSimulation : public UTickableWorldSubsystem {
 public:
  UPROPERTY() TObjectPtr<UVTGameData> Data;
  UPROPERTY() TArray<TObjectPtr<AVTShip>> Ships;
+ UPROPERTY() TArray<TObjectPtr<AVTProjectile>> Projectiles;
+ TArray<TArray<AVTShip*>> SystemShips;
+ void ContactStep();
+ void PiracyStep();
  TArray<double> StepMilliseconds;
  double Accumulator = 0;
  double SimulationTime = 0;
+ int32 WorldSeed=12345;
  bool Bootstrapped = false;
+ bool ProbeLoaded=false;
  bool ProbeWrote=false, ProbeScaled=false, ProbeMoved=false, ProbeOriginSet=false;
  int32 MaxPlayersObserved=0;
  FVector2D ProbeOrigin;
@@ -172,16 +192,24 @@ class VOIDANDTHUNDER_API AVTGameMode : public AGameModeBase {
  GENERATED_BODY()
 public:
  AVTGameMode();
+ virtual bool SetPause(APlayerController* PC,FCanUnpause CanUnpauseDelegate=FCanUnpause()) override;
  virtual void BeginPlay() override;
  virtual void PostLogin(APlayerController* NewPlayer) override;
+ virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
+ virtual void PreLogin(const FString& Options,const FString& Address,const FUniqueNetIdRepl& UniqueId,FString& ErrorMessage) override;
  virtual void Logout(AController* Exiting) override;
  virtual void RestartPlayer(AController* Player) override;
+ void RecoverShip(AVTShip* Ship);
 };
 
 UCLASS()
 class VOIDANDTHUNDER_API UVTGameInstance : public UGameInstance {
  GENERATED_BODY()
 public:
+ #if WITH_EDITOR
+ void InitializeHeadlessWorld(UWorld* World);
+#endif
+ virtual void Shutdown() override;
  UFUNCTION(BlueprintCallable) void Host();
  UFUNCTION(BlueprintCallable) void Join(const FString& Address);
 };

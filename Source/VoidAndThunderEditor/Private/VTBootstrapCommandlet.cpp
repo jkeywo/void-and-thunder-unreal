@@ -18,7 +18,7 @@
 
 static bool SaveAsset(UObject* Asset, const FString& Name) {
  Asset->SetFlags(RF_Public|RF_Standalone);
- UPackage* Package=Asset->GetOutermost(); Package->FullyLoad(); Package->MarkPackageDirty();
+ UPackage* Package=Asset->GetOutermost(); Package->MarkAsFullyLoaded(); Package->MarkPackageDirty();
  FAssetRegistryModule::AssetCreated(Asset);
  const FString File=FPackageName::LongPackageNameToFilename(Name,Asset->IsA<UWorld>() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension());
  IFileManager::Get().MakeDirectory(*FPaths::GetPath(File),true);
@@ -60,6 +60,15 @@ int32 UVTBootstrapCommandlet::Main(const FString& Params) {
   Def.Arc=Number(Broadside,TEXT("arc"),Def.Arc);
   Def.ChargeTime=Number(Broadside,TEXT("charge_time"),Def.ChargeTime);
   Def.Guns=int32(Number(Broadside,TEXT("guns"),Def.Guns));
+  Def.Mesh=TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Engine/BasicShapes/Cube.Cube")));
+  auto Loadout=Class->GetObjectField(TEXT("loadout"));
+  auto Battery=Loadout->GetObjectField(TEXT("battery"));
+  Def.BatteryMax=Number(Battery,TEXT("max"),3); Def.BatteryRecharge=Number(Battery,TEXT("recharge_per_sec"),0.6f);
+  auto Shield=Loadout->GetObjectField(TEXT("shield"));
+  Def.ShieldArcs=int32(Number(Shield,TEXT("arcs"),2));
+  Def.ShieldMax=FVTShieldBanks(Number(Shield,TEXT("fore_max"),0),Number(Shield,TEXT("aft_max"),0),Number(Shield,TEXT("port_max"),0),Number(Shield,TEXT("starboard_max"),0));
+  Def.ShieldRegen=Number(Shield,TEXT("regen_per_sec"),7); Def.ShieldDelay=Number(Shield,TEXT("regen_delay"),2.5f);
+  UE_LOG(LogTemp,Display,TEXT("Import %s shields %.3f %.3f"),*Def.Id.ToString(),Def.ShieldMax.X,Def.ShieldMax.Y);
   Data->Ships.Add(Def);
  }
  auto Map=Root->GetObjectField(TEXT("world"));
@@ -76,6 +85,13 @@ int32 UVTBootstrapCommandlet::Main(const FString& Params) {
   Data->Systems.Add(Def);
  }
  auto Rules=Root->GetObjectField(TEXT("tuning"));
+ Data->Rules.RamDamagePerSpeed=Number(Rules,TEXT("ram_damage_per_speed"),0.22f);
+ Data->Rules.RamThreshold=Number(Rules,TEXT("ram_damage_threshold"),45);
+ Data->Rules.RamRestitution=Number(Rules,TEXT("ram_restitution"),0.35f);
+ Data->Rules.RamSeparation=Number(Rules,TEXT("ram_separation"),0.6f);
+ Data->Rules.BoardRepairFraction=Number(Rules,TEXT("board_repair_frac"),0.1f);
+ Data->Rules.HullLength=Number(Rules,TEXT("hull_length"),40);
+ Data->Rules.MuzzleStandoff=Number(Rules,TEXT("muzzle_standoff"),22);
  Data->Rules.ReverseThrottle=Number(Rules,TEXT("reverse_throttle"),0.25);
  Data->Rules.BoundsSpring=Number(Rules,TEXT("bounds_spring"),3);
  Data->Rules.BraceDamageFactor=Number(Rules,TEXT("brace_damage_factor"),0.35f);
@@ -136,6 +152,6 @@ int32 UVTBenchmarkCommandlet::Main(const FString& Params) {
  const FString Path=FPaths::ProjectSavedDir()/FString::Printf(TEXT("Validation/scale-%d.json"),Count);
  IFileManager::Get().MakeDirectory(*FPaths::GetPath(Path),true); FFileHelper::SaveStringToFile(Report,*Path);
  UE_LOG(LogTemp,Display,TEXT("Population %d simulation p95 %.3f ms"),Sim->Ships.Num(),P95);
- World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+ World->BeginTearingDown(); World->EndPlay(EEndPlayReason::Quit); World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
  return P95<8 ? 0 : 1;
 }

@@ -1,0 +1,13 @@
+{
+  "engine": "5.8.2",
+  "baseline": "c138f2c9caab77ed8288ddcb46d1622e471c2b15",
+  "automation_succeeded": 7,
+  "automation_failed": 0,
+  "native_asset_validation": "passed: zero errors and warnings",
+  "editor_build": "passed",
+  "development_package": "passed",
+  "shipping_package": "passed",
+  "packaged_development_multiplayer": "passed: four players, 150 ms RTT, 2% loss, independent travel, live save/load and guest reconnect",
+  "graphics_and_full_combat_performance": "not validated",
+  "scope": "Flight, hull contacts, broadside combat and currently implemented persistence; full port remains incomplete."
+}
