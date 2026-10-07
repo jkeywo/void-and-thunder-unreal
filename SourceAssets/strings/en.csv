@@ -1,0 +1,115 @@
+id,context,text
+hud.stat.wave,HUD stat label above the current wave number,WAVE
+hud.stat.enemies,HUD stat label above the count of enemies still flying,ENEMIES
+hud.stat.plunder,HUD stat label above the count of hulks boarded,PLUNDER
+hud.hull,HUD label on the hull integrity bar,HULL
+hud.torpedo_tubes,HUD label on the torpedo tube row; lock pips follow it,TORPEDO TUBES
+hud.battery,"HUD label on the boost battery gauge. Named for the battery rather than for boost because the same charge is expected to power more than one system later; also keeps ""thrust"" free for the helm ladder, which sits one line below it.",BATTERY
+hud.aim,HUD label on the aim/heading gauge,AIM
+hud.warp,HUD label on the microwarp readout,WARP
+hud.helm,HUD label on the thrust-setting readout,HELM
+hud.helm.reverse,"Thrust notch: driving astern, at a fraction of forward power. Very short — it sits in a small readout box.",REVERSE
+hud.helm.none,Thrust notch: drives stopped. The handiest setting — this is where a ship pivots.,NO THRUST
+hud.helm.half,Thrust notch: the default cruising setting. A good compromise of speed and turn rate.,HALF THRUST
+hud.helm.full,"Thrust notch: maximum speed, and the worst turn rate of the four.",FULL THRUST
+hud.ready,"Shown on a weapon or drive readout when it is off cooldown. Very short — it replaces a countdown in the same small box.",RDY
+hud.broadside.port,Label under the port broadside readout. The arrow points outboard.,◄ PORT
+hud.broadside.starboard,Label under the starboard broadside readout. The arrow points outboard.,STBD ►
+title.name,The game's name on the title card,Void & Thunder
+title.tagline,One line under the title naming the setting,Piracy in the Settled Dark
+title.career,"Career line on the title card, shown only once a run has been finished. Wave *reached*, matching the end-of-run tally.",{runs} sailed · deepest wave {wave} · {plunder} plundered
+title.career.victories,"Follows the career line when at least one run has been won. Kept a separate row so a player with no wins is not shown a zero.",{victories} won
+title.prompt.keyboard,Title card prompt for a keyboard player,Press Space to cast off
+title.prompt.gamepad,Title card prompt for a pad player; A is also the boost button,Press A to cast off
+outcome.cleared.headline,End-of-run headline when every wave was cleared,All Waves Cleared
+outcome.destroyed.headline,End-of-run headline when the player's ship was destroyed,Ship Lost To The Void
+outcome.tally,"End-of-run tally. Wave *reached*, not cleared — on a loss the last wave was still standing when the ship went down.",Wave {wave} · {plunder} plundered.
+outcome.cleared.sub,Follows the tally when the run was won,The lanes are yours.
+outcome.again.keyboard,Follows the tally; tells a keyboard player how to start another run,Press R to sail again.
+outcome.again.gamepad,"Follows the tally; names A, the same button that started the run, rather than a key the pad player is not holding.",Press A to sail again.
+controls.title,Heading of the controls panel toggled with Tab,Controls
+controls.kbm.throttle,"Keyboard control description for W and S. They step a four-notch thrust ladder rather than holding a throttle open, so the wording has to say ""set"" and not ""hold"".","Set thrust — reverse, none, half, full"
+controls.kbm.steer,Keyboard control description for A and D,Turn to port / starboard
+controls.thrust_tip,"A one-line hint under the controls list teaching the core manoeuvre: a ship answers the helm far better slowly than at full thrust.",Cut thrust to turn tighter — full thrust is fastest and stiffest
+controls.kbm.broadsides,Keyboard control description for the mouse buttons,Aim & fire port / starboard broadside
+controls.pad.throttle_steer,Pad control description for the left stick,Throttle / steer
+controls.pad.aim_camera,Pad control description for the right stick,Aim & camera
+controls.pad.broadsides,Pad control description for the triggers,Aim & fire port / starboard broadside
+controls.brace,Control description for bracing,Brace — cut incoming damage
+controls.interact,"Control description for the one interact key — hold near a crippled hulk to board it, or a jump point to charge the drive",Interact — hold to board a prize or charge a jump drive
+controls.ai_pilot,Control description for handing the ship to the AI pilot,Toggle AI pilot
+controls.pause,Control description for pausing,Pause
+controls.restart,Control description for restarting after a run ends,Restart after a run ends
+controls.pause_restart,"Control description on a pad, where one button both pauses and restarts",Pause / restart after a run ends
+controls.fullscreen,Control description for fullscreen,Toggle fullscreen
+controls.panel,Control description for this very panel,Toggle this panel
+title.cast_off,Title-card chip that begins the run,Cast off
+title.test_range,Title-card chip that swaps to the tuning range,Test range
+title.slot.broadside,Label for the broadside row of loadout chips,Guns
+title.slot.battery,Label for the battery row of loadout chips,Battery
+title.slot.special,Label for the special row of loadout chips,Special
+title.slot.class,Label for the title card's hull row,Hull
+title.slot.crewed,"Badge on a loadout chip whose mount is worked by the crew rather than the pilot, replacing the keycap a player-worked mount shows",CREW
+class.corsair_cruiser.name,Name of the cruiser hull on the title card,Cruiser
+class.corsair_cruiser.blurb,Tooltip for the cruiser hull,"Two modules a slot, behind a fore and an aft shield bank. Turn to present the good side."
+class.corsair_frigate.name,Name of the frigate hull on the title card,Frigate
+class.corsair_frigate.blurb,Tooltip for the frigate hull,"Fast and light. One module a slot, a deep battery, and a single shield dome — facing stops mattering, and being hit at all is the only question left."
+class.corsair_battleship.name,Name of the battleship hull on the title card,Battleship
+class.corsair_battleship.blurb,Tooltip for the battleship hull,"Slow and powerful. Three modules a slot — one yours, two the crew's — behind four quarter shields. Being circled costs it far more than it costs the cruiser."
+class.house_patrol.name,"Class name shown on a target nameplate — the generic patrol/civilian/freebooter hull almost every ambient ship in the open world flies",Patrol Sloop
+class.house_bastion.name,Class name shown on a target nameplate — the siege-platform hull skirmish's finale wave (and no ambient open-world traffic) flies,Bastion
+loadout.heavy_cannons.name,Name of the heavy cannon battery,Heavy Cannons
+loadout.heavy_cannons.desc,Tooltip for the heavy cannons,"Three heavy barrels on a ten-second cycle. One committed salvo; missing it hurts."
+loadout.rapid_cannons.name,Name of the rapid cannon battery,Rapid Cannons
+loadout.rapid_cannons.desc,Tooltip for the rapid cannons,"Six light guns, reloading fast over a wide arc, but barely half the reach. A brawler."
+loadout.disruptor.name,Name of the disruptor battery device,Disruptor
+loadout.disruptor.desc,Tooltip for the disruptor,"Hold to run an auto-tracking emitter down a target's drive. Costs the battery an escape would have."
+loadout.boost.name,Name of the boost-drive battery device,Boost Drive
+loadout.boost.desc,Tooltip for the boost drive,Hold for half again the speed while the battery lasts.
+loadout.point_defense.name,Name of the point-defence battery device,Point Defence
+loadout.point_defense.desc,Tooltip for point defence,"Hold to swat incoming shot, bolts and torpedoes out of the air. A deeper pool than the others."
+loadout.torpedoes.name,Name of the torpedo special,Torpedoes
+loadout.torpedoes.desc,Tooltip for torpedoes,"Hold to sweep locks across a formation, release for a homing salvo. Restocked by boarding."
+loadout.microwarp.name,Name of the microwarp special,Microwarp
+loadout.microwarp.desc,Tooltip for the microwarp,"Hold to place a jump point, release to be there. Twenty seconds between jumps."
+loadout.mines.name,Name of the mine layer,Mines
+loadout.mines.desc,Tooltip for mines,"Seed plasma mines astern to deny the lane behind you. Restocked by boarding."
+controls.battery_slot,Control rows for the two battery slot keys,Battery slots — boost / disruptor / point defence
+controls.special_slot,Control rows for the two special slot keys,Special slots — torpedoes / microwarp / mines
+hud.special.microwarp,Label over the special readout when a microwarp is fitted,MICROWARP
+hud.special.mines,Label over the special readout when mines are fitted,MINES
+hud.stat.heat,"HUD stat label above the current system's wanted level with its owning faction, open world only",HEAT
+controls.faction_panel,Control description for opening the Faction Relationships panel,Toggle the faction panel
+faction.panel.title,Title of the Faction Relationships panel,Faction Relations
+faction.tab.relations,Tab label for the panel's standing/heat list,Relations
+faction.tab.map,Tab label for the panel's void-lane chart,Map
+faction.panel.standing,Column header over each faction's standing figure,STANDING
+faction.panel.heat,Column header over each faction's heat figure,HEAT
+faction.corsairs.name,Faction name: the player and allied pirates,Corsairs
+faction.houses.name,"Faction name: skirmish's generic state-power faction, not used in open world",Houses
+faction.janissariat.name,Faction name: the Ascendant's conquering and occupying force,Janissariat
+faction.guild.name,Faction name: the Ductus Guild's couriers and escorts,Guild
+faction.freebooters.name,"Faction name: unaligned raiders, hostile to everyone",Freebooters
+faction.vethara.name,Faction name: House Vethara,Vethara
+faction.ondrak.name,Faction name: House Ondrak,Ondrak
+faction.caelifen.name,Faction name: House Caelifen,Caelifen
+faction.mourne.name,Faction name: House Mourne,Mourne
+faction.aethon.name,Faction name: House Aethon,Aethon
+faction.ecclesiatum.name,Faction name: the Ecclesiatum,Ecclesiatum
+faction.you,"Label for the player themself in the Relations tab's selected-faction detail list, in place of a house name",You
+faction.map.unclaimed,"Map-tab owner label for a system with no controlling faction (a hub, Contested ground, or a lawless fringe)",Unclaimed
+faction.map.security.high,Map-tab security label for a heavily patrolled system,High Security
+faction.map.security.medium,Map-tab security label for a moderately patrolled system,Medium Security
+faction.map.security.low,Map-tab security label for a lightly patrolled or lawless system,Low Security
+hud.billboard.distress,"Billboard label over a civilian counting down to a distress call, open world only",MAYDAY
+hud.billboard.station,"Billboard label over a hovered starbase, above its faction name",STARBASE
+faction.tier.standing.hostile,"Standing tier label, below the threshold a station refuses to dock you",Hostile
+faction.tier.standing.unfriendly,"Standing tier label, below the threshold patrols attack on sight but above the dock-refusal line",Unfriendly
+faction.tier.standing.neutral,Standing tier label for the default unprovoked standing,Neutral
+faction.tier.standing.friendly,Standing tier label for a solidly positive standing,Friendly
+faction.tier.standing.allied,Standing tier label for the best standing a faction tracks,Allied
+faction.tier.heat.calm,Heat tier label at zero heat — nothing outstanding,Calm
+faction.tier.heat.watched,Heat tier label for a small amount of outstanding heat,Watched
+faction.tier.heat.wanted,Heat tier label for a moderate amount of outstanding heat,Wanted
+faction.tier.heat.hunted,"Heat tier label at or above the threshold a faction's own patrols engage on sight, independent of standing",Hunted
+faction.tier.heat.marked,Heat tier label for the highest band of outstanding heat,Marked

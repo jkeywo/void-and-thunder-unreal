@@ -1,0 +1,22 @@
+name: Source and project checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate project manifest
+        shell: pwsh
+        run: |
+          $project = Get-Content VoidAndThunder.uproject -Raw | ConvertFrom-Json
+          if ($project.EngineAssociation -ne '5.8') { throw 'Wrong engine association' }
+          foreach ($module in $project.Modules) {
+            if (-not (Test-Path "Source/$($module.Name)/$($module.Name).Build.cs")) {
+              throw "Missing module $($module.Name)"
+            }
+          }
+      - name: Native validation policy
+        shell: pwsh
+        run: Write-Output 'This workflow checks source metadata. Unreal compilation, automation, multiplayer and packaging gates run through Scripts/ on a licensed engine installation.'

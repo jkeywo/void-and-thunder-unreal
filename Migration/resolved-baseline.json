@@ -1,0 +1,883 @@
+{
+  "feel": {
+    "camera": {
+      "aim_dist": 0.6200000047683716,
+      "aim_lerp": 9.0,
+      "aim_pitch": 0.2800000011920929,
+      "base_fov": 0.7853981852531433,
+      "boost_fov_gain": 0.14000000059604645,
+      "dist_lerp": 6.0,
+      "distance": 480.0,
+      "focus_lerp": 10.0,
+      "fov_lerp": 5.0,
+      "height": 110.0,
+      "kick_decay": 9.0,
+      "kick_max": 60.0,
+      "lead_max": 120.0,
+      "lead_secs": 0.25,
+      "look_pitch_rate": 1.7999999523162842,
+      "look_yaw_rate": 2.4000000953674316,
+      "menu_orbit_rate": 0.15000000596046448,
+      "pitch_base": 0.550000011920929,
+      "pitch_max": 1.2000000476837158,
+      "pitch_min": 0.2199999988079071,
+      "recenter_delay": 3.0,
+      "recenter_delay_pad": 0.10000000149011612,
+      "recenter_lerp": 1.600000023841858,
+      "shake_freq": 34.0,
+      "shake_magnitude": 26.0,
+      "topdown_margin": 1.1200000047683716,
+      "topdown_pitch": 1.5,
+      "trauma_decay": 1.399999976158142,
+      "yaw_lerp": 2.5
+    },
+    "controls": {
+      "aim_cursor_max": 1300.0,
+      "aim_cursor_rate": 780.0,
+      "deadzone": 0.05000000074505806,
+      "mouse_aim_sens": 0.0031999999191612005,
+      "saturation": 0.8999999761581421
+    },
+    "impact": {
+      "debris_count": 8,
+      "debris_life": 0.3499999940395355,
+      "debris_speed_max": 220.0,
+      "debris_speed_min": 90.0,
+      "flash_time": 0.07999999821186066,
+      "kill_hitstop": 0.05999999865889549,
+      "nearby_death_trauma": 0.44999998807907104,
+      "nearby_hit_trauma": 0.10000000149011612,
+      "own_death_trauma": 0.8999999761581421,
+      "own_hit_hitstop": 0.03999999910593033,
+      "own_hit_kick": 22.0,
+      "own_hit_trauma": 0.18000000715255737,
+      "own_hit_trauma_per_damage": 0.009999999776482582,
+      "rumble_death_secs": 0.550000011920929,
+      "rumble_hit_secs": 0.1599999964237213,
+      "rumble_scale": 1.600000023841858,
+      "shake_range": 900.0,
+      "spark_cone": 1.2000000476837158,
+      "spark_count": 5,
+      "spark_life": 0.18000000715255737,
+      "spark_speed_max": 180.0,
+      "spark_speed_min": 70.0,
+      "wreck_drift": 0.550000011920929,
+      "wreck_life": 1.100000023841858,
+      "wreck_spin": 3.0
+    },
+    "rings": {
+      "drop": 8.0,
+      "opacity": 0.5
+    },
+    "time": {
+      "aim_timescale": 0.10000000149011612,
+      "battery_drain_per_sec": 1.0,
+      "battery_max": 5.0,
+      "battery_recharge_per_sec": 1.0,
+      "hitstop_timescale": 0.05000000074505806
+    },
+    "trails": {
+      "boost_width": 1.7000000476837158,
+      "engine": {
+        "cool": [
+          0.11999999731779099,
+          0.3199999928474426,
+          0.8999999761581421
+        ],
+        "hot": [
+          0.7799999713897705,
+          0.9300000071525574,
+          1.0
+        ],
+        "lifetime": 0.8999999761581421,
+        "max_crumbs": 64,
+        "min_step": 5.0,
+        "width": 5.0
+      },
+      "nacelle_y": 6.0,
+      "stern_x": -20.0,
+      "throttle_deadzone": 0.05000000074505806,
+      "torpedo": {
+        "cool": [
+          0.8999999761581421,
+          0.2800000011920929,
+          0.05000000074505806
+        ],
+        "hot": [
+          1.0,
+          0.8600000143051147,
+          0.550000011920929
+        ],
+        "lifetime": 0.44999998807907104,
+        "max_crumbs": 48,
+        "min_step": 4.0,
+        "width": 3.5
+      },
+      "torpedo_tail_z": -13.0,
+      "width_falloff": 0.550000011920929
+    }
+  },
+  "loadouts": {
+    "batteries": [
+      {
+        "battery": {
+          "charge": 3.0,
+          "max": 3.0,
+          "recharge_per_sec": 0.6000000238418579
+        },
+        "boost": null,
+        "emp": {
+          "aim": 0.0,
+          "arc": 1.5707963705062866,
+          "bolt_damage_frac": 0.25,
+          "bolt_speed": 360.0,
+          "cooldown": 0.4000000059604645,
+          "drain_per_sec": 0.699999988079071,
+          "range": 620.0,
+          "swivel_rate": 0.3490658402442932,
+          "timer": 0.0
+        },
+        "id": "loadout.disruptor",
+        "point_defense": null
+      },
+      {
+        "battery": {
+          "charge": 3.0,
+          "max": 3.0,
+          "recharge_per_sec": 0.6000000238418579
+        },
+        "boost": {
+          "active": false,
+          "drain_per_sec": 1.0,
+          "multiplier": 1.600000023841858
+        },
+        "emp": null,
+        "id": "loadout.boost",
+        "point_defense": null
+      },
+      {
+        "battery": {
+          "charge": 4.5,
+          "max": 4.5,
+          "recharge_per_sec": 0.6000000238418579
+        },
+        "boost": null,
+        "emp": null,
+        "id": "loadout.point_defense",
+        "point_defense": {
+          "drain_per_sec": 0.800000011920929,
+          "radius": 190.0,
+          "rate": 4.0
+        }
+      }
+    ],
+    "broadsides": [
+      {
+        "broadside": {
+          "arc": 1.1780972480773926,
+          "charge_time": 0.0,
+          "cooldown": 10.0,
+          "damage": 12.0,
+          "guns": 3,
+          "muzzle_speed": 325.0
+        },
+        "id": "loadout.heavy_cannons"
+      },
+      {
+        "broadside": {
+          "arc": 1.5707963705062866,
+          "charge_time": 0.0,
+          "cooldown": 3.5,
+          "damage": 6.0,
+          "guns": 6,
+          "muzzle_speed": 180.0
+        },
+        "id": "loadout.rapid_cannons"
+      }
+    ],
+    "specials": [
+      {
+        "id": "loadout.torpedoes",
+        "microwarp": null,
+        "mines": null,
+        "torpedoes": {
+          "damage": 22.0,
+          "lock_interval": 0.5,
+          "lock_radius": 112.5,
+          "magazine_max": 20,
+          "range": 506.0,
+          "reload_per_tube": 1.5,
+          "resupply_max": 2,
+          "resupply_min": 0,
+          "speed": 260.0,
+          "tubes_max": 6,
+          "turn_rate": 3.375
+        }
+      },
+      {
+        "id": "loadout.microwarp",
+        "microwarp": {
+          "cooldown": 20.0,
+          "range": 506.0,
+          "timer": 0.0,
+          "was_holding": false
+        },
+        "mines": null,
+        "torpedoes": null
+      },
+      {
+        "id": "loadout.mines",
+        "microwarp": null,
+        "mines": {
+          "cooldown": 1.2000000476837158,
+          "damage_per_sec": 14.0,
+          "magazine_max": 8,
+          "radius": 52.0,
+          "resupply_max": 3,
+          "resupply_min": 1,
+          "ttl": 6.0
+        },
+        "torpedoes": null
+      }
+    ]
+  },
+  "ships": {
+    "classes": [
+      {
+        "class": {
+          "ai": {
+            "aim_at_target": false,
+            "engage_range": 300.0,
+            "fire_arc": 0.3499999940395355,
+            "flee_hull_frac": 0.25,
+            "use_abilities": false
+          },
+          "collider": {
+            "radius": 26.0
+          },
+          "emp_defense": {
+            "recovery_per_sec": 14.0,
+            "resist": 100.0
+          },
+          "hull": 50.0,
+          "loadout": {
+            "battery": {
+              "charge": 3.0,
+              "max": 3.0,
+              "recharge_per_sec": 0.6000000238418579
+            },
+            "boost": null,
+            "broadside": {
+              "arc": 1.1780972480773926,
+              "charge_time": 0.0,
+              "cooldown": 10.0,
+              "damage": 12.0,
+              "guns": 3,
+              "muzzle_speed": 325.0
+            },
+            "emp": {
+              "aim": 0.0,
+              "arc": 1.5707963705062866,
+              "bolt_damage_frac": 0.25,
+              "bolt_speed": 360.0,
+              "cooldown": 0.4000000059604645,
+              "drain_per_sec": 0.699999988079071,
+              "range": 620.0,
+              "swivel_rate": 0.3490658402442932,
+              "timer": 0.0
+            },
+            "microwarp": null,
+            "mines": null,
+            "point_defense": null,
+            "shield": {
+              "aft_max": 22.5,
+              "arcs": 2,
+              "fore_max": 22.5,
+              "port_max": 0.0,
+              "regen_delay": 2.5,
+              "regen_per_sec": 7.0,
+              "starboard_max": 0.0
+            },
+            "torpedoes": {
+              "damage": 22.0,
+              "lock_interval": 0.5,
+              "lock_radius": 112.5,
+              "magazine_max": 20,
+              "range": 506.0,
+              "reload_per_tube": 1.5,
+              "resupply_max": 2,
+              "resupply_min": 0,
+              "speed": 260.0,
+              "tubes_max": 6,
+              "turn_rate": 3.375
+            }
+          },
+          "playable": {
+            "crewed": 2,
+            "guns": null,
+            "mounts": 2
+          },
+          "stats": {
+            "forward_drag": 0.8999999761581421,
+            "lateral_drag": 4.5,
+            "max_speed": 127.5,
+            "thrust": 115.0,
+            "turn_accel": 4.0,
+            "turn_rate": 0.6875,
+            "turn_rate_fast": 0.550000011920929,
+            "turn_rate_slow": 1.5499999523162842
+          }
+        },
+        "name": "corsair_cruiser"
+      },
+      {
+        "class": {
+          "ai": {
+            "aim_at_target": false,
+            "engage_range": 300.0,
+            "fire_arc": 0.3499999940395355,
+            "flee_hull_frac": 0.25,
+            "use_abilities": false
+          },
+          "collider": {
+            "radius": 26.0
+          },
+          "emp_defense": {
+            "recovery_per_sec": 14.0,
+            "resist": 100.0
+          },
+          "hull": 100.0,
+          "loadout": {
+            "battery": null,
+            "boost": null,
+            "broadside": {
+              "arc": 1.1780972480773926,
+              "charge_time": 0.5,
+              "cooldown": 2.799999952316284,
+              "damage": 12.0,
+              "guns": 3,
+              "muzzle_speed": 325.0
+            },
+            "emp": null,
+            "microwarp": null,
+            "mines": null,
+            "point_defense": null,
+            "shield": {
+              "aft_max": 0.0,
+              "arcs": 2,
+              "fore_max": 0.0,
+              "port_max": 0.0,
+              "regen_delay": 2.5,
+              "regen_per_sec": 7.0,
+              "starboard_max": 0.0
+            },
+            "torpedoes": null
+          },
+          "playable": null,
+          "stats": {
+            "forward_drag": 0.949999988079071,
+            "lateral_drag": 5.0,
+            "max_speed": 100.0,
+            "thrust": 98.0,
+            "turn_accel": 3.200000047683716,
+            "turn_rate": 0.3499999940395355,
+            "turn_rate_fast": 0.5,
+            "turn_rate_slow": 1.350000023841858
+          }
+        },
+        "name": "house_patrol"
+      },
+      {
+        "class": {
+          "ai": {
+            "aim_at_target": true,
+            "engage_range": 520.0,
+            "fire_arc": 3.1415927410125732,
+            "flee_hull_frac": 0.0,
+            "use_abilities": false
+          },
+          "collider": {
+            "radius": 42.0
+          },
+          "emp_defense": {
+            "recovery_per_sec": 20.0,
+            "resist": 220.0
+          },
+          "hull": 300.0,
+          "loadout": {
+            "battery": null,
+            "boost": null,
+            "broadside": {
+              "arc": 3.1415927410125732,
+              "charge_time": 0.0,
+              "cooldown": 1.0,
+              "damage": 5.0,
+              "guns": 2,
+              "muzzle_speed": 300.0
+            },
+            "emp": null,
+            "microwarp": null,
+            "mines": null,
+            "point_defense": null,
+            "shield": {
+              "aft_max": 0.0,
+              "arcs": 1,
+              "fore_max": 120.0,
+              "port_max": 0.0,
+              "regen_delay": 3.0,
+              "regen_per_sec": 9.0,
+              "starboard_max": 0.0
+            },
+            "torpedoes": null
+          },
+          "playable": null,
+          "stats": {
+            "forward_drag": 0.8999999761581421,
+            "lateral_drag": 6.0,
+            "max_speed": 34.0,
+            "thrust": 30.0,
+            "turn_accel": 1.399999976158142,
+            "turn_rate": 0.1599999964237213,
+            "turn_rate_fast": 0.699999988079071,
+            "turn_rate_slow": 1.2000000476837158
+          }
+        },
+        "name": "house_bastion"
+      },
+      {
+        "class": {
+          "ai": {
+            "aim_at_target": false,
+            "engage_range": 300.0,
+            "fire_arc": 0.3499999940395355,
+            "flee_hull_frac": 0.25,
+            "use_abilities": false
+          },
+          "collider": {
+            "radius": 20.0
+          },
+          "emp_defense": {
+            "recovery_per_sec": 16.0,
+            "resist": 70.0
+          },
+          "hull": 34.0,
+          "loadout": {
+            "battery": {
+              "charge": 6.0,
+              "max": 6.0,
+              "recharge_per_sec": 0.8999999761581421
+            },
+            "boost": null,
+            "broadside": {
+              "arc": 1.1780972480773926,
+              "charge_time": 0.0,
+              "cooldown": 1.5,
+              "damage": 12.0,
+              "guns": 3,
+              "muzzle_speed": 325.0
+            },
+            "emp": null,
+            "microwarp": null,
+            "mines": null,
+            "point_defense": null,
+            "shield": {
+              "aft_max": 0.0,
+              "arcs": 1,
+              "fore_max": 30.0,
+              "port_max": 0.0,
+              "regen_delay": 2.5,
+              "regen_per_sec": 8.0,
+              "starboard_max": 0.0
+            },
+            "torpedoes": null
+          },
+          "playable": {
+            "crewed": 1,
+            "guns": 2,
+            "mounts": 1
+          },
+          "stats": {
+            "forward_drag": 0.8999999761581421,
+            "lateral_drag": 4.0,
+            "max_speed": 164.0,
+            "thrust": 148.0,
+            "turn_accel": 5.5,
+            "turn_rate": 0.949999988079071,
+            "turn_rate_fast": 0.800000011920929,
+            "turn_rate_slow": 2.0
+          }
+        },
+        "name": "corsair_frigate"
+      },
+      {
+        "class": {
+          "ai": {
+            "aim_at_target": false,
+            "engage_range": 300.0,
+            "fire_arc": 0.3499999940395355,
+            "flee_hull_frac": 0.25,
+            "use_abilities": false
+          },
+          "collider": {
+            "radius": 38.0
+          },
+          "emp_defense": {
+            "recovery_per_sec": 16.0,
+            "resist": 180.0
+          },
+          "hull": 110.0,
+          "loadout": {
+            "battery": {
+              "charge": 9.0,
+              "max": 9.0,
+              "recharge_per_sec": 1.2000000476837158
+            },
+            "boost": null,
+            "broadside": {
+              "arc": 1.1780972480773926,
+              "charge_time": 0.0,
+              "cooldown": 1.5,
+              "damage": 12.0,
+              "guns": 3,
+              "muzzle_speed": 325.0
+            },
+            "emp": null,
+            "microwarp": null,
+            "mines": null,
+            "point_defense": null,
+            "shield": {
+              "aft_max": 26.0,
+              "arcs": 4,
+              "fore_max": 26.0,
+              "port_max": 26.0,
+              "regen_delay": 3.0,
+              "regen_per_sec": 6.0,
+              "starboard_max": 26.0
+            },
+            "torpedoes": null
+          },
+          "playable": {
+            "crewed": 1,
+            "guns": 5,
+            "mounts": 3
+          },
+          "stats": {
+            "forward_drag": 0.8999999761581421,
+            "lateral_drag": 6.0,
+            "max_speed": 68.0,
+            "thrust": 62.0,
+            "turn_accel": 2.0,
+            "turn_rate": 0.30000001192092896,
+            "turn_rate_fast": 0.3499999940395355,
+            "turn_rate_slow": 0.8500000238418579
+          }
+        },
+        "name": "corsair_battleship"
+      }
+    ]
+  },
+  "skirmish": {
+    "bounds_radius": 1400.0,
+    "director": {
+      "base_count": 2,
+      "base_hull": 100.0,
+      "enemy_class": "house_patrol",
+      "faction": "Houses",
+      "finale_class": "house_bastion",
+      "finale_count": 1,
+      "hull_per_wave": 25.0,
+      "max_waves": 3
+    },
+    "enemies": [],
+    "name": "Skirmish",
+    "player": {
+      "class": "corsair_cruiser",
+      "faction": "Corsairs",
+      "flags": {
+        "anchored": false,
+        "inert": false,
+        "invulnerable": false
+      },
+      "heading": 1.5707963705062866,
+      "hull": null,
+      "pos": [
+        0.0,
+        -520.0
+      ]
+    }
+  },
+  "source_commit": "c138f2c9caab77ed8288ddcb46d1622e471c2b15",
+  "test_range": {
+    "bounds_radius": 1400.0,
+    "director": null,
+    "enemies": [
+      {
+        "class": "house_patrol",
+        "faction": "Houses",
+        "flags": {
+          "anchored": true,
+          "inert": true,
+          "invulnerable": true
+        },
+        "heading": 0.0,
+        "hull": null,
+        "pos": [
+          0.0,
+          0.0
+        ]
+      }
+    ],
+    "name": "Test Range",
+    "player": {
+      "class": "corsair_cruiser",
+      "faction": "Corsairs",
+      "flags": {
+        "anchored": false,
+        "inert": false,
+        "invulnerable": false
+      },
+      "heading": 1.5707963705062866,
+      "hull": null,
+      "pos": [
+        0.0,
+        -320.0
+      ]
+    }
+  },
+  "tuning": {
+    "ai": {
+      "pilot": {
+        "aim_lock": 1.0,
+        "board_base": 0.3499999940395355,
+        "board_repair_pull": 0.44999998807907104,
+        "board_resupply_pull": 0.4000000059604645,
+        "board_safe_threat": 1.0,
+        "brace_range_frac": 0.6000000238418579,
+        "commit_bonus": 0.15000000596046448,
+        "emp_busy_interest": 0.3499999940395355,
+        "emp_throttle": 0.3499999940395355,
+        "mine_lead": 3.0,
+        "mine_reserve": 0.25,
+        "presentation_floor": 0.4000000059604645,
+        "ram_hull_floor": 0.5,
+        "reloading_interest": 0.550000011920929,
+        "scarcity_floor": 0.3499999940395355,
+        "screen_base": 0.550000011920929,
+        "screen_danger": 1.0,
+        "screen_raise": 0.3499999940395355,
+        "shield_bias": 0.3499999940395355,
+        "shield_worth": 0.699999988079071,
+        "thumb_travel": 0.20000000298023224,
+        "torpedo_aim_lock": 2.0,
+        "torpedo_standoff": 0.800000011920929,
+        "w_board": 1.100000023841858,
+        "w_broadside": 1.0,
+        "w_disengage": 1.7999999523162842,
+        "w_emp": 0.699999988079071,
+        "w_microwarp": 1.399999976158142,
+        "w_ram": 0.8999999761581421,
+        "w_torpedo": 0.949999988079071,
+        "warp_escape_threat": 2.0,
+        "warp_reposition_interest": 0.6000000238418579
+      },
+      "station_lead_secs": 0.75,
+      "station_throttle": 0.30000001192092896,
+      "surround_count": 2,
+      "surround_radius": 400.0,
+      "torpedo_min_volley": 3,
+      "turn_ease": 0.75,
+      "turn_gain": 2.5,
+      "warp_prime": 0.4000000059604645
+    },
+    "board_dwell": 3.0,
+    "board_range": 95.0,
+    "board_repair_frac": 0.10000000149011612,
+    "bounds_spring": 3.0,
+    "brace_damage_factor": 0.3499999940395355,
+    "cripple_threshold": 0.25,
+    "engagement_range": 506.0,
+    "hull_length": 40.0,
+    "jump_charge_time": 6.0,
+    "jump_range": 120.0,
+    "muzzle_standoff": 22.0,
+    "open_world": {
+      "alert_ttl": 20.0,
+      "avenge_reputation_bonus": 8.0,
+      "dock_refusal_threshold": -40.0,
+      "heat_decay_per_sec": 1.5,
+      "heat_engage_threshold": 50.0,
+      "heat_per_damage": 0.4000000059604645,
+      "heat_to_reputation_rate": 0.15000000596046448,
+      "hostile_threshold": -20.0,
+      "recent_attack_memory": 15.0,
+      "scan_decay_rate": 0.800000011920929,
+      "scan_rate": 0.4000000059604645
+    },
+    "projectile_radius": 5.0,
+    "projectile_ttl": 2.5,
+    "ram_boost_bonus": 2.5,
+    "ram_damage_per_speed": 0.2199999988079071,
+    "ram_damage_threshold": 45.0,
+    "ram_restitution": 0.3499999940395355,
+    "ram_separation": 0.6000000238418579,
+    "reverse_throttle": 0.25,
+    "torpedo_launch_interval": 0.5
+  },
+  "world": {
+    "start": "the_scar",
+    "systems": [
+      {
+        "bounds_radius": 1800.0,
+        "danger": 0.10000000149011612,
+        "has_starbase": true,
+        "id": "seam",
+        "links": [
+          "meridian_gate",
+          "pale_meridian",
+          "caelifen"
+        ],
+        "name": "The Seam",
+        "owner": null,
+        "security": "High",
+        "x": 430.0,
+        "y": 310.0
+      },
+      {
+        "bounds_radius": 1600.0,
+        "danger": 0.15000000596046448,
+        "has_starbase": false,
+        "id": "meridian_gate",
+        "links": [
+          "seam",
+          "the_scar",
+          "guild_anchorage"
+        ],
+        "name": "Meridian Gate",
+        "owner": null,
+        "security": "High",
+        "x": 360.0,
+        "y": 360.0
+      },
+      {
+        "bounds_radius": 1500.0,
+        "danger": 0.800000011920929,
+        "has_starbase": false,
+        "id": "pale_meridian",
+        "links": [
+          "seam",
+          "tessavar",
+          "the_scar"
+        ],
+        "name": "Pale Meridian",
+        "owner": null,
+        "security": "Low",
+        "x": 295.0,
+        "y": 215.0
+      },
+      {
+        "bounds_radius": 1700.0,
+        "danger": 0.10000000149011612,
+        "has_starbase": true,
+        "id": "caelifen",
+        "links": [
+          "seam",
+          "vorth_station"
+        ],
+        "name": "Caelifen",
+        "owner": "Caelifen",
+        "security": "High",
+        "x": 575.0,
+        "y": 205.0
+      },
+      {
+        "bounds_radius": 1400.0,
+        "danger": 0.25,
+        "has_starbase": false,
+        "id": "vorth_station",
+        "links": [
+          "caelifen",
+          "ondrak_reach"
+        ],
+        "name": "Vorth Station",
+        "owner": "Caelifen",
+        "security": "Medium",
+        "x": 660.0,
+        "y": 155.0
+      },
+      {
+        "bounds_radius": 1700.0,
+        "danger": 0.10000000149011612,
+        "has_starbase": true,
+        "id": "ondrak_reach",
+        "links": [
+          "vorth_station"
+        ],
+        "name": "Ondrak's Reach",
+        "owner": "Ondrak",
+        "security": "High",
+        "x": 720.0,
+        "y": 270.0
+      },
+      {
+        "bounds_radius": 1700.0,
+        "danger": 0.10000000149011612,
+        "has_starbase": true,
+        "id": "vethara_seat",
+        "links": [
+          "tessavar",
+          "the_scar"
+        ],
+        "name": "Vethara Seat",
+        "owner": "Vethara",
+        "security": "High",
+        "x": 100.0,
+        "y": 280.0
+      },
+      {
+        "bounds_radius": 1500.0,
+        "danger": 0.20000000298023224,
+        "has_starbase": false,
+        "id": "tessavar",
+        "links": [
+          "pale_meridian",
+          "vethara_seat"
+        ],
+        "name": "Tessavar",
+        "owner": "Ecclesiatum",
+        "security": "Medium",
+        "x": 170.0,
+        "y": 165.0
+      },
+      {
+        "bounds_radius": 1500.0,
+        "danger": 0.10000000149011612,
+        "has_starbase": true,
+        "id": "guild_anchorage",
+        "links": [
+          "meridian_gate"
+        ],
+        "name": "Guild Anchorage",
+        "owner": "Guild",
+        "security": "High",
+        "x": 340.0,
+        "y": 490.0
+      },
+      {
+        "bounds_radius": 1400.0,
+        "danger": 0.699999988079071,
+        "has_starbase": false,
+        "id": "the_scar",
+        "links": [
+          "meridian_gate",
+          "pale_meridian",
+          "vethara_seat"
+        ],
+        "name": "The Scar",
+        "owner": null,
+        "security": "Low",
+        "x": 215.0,
+        "y": 310.0
+      }
+    ]
+  }
+}

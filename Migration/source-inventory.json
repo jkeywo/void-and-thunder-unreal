@@ -1,0 +1,618 @@
+{
+  "source_commit": "c138f2c9caab77ed8288ddcb46d1622e471c2b15",
+  "baseline_sha256": "d6aa07bc8a1b331597ec7f04917d7327b6351775014f27b67bd3a08a712e0a51",
+  "simulation_modules": [
+    {
+      "path": "crates/vt_sim/src/ai.rs",
+      "public_functions": [
+        "desired_helm",
+        "ai_system"
+      ],
+      "tests": [
+        "pursues_a_distant_target_bow_on",
+        "spills_way_to_make_a_hard_turn",
+        "a_fleeing_ship_keeps_full_throttle_through_the_turn",
+        "fires_port_when_target_is_on_the_port_beam",
+        "fires_starboard_when_target_is_on_the_starboard_beam",
+        "presents_a_beam_when_target_is_close_ahead",
+        "flees_when_hull_is_low",
+        "ai_system_drives_a_ship_at_its_enemy",
+        "ai_holds_fire_on_a_crippled_prize"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/avenge.rs",
+      "public_functions": [
+        "track_recent_attacks",
+        "avenge_system"
+      ],
+      "tests": [
+        "destroying_a_recent_attacker_rewards_its_victims_faction",
+        "a_kill_the_player_did_not_land_earns_no_thanks",
+        "a_stale_memory_past_its_ttl_earns_no_reward",
+        "a_faction_with_no_recent_victim_earns_nothing_extra"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/civilian.rs",
+      "public_functions": [
+        "civilian_desired_helm",
+        "civilian_ai_system"
+      ],
+      "tests": [
+        "a_civilian_with_nothing_nearby_holds_station",
+        "a_civilian_runs_from_a_threat_at_full_throttle",
+        "a_civilian_turns_away_from_the_threat_behind_it",
+        "a_civilian_turns_hard_from_a_threat_ahead",
+        "civilian_ai_system_flees_a_hostile_within_range",
+        "civilian_ai_system_never_touches_fire_orders"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/collide.rs",
+      "public_functions": [
+        "ram_damage",
+        "ram_boost_multiplier",
+        "ram_system",
+        "line_of_sight",
+        "landmark_system"
+      ],
+      "tests": [
+        "a_gentle_nudge_is_free",
+        "a_boosted_bow_on_ram_hits_much_harder",
+        "line_of_sight_is_clear_with_nothing_between",
+        "a_landmark_dead_between_blocks_the_line",
+        "a_landmark_off_to_the_side_does_not_block",
+        "a_hard_ram_hurts_and_scales_with_speed"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/combat.rs",
+      "public_functions": [
+        "side",
+        "side_mut",
+        "ready",
+        "broadside_direction",
+        "broadside_volley",
+        "intercept_lead",
+        "circles_overlap",
+        "spheres_overlap",
+        "braced_damage",
+        "apply_hull_damage",
+        "weapons_system",
+        "projectile_system",
+        "collision_system",
+        "destruction_system"
+      ],
+      "tests": [
+        "a_volley_has_one_spawn_per_gun",
+        "beam_direction_defaults_to_the_side",
+        "aim_is_clamped_to_the_arc",
+        "the_arc_is_centred_on_the_beam",
+        "the_default_arc_is_135_degrees_wide",
+        "shots_inherit_ship_momentum",
+        "overlap_detects_a_hit",
+        "spheres_overlap_detects_a_hit",
+        "spheres_overlap_ignores_distant_spheres",
+        "braced_damage_applies_the_brace_factor",
+        "braced_damage_is_full_when_not_braced",
+        "friendly_fire_is_ignored",
+        "a_stationary_target_needs_no_lead",
+        "the_lead_mark_is_where_the_shot_and_the_target_meet",
+        "matching_velocities_need_no_lead",
+        "a_target_outrunning_the_shot_has_no_solution",
+        "a_closing_target_shortens_the_flight",
+        "a_hit_names_the_ship_and_the_damage"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/components.rs",
+      "public_functions": [
+        "hostile_to",
+        "forward",
+        "new",
+        "speed_factor",
+        "any",
+        "piloting"
+      ],
+      "tests": []
+    },
+    {
+      "path": "crates/vt_sim/src/distress.rs",
+      "public_functions": [
+        "distress_system"
+      ],
+      "tests": [
+        "a_hit_civilian_starts_a_countdown",
+        "the_call_broadcasts_once_the_delay_elapses",
+        "killing_the_civilian_before_the_delay_blocks_the_call",
+        "crippling_the_civilian_before_the_delay_blocks_the_call",
+        "a_second_hit_does_not_refresh_the_timer"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/drive.rs",
+      "public_functions": [
+        "draw",
+        "fraction",
+        "engaged",
+        "speed_scale",
+        "emp_recovery_system",
+        "battery_draw_system",
+        "battery_recharge_system",
+        "speed_scale_system",
+        "clamp_to_range",
+        "microwarp_system"
+      ],
+      "tests": [
+        "rest_ship_runs_at_full_speed",
+        "emp_inverse_lerps_speed",
+        "boost_multiplies_when_engaged",
+        "emp_and_boost_stack",
+        "one_pool_serves_two_devices",
+        "a_device_that_drew_blocks_the_recharge_this_step",
+        "a_flat_battery_disengages_boost",
+        "a_device_without_a_battery_never_powers_up",
+        "a_shared_pool_pays_the_pilot_before_the_crew",
+        "microwarp_clamps_to_range"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/emp.rs",
+      "public_functions": [
+        "lead_point",
+        "lead_angle",
+        "swivel_toward",
+        "emp_system",
+        "emp_bolt_system"
+      ],
+      "tests": [
+        "it_fires_straight_ahead_with_nothing_in_the_cone",
+        "lead_aims_ahead_of_a_crossing_target",
+        "emitter_angle_is_clamped_to_the_arc",
+        "swivel_is_rate_limited_then_snaps"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/events.rs",
+      "public_functions": [],
+      "tests": []
+    },
+    {
+      "path": "crates/vt_sim/src/harness.rs",
+      "public_functions": [
+        "new",
+        "step",
+        "run"
+      ],
+      "tests": [
+        "ai_can_pilot_a_player_shaped_ship",
+        "ai_pilot_emps_a_close_target",
+        "the_ai_pilot_raises_a_fitted_screen",
+        "the_ai_pilot_never_asks_for_a_module_it_does_not_carry",
+        "hulls_do_not_pass_through_each_other",
+        "a_hard_ram_damages_both_ships",
+        "a_slow_bump_costs_no_hull",
+        "an_anchored_ship_is_not_shoved",
+        "a_shielded_hull_is_spared_on_the_side_that_holds",
+        "an_invulnerable_ship_takes_no_damage",
+        "an_anchored_ship_never_moves"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/heat.rs",
+      "public_functions": [
+        "get",
+        "adjust",
+        "is_hostile_to_player",
+        "crime_system",
+        "heat_decay_system"
+      ],
+      "tests": [
+        "hurting_a_faction_raises_its_own_heat",
+        "provoking_one_faction_does_not_touch_another",
+        "an_already_hostile_faction_generates_no_additional_heat",
+        "hurting_a_ship_also_angers_the_systems_owner",
+        "the_owner_generates_no_heat_for_hurting_its_own_ships",
+        "the_owner_is_not_angered_by_an_attack_on_its_own_enemy",
+        "no_owner_means_no_second_faction_to_anger",
+        "heat_decays_and_costs_reputation",
+        "decay_leaves_other_factions_heat_untouched"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/interact.rs",
+      "public_functions": [
+        "advance_dwell"
+      ],
+      "tests": [
+        "dwelling_in_range_while_active_completes_at_the_threshold",
+        "dwelling_without_holding_active_never_completes",
+        "leaving_range_resets_progress",
+        "switching_targets_restarts_the_dwell"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/jump.rs",
+      "public_functions": [
+        "jump_charge_system"
+      ],
+      "tests": [
+        "charging_in_range_completes_after_the_dwell",
+        "releasing_the_key_freezes_progress_instead_of_resetting_it",
+        "leaving_range_resets_the_charge",
+        "a_jump_point_out_of_range_is_ignored"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/lib.rs",
+      "public_functions": [],
+      "tests": []
+    },
+    {
+      "path": "crates/vt_sim/src/mines.rs",
+      "public_functions": [
+        "stocked",
+        "restock",
+        "mine_drop_system",
+        "mine_field_system"
+      ],
+      "tests": [
+        "a_drop_spends_a_mine_and_lands_astern",
+        "an_empty_rack_drops_nothing",
+        "holding_the_key_drops_at_the_racks_own_rate",
+        "a_mine_burns_a_pursuer_and_not_the_ship_that_dropped_it",
+        "a_mine_expires",
+        "an_invulnerable_ship_does_not_burn",
+        "burning_announces_far_less_often_than_it_damages"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/patrol.rs",
+      "public_functions": [
+        "new",
+        "patrol_ai_system",
+        "apply_scan_alerts"
+      ],
+      "tests": [
+        "with_nothing_around_a_patrol_just_patrols",
+        "a_neutral_contact_in_range_and_sight_gets_scanned",
+        "breaking_line_of_sight_stops_the_scan_and_decays_it",
+        "leaving_range_stops_the_scan",
+        "a_hostile_but_unscanned_player_in_range_is_scanned_not_engaged",
+        "a_hostile_and_scanned_player_in_range_is_engaged",
+        "a_scanned_neutral_contact_is_left_alone",
+        "a_disabled_player_is_never_engaged_or_scanned",
+        "a_low_hull_patrol_flees_regardless_of_everything_else",
+        "an_active_alert_drives_investigation_when_not_hostile",
+        "a_hostile_patrol_with_no_contact_of_its_own_still_investigates_an_alert",
+        "a_completed_hostile_scan_alerts_a_distant_sibling_patrol",
+        "a_completed_scan_of_a_neutral_player_alerts_no_one"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/pilot.rs",
+      "public_functions": [
+        "name",
+        "without",
+        "only",
+        "new",
+        "target",
+        "prize",
+        "forward",
+        "armed",
+        "score_of",
+        "score",
+        "plan",
+        "score_screen",
+        "score_mine",
+        "gunnery",
+        "apply_hands",
+        "pilot_system",
+        "gunnery_system"
+      ],
+      "tests": [
+        "a_healthy_ship_with_an_enemy_on_the_beam_fights_the_broadside",
+        "emp_never_outbids_a_working_broadside",
+        "emp_fires_opportunistically_when_the_bow_crosses_a_target",
+        "emp_takes_the_helm_when_the_ship_has_nothing_else",
+        "torpedoes_are_worth_less_as_the_magazine_empties",
+        "an_empty_bay_never_argues_for_torpedoes",
+        "a_dry_ship_rams",
+        "a_wounded_ship_will_not_trade_rams",
+        "a_hurt_ship_breaks_off",
+        "a_quiet_field_with_a_hulk_in_it_goes_looting",
+        "boarding_waits_until_the_shooting_stops",
+        "hunger_pulls_harder_toward_a_prize",
+        "a_hulk_alongside_is_claimed_without_a_thumb_to_spare",
+        "surrounded_and_hurt_the_ship_jumps_clear",
+        "a_cooling_drive_never_wins",
+        "a_distant_enemy_is_worth_jumping_toward",
+        "commitment_steadies_the_helm_without_reviving_the_impossible",
+        "an_empty_field_holds_station",
+        "a_jump_does_not_try_to_build_a_volley",
+        "the_volley_is_laid_on_the_firing_solution",
+        "only_one_volley_leaves_at_a_time",
+        "a_half_built_volley_keeps_the_aim_from_the_guns",
+        "priming_a_jump_takes_the_aim_off_the_guns",
+        "the_thumb_cannot_boost_and_brace_at_once",
+        "a_thumb_has_to_reach_the_button_first",
+        "changing_buttons_pays_the_crossing_again",
+        "the_screen_stays_down_with_nobody_shooting",
+        "the_screen_goes_up_under_fire",
+        "a_ship_with_no_screen_never_asks_for_one",
+        "a_hurt_ship_wants_the_screen_more",
+        "a_mine_is_only_worth_dropping_on_a_pursuer",
+        "a_distant_chaser_is_not_worth_a_mine",
+        "an_empty_or_busy_rack_offers_nothing",
+        "the_last_mines_are_held_back_unless_things_are_dire",
+        "the_thumb_cannot_raise_the_screen_and_brace_at_once",
+        "full_shields_buy_time_before_running",
+        "a_pinned_bow_bank_favours_showing_the_stern",
+        "a_dome_shield_never_argues_about_facing",
+        "presentation_costs_nothing_with_nobody_in_range",
+        "an_unshielded_hull_is_untouched_by_any_of_this",
+        "a_charged_bow_makes_a_ram_worth_more",
+        "pilot_system_flies_only_the_ships_that_asked_for_it",
+        "the_pilot_flies_a_ship_that_carries_no_kit_but_its_guns",
+        "a_crewed_device_reads_as_not_carried",
+        "the_two_masks_partition_the_kit",
+        "gunnery_never_writes_a_helm_or_fire_orders",
+        "a_crew_has_free_hands",
+        "gunnery_ignores_the_controller",
+        "a_crew_cannot_steer_or_jump",
+        "a_captain_never_reaches_for_the_gunners_trigger",
+        "a_crew_raises_a_screen_the_pilot_never_touched"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/piracy.rs",
+      "public_functions": [
+        "cripple_system",
+        "boarding_system",
+        "protagonist_cripple_system",
+        "enemy_boarding_system"
+      ],
+      "tests": [
+        "a_low_hull_enemy_becomes_disabled",
+        "boarding_claims_a_ship_after_dwelling_in_range",
+        "boarding_repairs_the_protagonists_hull",
+        "boarding_restocks_mines_as_well_as_torpedoes",
+        "a_boarding_repair_cannot_overfill_the_hull",
+        "leaving_range_resets_boarding_progress",
+        "boarding_misses_a_ship_out_of_range",
+        "dwelling_without_holding_board_never_completes_it",
+        "a_low_hull_protagonist_becomes_disabled",
+        "a_healthy_protagonist_is_left_alone",
+        "an_overkill_hit_cripples_rather_than_destroys_the_protagonist",
+        "the_original_cripple_system_still_exempts_the_protagonist",
+        "a_hostile_dwelling_alongside_a_disabled_protagonist_boards_it",
+        "boarding_the_protagonist_never_despawns_it",
+        "an_undisabled_protagonist_cannot_be_boarded",
+        "a_hostile_leaving_range_resets_the_boarding_attempt"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/plugin.rs",
+      "public_functions": [],
+      "tests": []
+    },
+    {
+      "path": "crates/vt_sim/src/point_defense.rs",
+      "public_functions": [
+        "point_defense_system"
+      ],
+      "tests": [
+        "it_kills_a_hostile_shot_inside_the_radius",
+        "and_never_a_friendly_one",
+        "and_nothing_beyond_the_radius",
+        "and_nothing_at_all_when_unpowered",
+        "it_takes_one_munition_per_interval",
+        "it_also_takes_torpedoes_arcing_overhead"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/relations.rs",
+      "public_functions": [
+        "npc_standing",
+        "standing_between"
+      ],
+      "tests": [
+        "every_table_entry_reads_the_same_looked_up_either_way",
+        "standing_between_is_symmetric_for_every_table_pair",
+        "standing_between_routes_corsairs_through_reputation",
+        "standing_between_same_faction_is_maximal"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/reputation.rs",
+      "public_functions": [
+        "standing",
+        "adjust",
+        "open_world_hostile"
+      ],
+      "tests": [
+        "fresh_standing_is_neutral_and_not_hostile",
+        "default_standings_are_varied_but_never_start_hostile",
+        "provoking_one_house_does_not_touch_another",
+        "standing_below_threshold_turns_a_faction_hostile",
+        "standing_adjustment_clamps_to_the_tracked_range",
+        "freebooters_are_always_hostile_regardless_of_standing",
+        "untracked_factions_never_self_trigger_hostility"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/shield.rs",
+      "public_functions": [
+        "arc_count",
+        "live_arcs",
+        "astern",
+        "charged",
+        "max_of",
+        "fitted",
+        "bank",
+        "suppressed",
+        "fraction",
+        "absorb",
+        "charge_total",
+        "max_total",
+        "shield_arc",
+        "shield_regen_system",
+        "shield_refit_system",
+        "arc_of_hit"
+      ],
+      "tests": [
+        "an_unfitted_shield_stops_nothing",
+        "a_shield_soaks_damage_then_lets_the_rest_through",
+        "the_arcs_are_independent",
+        "a_hit_suppresses_only_the_arc_that_took_it",
+        "sustained_fire_keeps_a_flat_bank_down",
+        "the_bow_half_is_fore_and_the_stern_half_is_aft",
+        "the_arcs_turn_with_the_hull",
+        "the_quadrants_are_bow_stern_and_two_beams",
+        "a_quadrant_boundary_belongs_to_the_bow",
+        "a_dead_centre_contact_lands_on_the_bow_at_four_arcs",
+        "a_dome_answers_the_same_from_every_bearing",
+        "the_quadrants_turn_with_the_hull",
+        "a_dome_has_no_other_side",
+        "two_arcs_is_the_shipped_fit",
+        "a_refit_clears_the_capacity_of_arcs_the_hull_does_not_have",
+        "a_refit_never_leaves_an_over_full_bank",
+        "an_authored_third_arc_rounds_down_to_two",
+        "the_totals_only_count_live_arcs",
+        "charged_fills_only_the_arcs_that_exist"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/ship.rs",
+      "public_functions": [
+        "agility_at",
+        "helm_step",
+        "movement_system"
+      ],
+      "tests": [
+        "full_throttle_accelerates_along_the_bow",
+        "reverse_is_a_quarter_of_forward_thrust",
+        "helm_turns_the_hull",
+        "speed_is_clamped_to_max",
+        "drag_bleeds_off_a_coasting_ship",
+        "a_slow_ship_is_handier_than_a_fast_one",
+        "the_hull_bites_sideways_harder_than_it_drags_astern",
+        "taking_in_sail_buys_a_tighter_turn",
+        "rate_of_turn_ramps_rather_than_snapping"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/spawn.rs",
+      "public_functions": [
+        "player",
+        "bastion",
+        "enemy",
+        "ship_bundle",
+        "strip_devices",
+        "fit_devices",
+        "spawn_ship",
+        "spawn_ship_in",
+        "silent",
+        "seeded",
+        "wave_size",
+        "wave_spawn_points",
+        "director_system",
+        "reset_encounter"
+      ],
+      "tests": [
+        "a_ship_carries_only_the_devices_its_loadout_fits",
+        "an_enemy_carries_no_kit_at_all",
+        "the_finale_replaces_the_last_wave",
+        "waves_escalate_in_size",
+        "spawn_points_ring_the_edge",
+        "director_spawns_the_first_wave",
+        "a_silent_director_spawns_nothing_and_never_clears",
+        "a_silent_director_can_still_lose",
+        "resetting_preserves_the_authored_settings",
+        "losing_the_protagonist_ends_the_encounter"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/starbase.rs",
+      "public_functions": [
+        "docking_system",
+        "spend",
+        "credit_system",
+        "pay_off_heat"
+      ],
+      "tests": [
+        "docking_completes_after_dwelling_in_range",
+        "a_hostile_standing_refuses_docking",
+        "docking_ignores_a_starbase_out_of_range",
+        "boarding_a_ship_credits_the_bounty",
+        "paying_off_heat_spends_credits_and_clears_heat",
+        "paying_off_heat_fails_without_enough_credits",
+        "paying_off_heat_never_touches_another_factions_heat",
+        "no_protagonist_resets_docking",
+        "ignores_non_starbase_ships"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/torpedo.rs",
+      "public_functions": [
+        "stocked",
+        "restock",
+        "next_lock",
+        "home_velocity",
+        "torpedo_reload_system",
+        "torpedo_launch_system",
+        "torpedo_lock_system",
+        "torpedo_homing_system",
+        "torpedo_hit_system"
+      ],
+      "tests": [
+        "a_sweep_takes_the_nearest_unlocked_hostile",
+        "spare_tubes_double_up_once_everything_is_locked",
+        "nothing_under_the_cursor_locks_nothing",
+        "locks_are_limited_by_loaded_tubes",
+        "a_target_beyond_the_bays_range_cannot_be_locked",
+        "sweeping_the_cursor_collects_a_target_per_ship",
+        "tubes_reload_from_the_magazine_and_stop_when_it_is_empty",
+        "a_restock_never_overfills_the_magazine",
+        "a_lock_is_kept_once_taken",
+        "a_lock_on_a_dead_ship_is_dropped",
+        "a_second_volley_does_not_clobber_one_still_launching",
+        "a_volley_spreads_across_distinct_targets",
+        "queued_torpedoes_launch_one_per_interval",
+        "a_torpedo_self_destructs_when_its_target_is_gone",
+        "homing_turns_toward_the_target_but_is_rate_limited"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/tuning.rs",
+      "public_functions": [],
+      "tests": [
+        "defaults_match_the_constants"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/util.rs",
+      "public_functions": [
+        "wrap_angle",
+        "lcg_next"
+      ],
+      "tests": [
+        "wrap_angle_keeps_values_in_range",
+        "lcg_next_stays_in_unit_range_and_varies"
+      ]
+    },
+    {
+      "path": "crates/vt_sim/src/world.rs",
+      "public_functions": [
+        "bounds_return",
+        "bounds_system"
+      ],
+      "tests": [
+        "inside_the_bounds_velocity_is_unchanged",
+        "outside_the_bounds_the_ship_is_pulled_inward",
+        "the_spring_grows_with_overshoot"
+      ]
+    }
+  ]
+}

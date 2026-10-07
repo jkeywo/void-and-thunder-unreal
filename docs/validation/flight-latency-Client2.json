@@ -1,0 +1,10 @@
+{
+	"role": "Client2",
+	"max_players": 4,
+	"moved": true,
+	"system": 6,
+	"ack": 1553,
+	"npcs": 50,
+	"simulation_time": 33.046875,
+	"passed": true
+}
