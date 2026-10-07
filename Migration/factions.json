@@ -1,0 +1,206 @@
+{
+  "source_commit": "c138f2c9caab77ed8288ddcb46d1622e471c2b15",
+  "source": "vt_sim/src/relations.rs and reputation.rs",
+  "tracked": [
+    "Vethara",
+    "Ondrak",
+    "Caelifen",
+    "Mourne",
+    "Aethon",
+    "Ecclesiatum",
+    "Guild",
+    "Janissariat"
+  ],
+  "initial": [
+    5,
+    10,
+    -5,
+    0,
+    8,
+    -10,
+    12,
+    -18
+  ],
+  "relations": [
+    {
+      "a": "Freebooters",
+      "b": "Vethara",
+      "standing": -70.0
+    },
+    {
+      "a": "Freebooters",
+      "b": "Ondrak",
+      "standing": -70.0
+    },
+    {
+      "a": "Freebooters",
+      "b": "Caelifen",
+      "standing": -70.0
+    },
+    {
+      "a": "Freebooters",
+      "b": "Mourne",
+      "standing": -70.0
+    },
+    {
+      "a": "Freebooters",
+      "b": "Aethon",
+      "standing": -70.0
+    },
+    {
+      "a": "Freebooters",
+      "b": "Ecclesiatum",
+      "standing": -70.0
+    },
+    {
+      "a": "Freebooters",
+      "b": "Guild",
+      "standing": -70.0
+    },
+    {
+      "a": "Freebooters",
+      "b": "Janissariat",
+      "standing": -70.0
+    },
+    {
+      "a": "Guild",
+      "b": "Vethara",
+      "standing": 30.0
+    },
+    {
+      "a": "Guild",
+      "b": "Ondrak",
+      "standing": 35.0
+    },
+    {
+      "a": "Guild",
+      "b": "Caelifen",
+      "standing": 45.0
+    },
+    {
+      "a": "Guild",
+      "b": "Mourne",
+      "standing": 20.0
+    },
+    {
+      "a": "Guild",
+      "b": "Aethon",
+      "standing": 25.0
+    },
+    {
+      "a": "Guild",
+      "b": "Ecclesiatum",
+      "standing": 20.0
+    },
+    {
+      "a": "Guild",
+      "b": "Janissariat",
+      "standing": 15.0
+    },
+    {
+      "a": "Ecclesiatum",
+      "b": "Vethara",
+      "standing": 15.0
+    },
+    {
+      "a": "Ecclesiatum",
+      "b": "Ondrak",
+      "standing": 0.0
+    },
+    {
+      "a": "Ecclesiatum",
+      "b": "Caelifen",
+      "standing": 5.0
+    },
+    {
+      "a": "Ecclesiatum",
+      "b": "Mourne",
+      "standing": 25.0
+    },
+    {
+      "a": "Ecclesiatum",
+      "b": "Aethon",
+      "standing": 0.0
+    },
+    {
+      "a": "Ecclesiatum",
+      "b": "Janissariat",
+      "standing": 5.0
+    },
+    {
+      "a": "Vethara",
+      "b": "Ondrak",
+      "standing": 10.0
+    },
+    {
+      "a": "Vethara",
+      "b": "Caelifen",
+      "standing": -5.0
+    },
+    {
+      "a": "Vethara",
+      "b": "Mourne",
+      "standing": 20.0
+    },
+    {
+      "a": "Vethara",
+      "b": "Aethon",
+      "standing": 5.0
+    },
+    {
+      "a": "Vethara",
+      "b": "Janissariat",
+      "standing": -25.0
+    },
+    {
+      "a": "Ondrak",
+      "b": "Caelifen",
+      "standing": 15.0
+    },
+    {
+      "a": "Ondrak",
+      "b": "Mourne",
+      "standing": 0.0
+    },
+    {
+      "a": "Ondrak",
+      "b": "Aethon",
+      "standing": 10.0
+    },
+    {
+      "a": "Ondrak",
+      "b": "Janissariat",
+      "standing": -10.0
+    },
+    {
+      "a": "Caelifen",
+      "b": "Mourne",
+      "standing": 0.0
+    },
+    {
+      "a": "Caelifen",
+      "b": "Aethon",
+      "standing": 10.0
+    },
+    {
+      "a": "Caelifen",
+      "b": "Janissariat",
+      "standing": -15.0
+    },
+    {
+      "a": "Mourne",
+      "b": "Aethon",
+      "standing": 5.0
+    },
+    {
+      "a": "Mourne",
+      "b": "Janissariat",
+      "standing": -20.0
+    },
+    {
+      "a": "Aethon",
+      "b": "Janissariat",
+      "standing": -15.0
+    }
+  ]
+}

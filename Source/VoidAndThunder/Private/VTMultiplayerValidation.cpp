@@ -1,15 +1,19 @@
 #include "VTGameplay.h"
 #include "VTSaveSubsystem.h"
+#include "VTSessionSubsystem.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/JsonSerializer.h"
 #include "Engine/World.h"
+#include "UnrealClient.h"
+#include "RHI.h"
 
 void AVTController::ValidationInput(float Dt) {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Render"))) return;
  LocalIntent.Throttle=0.8f; LocalIntent.Turn=0.2f;
  FString Destination;
  if(GetWorld()->GetRealTimeSeconds()>4 && !ProbeJumped && FParse::Value(FCommandLine::Get(),TEXT("VTProbeSystem="),Destination)) {
@@ -20,11 +24,40 @@ void AVTController::ValidationInput(float Dt) {
 void UVTSimulation::ValidationTick() {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Flow"))&&GetWorld()->GetMapName().Contains(TEXT("Menu"))) {
+  auto* GI=CastChecked<UVTGameInstance>(GetWorld()->GetGameInstance()); auto* Session=GI->GetSubsystem<UVTSessionSubsystem>();
+  if(ProbeRole==TEXT("FlowGuest")&&GI->ValidationSessionStarted&&FParse::Param(FCommandLine::Get(),TEXT("VTExpectHostDeparture"))&&Session->Status.Contains(TEXT("Host connection ended"))) {
+   FString RunDir; FParse::Value(FCommandLine::Get(),TEXT("VTProbeDir="),RunDir);
+   const bool Passed=!Session->Sessions.IsValid()||!Session->Sessions->GetNamedSession(NAME_GameSession);
+   FFileHelper::SaveStringToFile(Passed ? TEXT("{\"passed\":true,\"returned_to_menu\":true,\"session_removed\":true}") : TEXT("{\"passed\":false}"),*(RunDir/TEXT("FlowDepartureGuest.json")));
+   FPlatformMisc::RequestExitWithStatus(false,Passed ? 0 : 1); return;
+  }
+  if(GetWorld()->GetRealTimeSeconds()>2) {
+   if(ProbeRole==TEXT("FlowHost")&&!GI->ValidationSessionStarted) {GI->ValidationSessionStarted=true; GI->PopulationProfile=TEXT("Authored"); Session->CreateWorld(FParse::Param(FCommandLine::Get(),TEXT("VTContinue")),TEXT("Validation-Frontend"));}
+   if(ProbeRole==TEXT("FlowGuest")&&!GI->ValidationDiscoveryStarted) {GI->ValidationDiscoveryStarted=true; Session->Discover();}
+   if(ProbeRole==TEXT("FlowGuest")&&!GI->ValidationSessionStarted&&!Session->Worlds.IsEmpty()) {GI->ValidationSessionStarted=true; Session->JoinWorld(0);}
+  }
+  return;
+ }
+ if(ProbeRole.StartsWith(TEXT("Render"))) {
+  if(auto* Player=GetWorld()->GetFirstPlayerController()) if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) Pawn->Invulnerable=true;
+  double Now=FPlatformTime::Seconds(), Age=GetWorld()->GetRealTimeSeconds();
+  if(LastRenderFrame>0&&Age>20) RenderFrameMilliseconds.Add((Now-LastRenderFrame)*1000); LastRenderFrame=Now;
+  if(ProbeRole==TEXT("Render")&&!ProbeScaled&&Age>1) {ConfigurePopulationFixture(500,FParse::Param(FCommandLine::Get(),TEXT("Busy")),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); if(FParse::Param(FCommandLine::Get(),TEXT("Busy"))) if(auto* Player=GetWorld()->GetFirstPlayerController()) if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) {Pawn->SystemIndex=0; Pawn->Movement->Motion.Position=FVector2D(0,-500); Pawn->Movement->Previous=Pawn->Movement->Motion; Pawn->Movement->Authority=Pawn->Movement->Motion;} ProbeScaled=true;}
+  if(!ScreenshotRequested&&Age>25) {ScreenshotRequested=true; FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".png"),true,false);}
+  if(!ProbeWrote&&Age>35&&!RenderFrameMilliseconds.IsEmpty()) {
+   ProbeWrote=true; auto Samples=RenderFrameMilliseconds; Samples.Sort(); double P95=Samples[FMath::FloorToInt(Samples.Num()*0.95)]; double Total=0; for(double Ms:Samples) Total+=Ms;
+   FString Report=FString::Printf(TEXT("{\"frames\":%d,\"p95_frame_ms\":%.6f,\"mean_fps\":%.3f,\"width\":1920,\"height\":1080,\"population\":%d,\"gpu\":\"%s\",\"passed\":%s}"),Samples.Num(),P95,Samples.Num()*1000/Total,Ships.Num(),*GRHIAdapterName,P95<=1000./60 ? TEXT("true") : TEXT("false"));
+   TSharedPtr<FJsonObject> Parsed; FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Report),Parsed); Parsed->SetNumberField(TEXT("simulation_time"),SimulationTime); Parsed->SetBoolField(TEXT("busy"),FParse::Param(FCommandLine::Get(),TEXT("Busy"))); Parsed->SetBoolField(TEXT("armed"),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); auto Times=StepMilliseconds; if(!Times.IsEmpty()) {Times.Sort(); Parsed->SetNumberField(TEXT("p95_simulation_ms"),Times[FMath::FloorToInt(Times.Num()*0.95)]);} FJsonSerializer::Serialize(Parsed.ToSharedRef(),TJsonWriterFactory<>::Create(&Report)); FFileHelper::SaveStringToFile(Report,*(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".json"))); FPlatformMisc::RequestExitWithStatus(false,P95<=1000./60 ? 0 : 1);
+  }
+  return;
+ }
  auto* State=GetWorld()->GetGameState<AVTGameState>();
  if(State) MaxPlayersObserved=FMath::Max(MaxPlayersObserved,State->PlayerArray.Num());
  auto* PC=Cast<AVTController>(GetWorld()->GetFirstPlayerController());
  auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr;
  if(Ship) {
+  if(Ship->HasAuthority()) Ship->Invulnerable=true;
   if(!ProbeOriginSet){ProbeOrigin=Ship->Movement->Motion.Position;ProbeOriginSet=true;}
   if((Ship->Movement->Motion.Position-ProbeOrigin).Size()>25) ProbeMoved=true;
  }
@@ -33,10 +66,11 @@ void UVTSimulation::ValidationTick() {
   ProbeLoaded=true; auto* Save=GetWorld()->GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();
   if(!Save->Save()||!Save->Load()) {UE_LOG(LogTemp,Error,TEXT("Network snapshot round trip failed")); FPlatformMisc::RequestExitWithStatus(false,2);}
  }
- float Limit=ProbeRole==TEXT("Host") ? 45 : 25;
+ if(ProbeRole==TEXT("FlowGuest")&&FParse::Param(FCommandLine::Get(),TEXT("VTExpectHostDeparture"))) return;
+ float Limit=(ProbeRole==TEXT("Host")||ProbeRole==TEXT("FlowHost")) ? 45 : 25;
  FParse::Value(FCommandLine::Get(),TEXT("VTProbeSeconds="),Limit);
  if(ProbeRole==TEXT("Host")&&GetWorld()->GetRealTimeSeconds()<20) {
-  for(AVTShip* S:Ships) if(IsValid(S)&&!S->IsNPC) if(auto* PS=S->GetPlayerState<AVTPlayerState>()) {PS->Credits=777; PS->Boarded=7;}
+  for(AVTShip* S:Ships) if(IsValid(S)&&!S->IsNPC) if(auto* PS=S->GetPlayerState<AVTPlayerState>()) {S->Invulnerable=true; PS->Credits=777; PS->Boarded=7;}
  }
  if(ProbeWrote || GetWorld()->GetRealTimeSeconds()<Limit) return;
  ProbeWrote=true;
@@ -60,6 +94,7 @@ void UVTSimulation::ValidationTick() {
   if(FParse::Value(FCommandLine::Get(),TEXT("VTProbeSystem="),Desired) && Data) Passed=Passed && Data->FindSystem(FName(Desired))==Ship->SystemIndex;
   for(AVTShip* S:Ships) if(IsValid(S) && S!=Ship && S->SystemIndex!=Ship->SystemIndex) Passed=false;
  }
+ if(ProbeRole.StartsWith(TEXT("Flow"))) {Passed=Ship&&ProbeMoved&&MaxPlayersObserved==2&&NPC>0; if(ProbeRole==TEXT("FlowHost")) {auto* Save=GetWorld()->GetGameInstance()->GetSubsystem<UVTSaveSubsystem>(); Passed=Passed&&Save->Save(); O->SetStringField(TEXT("world_id"),Save->WorldId.ToString());}}
  O->SetBoolField(TEXT("passed"),Passed);
  FString Json; FJsonSerializer::Serialize(O,TJsonWriterFactory<>::Create(&Json));
  FString RunDir; FParse::Value(FCommandLine::Get(),TEXT("VTProbeDir="),RunDir);

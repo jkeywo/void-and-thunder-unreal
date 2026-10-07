@@ -1,40 +1,59 @@
 # Void & Thunder — Unreal
 
-Unreal Engine 5.8.2 port of Void & Thunder, a planar ship-combat game in the
-Settled Dark. C++ gameplay, Blueprint/native assets, four-player player-hosted
-sandbox, independently visited systems and a persistent host world.
+Unreal Engine 5.8.2 port of Void & Thunder: planar ship combat in the Settled Dark,
+solo Skirmish and Test Range, and a persistent four-player listen-hosted sandbox.
+All ten systems simulate while the host runs. Captains can cooperate, fight each
+other, board prizes, dock, refit and travel independently.
 
-**The full port is in progress.** See [implementation status](docs/implementation-status.md)
-and the [architecture](docs/architecture.md).
+The source baseline is `c138f2c9caab77ed8288ddcb46d1622e471c2b15`.
+The original repository remains unchanged. MIT code, asset credits and the
+read-only setting snapshot retain their attribution.
+
+See [implementation status](docs/implementation-status.md),
+[architecture](docs/architecture.md), [hosting and controls](docs/playing.md),
+and [validation](docs/validation/README.md).
 
 ## Development
-Requires Unreal 5.8.2, Visual Studio C++ tools, Windows SDK and Git LFS.
-Run `git lfs install` and `git lfs pull` after cloning.
-The default engine location is C:/Program Files/Epic Games/UE_5.8; scripts accept
--EngineRoot for another installation.
 
-1. Run Scripts/Build.ps1.
-2. Run Scripts/Bootstrap.ps1 to generate native baseline assets and the Sandbox map.
-3. Open VoidAndThunder.uproject, then Play.
-4. Run Scripts/Test.ps1 and Scripts/Benchmark.ps1.
+Install Unreal 5.8.2, Visual Studio C++ tools, the Windows SDK and Git LFS.
+After cloning, run `git lfs install` and `git lfs pull`, then:
 
-Flight: W/S throttle, A/D steer, mouse/right stick aim. Device mappings preserve
-the original broadside/EMP/torpedo/warp/boost/brace/interaction keys; implementation
-status identifies which gameplay devices have been ported.
+```powershell
+.\Scripts\Build.ps1
+```
 
-Development console: VTHost, VTJoin 127.0.0.1, VTScale 500, VTJump meridian_gate,
-VTSave and VTLoad. VTJump is a development travel helper, not the final charged
-jump interaction.
+Open `VoidAndThunder.uproject`. Play the Menu map for the frontend; the Sandbox
+map is the editor's direct gameplay entry. Native assets are committed and editable
+in Unreal. C++ owns authority, the simulation and explicit movement prediction;
+Widget Blueprints, Niagara, materials, Sound Waves, String Tables and Primary Data
+Assets supply presentation and authored content. No Rust runtime is required.
 
-Original game baseline: c138f2c9caab77ed8288ddcb46d1622e471c2b15.
-The vendored setting remains read-only and retains its source attribution.
+To regenerate the exported baseline, run `Scripts/ExportLegacy.ps1` against the
+pinned source snapshot, followed by `Scripts/Bootstrap.ps1` and
+`Scripts/ImportContent.ps1`. Regeneration overwrites generated native packages;
+commit authored asset changes before using it.
 
-Current playable prototype: planar flight, port/starboard broadsides, directional
-shields, brace, boarding and station recovery. Other device mappings are reserved
-for the remaining port. `VTRecover` requests recovery when your hull is disabled.
+## Validation and packaging
 
-Validate native assets with `Scripts/ValidateAssets.ps1`. Package with
-`Scripts/Package.ps1` (add `-Configuration Shipping` for Shipping). Local builds
-are written to `Artifacts/<configuration>/Windows/` and are not committed.
-`Scripts/Multiplayer.ps1 -Packaged -Emulate -Reconnect` validates the packaged
-Development build, including a live host save/load and guest reconnection.
+```powershell
+.\Scripts\Test.ps1
+.\Scripts\ValidateAssets.ps1
+.\Scripts\Benchmark.ps1 -Population 500 -Busy -Armed
+.\Scripts\Benchmark.ps1 -Population 1000 -Busy -Armed
+.\Scripts\Render.ps1 -Busy -Armed
+.\Scripts\Package.ps1
+.\Scripts\Package.ps1 -Configuration Shipping
+.\Scripts\Multiplayer.ps1 -Packaged -SameSystem
+.\Scripts\Multiplayer.ps1 -Packaged -Emulate -Reconnect
+.\Scripts\SessionFlows.ps1 -Packaged
+.\Scripts\SessionFlows.ps1 -Packaged -Continue
+.\Scripts\SessionFlows.ps1 -Packaged -HostDeparture
+.\Scripts\ShippingSmoke.ps1
+```
+
+Engine-based scripts default to `C:/Program Files/Epic Games/UE_5.8` and accept `-EngineRoot`.
+Windows packages go to `Artifacts/<configuration>/Windows/`. Start
+`VoidAndThunder.exe` there. Packages and generated validation logs are local build
+outputs; source and compact validation evidence are published in this repository.
+GitHub checks validate project metadata; licensed Unreal build and gameplay gates
+run locally and are reported separately.

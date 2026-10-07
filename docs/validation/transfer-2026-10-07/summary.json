@@ -1,0 +1,210 @@
+{
+  "engine": "5.8.2",
+  "source_commit": "c138f2c9caab77ed8288ddcb46d1622e471c2b15",
+  "reference_machine": {
+    "cpu": "Intel Core Ultra 9 275HX",
+    "ram_gb": 64,
+    "render_gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+    "os": "Windows 11 25H2"
+  },
+  "automation": {
+    "passed": 13,
+    "passed_with_expected_first_save_warnings": 3,
+    "failed": 0,
+    "report_created_on": "2026.10.07-17.50.55",
+    "tests": [
+      {
+        "name": "VT.Combat.ArcAndSweptContact",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Combat.AuthoritativeVolley",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Combat.DirectionalShields",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Combat.EquipmentLifecycle",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Flight.AnisotropicDragAndClamp",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Flight.ThrustAndReverse",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Migration.LegacySpawnJitter",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Network.IdentityReconnectAndRecovery",
+        "state": "Success",
+        "warnings": 2,
+        "errors": 0
+      },
+      {
+        "name": "VT.Network.RejectInvalidIntent",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.Persistence.AtomicSnapshotAndFallback",
+        "state": "Success",
+        "warnings": 2,
+        "errors": 0
+      },
+      {
+        "name": "VT.World.LandmarksAndIntentAuthority",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      },
+      {
+        "name": "VT.World.SandboxOwnershipAndTravel",
+        "state": "Success",
+        "warnings": 2,
+        "errors": 0
+      },
+      {
+        "name": "VT.World.SoloScenarioParity",
+        "state": "Success",
+        "warnings": 0,
+        "errors": 0
+      }
+    ]
+  },
+  "builds": {
+    "Editor": {
+      "log": "final-editor-build.log",
+      "sha256": "37a18a6be53d8a541a92537f23c700205fbaf279622260d268dd316a7c56a8d3",
+      "passed": true
+    },
+    "Development build/cook/package": {
+      "log": "final-development-package.log",
+      "sha256": "bf104869d553c4756887ee6e7085e2cd833e739ef0c3b96dfd8c8db2a0a4709d",
+      "passed": true
+    },
+    "Shipping build/cook/package": {
+      "log": "final-shipping-package.log",
+      "sha256": "488f1ca7bc3fa9ffdea5476895d73a7d832b5fe3d68190d1c4d0c86a35cb61e6",
+      "passed": true
+    },
+    "Native asset validation": {
+      "log": "final-native-assets.log",
+      "sha256": "ca33bad12a532d87c37630347b9f57efb479beba48dd3da575ad69de4887e435",
+      "passed": true
+    },
+    "Automation": {
+      "log": "final-tests.log",
+      "sha256": "5acedc1fab05c9409abab40b83e3e61e424946244e0673de1d5b938581b4b7ae",
+      "passed": true
+    }
+  },
+  "performance": {
+    "simulation": {
+      "population": 500,
+      "systems": 10,
+      "samples": 1000,
+      "p95_ms": 6.2217,
+      "budget_ms": 8,
+      "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+      "passed": true
+    },
+    "stress": {
+      "population": 1000,
+      "systems": 10,
+      "samples": 1000,
+      "p95_ms": 19.836199,
+      "budget_ms": 8,
+      "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+      "passed": false
+    },
+    "render": {
+      "frames": 3604,
+      "p95_frame_ms": 7.001899,
+      "mean_fps": 240.25,
+      "width": 1920,
+      "height": 1080,
+      "population": 501,
+      "gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+      "passed": true,
+      "simulation_time": 35,
+      "busy": true,
+      "armed": true,
+      "p95_simulation_ms": 3.7601999938488007
+    },
+    "menu": {
+      "frames": 6733,
+      "p95_frame_ms": 2.350803,
+      "mean_fps": 448.731,
+      "width": 1920,
+      "height": 1080,
+      "population": 0,
+      "gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+      "passed": true,
+      "simulation_time": 0,
+      "busy": false,
+      "armed": false
+    }
+  },
+  "four-player-same-system": {
+    "source_run": "Multiplayer-20261007-175103",
+    "passed": true
+  },
+  "four-player-150ms-2pct-reconnect": {
+    "source_run": "Multiplayer-20261007-184158",
+    "passed": true
+  },
+  "four-player-250ms-5pct": {
+    "source_run": "Multiplayer-20261007-175312",
+    "passed": true
+  },
+  "lan-create": {
+    "source_run": "Sessions-20261007-180954",
+    "passed": true
+  },
+  "lan-continue": {
+    "source_run": "Sessions-20261007-181044",
+    "passed": true
+  },
+  "host-departure": {
+    "source_run": "Sessions-20261007-181132",
+    "passed": true
+  },
+  "source_tree_sha256": "de37948aa7105538a01dc13e649f30447ca891c9d36206866c80ccef22fc89bb",
+  "shipping-four-player-autosave": {
+    "source_run": "Shipping-20261007-185543",
+    "passed": true
+  },
+  "package_executables": {
+    "Development": {
+      "path": "Artifacts/Development/Windows/VoidAndThunder/Binaries/Win64/VoidAndThunder.exe",
+      "sha256": "909622e3f5a29574ad9dc7b7a9b1e0e784aa84e6f4fe6ca6e1e9f12e1de814fc"
+    },
+    "Shipping": {
+      "path": "Artifacts/Shipping/Windows/VoidAndThunder/Binaries/Win64/VoidAndThunder-Win64-Shipping.exe",
+      "sha256": "d7e3128fcce5344aa536beee3e1c9674f99de416e39fd620a95e2b7824069448"
+    }
+  },
+  "source_tree_hash_method": "SHA256 of sorted repository-relative UTF-8 paths, NUL, and raw SHA256 digests, for Source/Config/Content/Migration/SourceAssets/Scripts/Tools and *.uproject (working files, before LFS pointer conversion)."
+}

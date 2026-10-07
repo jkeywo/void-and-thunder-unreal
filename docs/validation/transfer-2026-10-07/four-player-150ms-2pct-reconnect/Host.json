@@ -1,0 +1,18 @@
+{
+	"role": "Host",
+	"max_players": 4,
+	"moved": true,
+	"system": 9,
+	"ship_id": "33FE6BA34ABD61BCDBD084BBAD037DE3",
+	"position_x": -905.4943151664263,
+	"position_y": 1122.2364872629066,
+	"origin_x": 0,
+	"origin_y": -270,
+	"profile": "9F2E6EA947E2CD81D57E90B8F0E1C2FA",
+	"credits": 777,
+	"boarded": 7,
+	"ack": 3840,
+	"npcs": 500,
+	"simulation_time": 80,
+	"passed": true
+}

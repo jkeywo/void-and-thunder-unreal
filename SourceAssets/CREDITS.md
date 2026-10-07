@@ -28,3 +28,5 @@ Authored for the sibling project *project-phoenix-v2* (same author); reused here
 ## Shaders — `shaders/star_surface.wgsl`, `shaders/star_halo.wgsl`
 
 Authored for *project-phoenix-v2* (same author); ported to V&T's Z-up camera.
+
+Native WAV files are offline renders of the MIT-licensed source synthesizers in vt_client/src/audio.rs. Niagara burst content derives from the installed Unreal Engine Niagara DirectionalBurst and FountainLightweight templates; Epic-provided content retains its Unreal Engine license.

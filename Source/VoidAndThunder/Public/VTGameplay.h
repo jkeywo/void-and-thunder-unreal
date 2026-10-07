@@ -6,7 +6,9 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/GameInstance.h"
+#include "Engine/EngineBaseTypes.h"
 #include "AIController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
@@ -31,6 +33,9 @@ class VOIDANDTHUNDER_API UVTAttributes : public UAttributeSet {
 public:
  UPROPERTY(ReplicatedUsing=OnRep_Hull) FGameplayAttributeData Hull;
  UPROPERTY(ReplicatedUsing=OnRep_Battery) FGameplayAttributeData Battery;
+ UPROPERTY(ReplicatedUsing=OnRep_EMPStress) FGameplayAttributeData EMPStress;
+ UFUNCTION() void OnRep_EMPStress(const FGameplayAttributeData& Old);
+ GAMEPLAYATTRIBUTE_PROPERTY_GETTER(UVTAttributes, EMPStress)
  UFUNCTION() void OnRep_Hull(const FGameplayAttributeData& Old);
  UFUNCTION() void OnRep_Battery(const FGameplayAttributeData& Old);
  GAMEPLAYATTRIBUTE_PROPERTY_GETTER(UVTAttributes, Hull)
@@ -73,6 +78,8 @@ public:
  UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Mesh;
  UPROPERTY(VisibleAnywhere) TObjectPtr<USpringArmComponent> CameraBoom;
  UPROPERTY(VisibleAnywhere) TObjectPtr<UCameraComponent> Camera;
+ UPROPERTY() TArray<TObjectPtr<class UNiagaraComponent>> EngineTrails;
+ void PresentEngines();
  UPROPERTY(Replicated, BlueprintReadOnly) int32 SystemIndex = 0;
  UPROPERTY(Replicated, BlueprintReadOnly) FName ClassId = "corsair_cruiser";
  UPROPERTY(Replicated, BlueprintReadOnly) FName Faction = "Corsairs";
@@ -81,19 +88,31 @@ public:
  UPROPERTY(Replicated, BlueprintReadOnly) bool Disabled = false;
  UPROPERTY(Replicated, BlueprintReadOnly) float PortReload = 0;
  UPROPERTY(Replicated, BlueprintReadOnly) float StarboardReload = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_Fit,BlueprintReadOnly) FVTLoadoutSelection Fit;
+ UFUNCTION() void OnRep_Fit();
+ bool ApplyFit(const FVTLoadoutSelection& Selected,bool Refill);
  FVTShipDefinition Definition;
  FVTPilotIntent Intent;
+ TArray<FVTPilotIntent> InputQueue;
  uint32 LastReceived = 0;
  double LastInputTime = 0;
  UPROPERTY(Replicated, BlueprintReadOnly) bool IsNPC = false;
  bool Invulnerable = false;
  bool Anchored = false;
+ UPROPERTY(Replicated,BlueprintReadOnly) int32 ShipRole=0;
+ FVTBrainState Brain;
+ UPROPERTY(Replicated,BlueprintReadOnly) float DockProgress=0;
+ UPROPERTY(Replicated,BlueprintReadOnly) float JumpProgress=0;
+ UPROPERTY(Replicated,BlueprintReadOnly) FName JumpDestination;
  virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return Abilities; }
+ virtual void PossessedBy(AController* NewController) override;
+ virtual void OnRep_Controller() override;
  virtual void BeginPlay() override;
  virtual void EndPlay(const EEndPlayReason::Type Reason) override;
  virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
  virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
  UFUNCTION(Server, Unreliable) void ServerIntent(FVTPilotIntent Value);
+ UFUNCTION(Server,Unreliable) void ServerIntentBatch(const TArray<FVTPilotIntent>& Values);
  void InitializeShip(FName ShipId, int32 System, const FVTMotion& Initial);
 };
 
@@ -102,6 +121,7 @@ class VOIDANDTHUNDER_API AVTShipAI : public AAIController {
  GENERATED_BODY()
 public:
  AVTShipAI();
+ static void CrewStep(AVTShip* Ship);
  void Decide(float Dt);
 };
 
@@ -123,7 +143,24 @@ class VOIDANDTHUNDER_API AVTGameState : public AGameStateBase {
 public:
  UPROPERTY(Replicated, BlueprintReadOnly) double SimulationTime = 0;
  UPROPERTY(Replicated, BlueprintReadOnly) TArray<int32> Populations;
+ UPROPERTY(Replicated,BlueprintReadOnly) int32 Wave=0;
+ UPROPERTY(Replicated,BlueprintReadOnly) int32 EnemiesRemaining=0;
+ UPROPERTY(Replicated,BlueprintReadOnly) FString Outcome;
  virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
+};
+
+UCLASS()
+class VOIDANDTHUNDER_API AVTCameraManager : public APlayerCameraManager {
+ GENERATED_BODY()
+public:
+ virtual void UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) override;
+ bool RigReady=false;
+ FGuid RigShip; int32 RigSystem=-1;
+ double LastCameraReal=0,OrbitYaw=0,OrbitPitch=0,OrbitDistance=0,OrbitFov=0,FreeYaw=0,FreePitch=0,LookIdle=0,MenuOrbit=0;
+ FVector Focus=FVector::ZeroVector,ImpactKick=FVector::ZeroVector;
+ FVector2D LastCursor=FVector2D::ZeroVector;
+ void AddImpactKick(const FVector& Direction,float Magnitude);
+
 };
 
 UCLASS()
@@ -131,6 +168,8 @@ class VOIDANDTHUNDER_API AVTController : public APlayerController {
  GENERATED_BODY()
 public:
  AVTController();
+ UPROPERTY() TObjectPtr<class UVTUI> UI;
+ void ToggleMenu();
  virtual void PawnLeavingGame() override;
  virtual void BeginPlay() override;
  virtual void SetupInputComponent() override;
@@ -140,13 +179,20 @@ public:
  UPROPERTY() TArray<TObjectPtr<UInputAction>> Actions;
  FVTPilotIntent LocalIntent;
  uint32 NextSequence = 0;
+ float AimBattery=5, AimDilation=1, HitStop=0, CameraTrauma=0;
+ double LastRealTick=0;
  bool UsingGamepadAim=false;
+ FVector2D GamepadAim=FVector2D::ZeroVector;
  bool ProbeJumped=false;
  void ValidationInput(float Dt);
  float SendAccumulator = 0;
  UFUNCTION(Client,Reliable) void ClientIdentify(FGuid World);
- UFUNCTION(Server,Reliable) void ServerIdentify(FGuid Profile,FGuid Token);
+ UFUNCTION(Server,Reliable) void ServerIdentify(FGuid Profile,FGuid Token,FName Hull,FVTLoadoutSelection Selection);
+ FName InitialHull;
+ FVTLoadoutSelection InitialFit;
  UFUNCTION(Client,Reliable) void ClientAcceptIdentity(FGuid World,FGuid Token);
+ UFUNCTION(Server,Reliable,BlueprintCallable) void ServerStationAction(FName Action);
+ UFUNCTION(Server,Reliable,BlueprintCallable) void ServerRefit(FName Hull,FVTLoadoutSelection Selection);
  UFUNCTION(Exec) void VTRecover();
  UFUNCTION(Server,Reliable) void ServerRecover();
  UFUNCTION(Exec) void VTJump(FString Destination);
@@ -166,9 +212,32 @@ public:
  UPROPERTY() TArray<TObjectPtr<AVTShip>> Ships;
  UPROPERTY() TArray<TObjectPtr<AVTProjectile>> Projectiles;
  TArray<TArray<AVTShip*>> SystemShips;
+ // Broad phase only: Actors and their components remain the gameplay owners.
+ TArray<TMap<FIntPoint,TArray<AVTShip*>>> ShipCells;
+ float LargestShipRadius=0;
+ void RebuildShipCells();
+ void QueryShips(int32 System,const FVector2D& Min,const FVector2D& Max,TArray<AVTShip*>& Result) const;
+ FVector2D JumpPosition(int32 System,FName Destination) const;
+ void TravelShip(AVTShip* Ship,int32 Destination);
+ void RecordHit(AVTShip* Victim,AVTShip* Attacker,float Amount,FGuid Profile=FGuid(),FName AttackerFaction=NAME_None);
+ void AwardAvenging(AVTShip* Destroyed,const TArray<TObjectPtr<AVTShip>>& Survivors);
+ void WorldStep();
+ void CreateAnchors();
+ void ScenarioStep();
+ bool SoloSpawned=false;
+ uint32 DirectorSeed=12345;
+ const FVTScenarioDefinition* ActiveScenario() const;
+ bool BehaviorHostile(AVTShip* Mine,AVTShip* Other) const;
+ void ProjectileStep();
  void ContactStep();
+ bool Occluded(int32 System,const FVector2D& A,const FVector2D& B,float Height=0) const;
+ void LandmarkStep();
  void PiracyStep();
  TArray<double> StepMilliseconds;
+ double PhaseTotals[8]={};
+ TArray<double> RenderFrameMilliseconds;
+ double LastRenderFrame=0;
+ bool ScreenshotRequested=false;
  double Accumulator = 0;
  double SimulationTime = 0;
  int32 WorldSeed=12345;
@@ -182,8 +251,9 @@ public:
  virtual void Tick(float Dt) override;
  virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(UVTSimulation, STATGROUP_Tickables); }
  virtual bool DoesSupportWorldType(EWorldType::Type Type) const override {return Type == EWorldType::Game || Type == EWorldType::PIE;}
- void Bootstrap(int32 Population = -1);
+ void Bootstrap(int32 Population = -1,bool Synthetic=true);
  void FixedStep();
+ void ConfigurePopulationFixture(int32 Count,bool Busy,bool Armed);
  AVTShip* SpawnShip(FName Id, int32 System, const FVTMotion& Motion, bool NPC, FName Faction);
 };
 
@@ -209,6 +279,19 @@ public:
  #if WITH_EDITOR
  void InitializeHeadlessWorld(UWorld* World);
 #endif
+ UPROPERTY(BlueprintReadOnly) FString PlayMode=TEXT("sandbox");
+ UPROPERTY(BlueprintReadOnly) bool ContinueWorld=false;
+ UPROPERTY(BlueprintReadWrite) FName PopulationProfile=TEXT("Shared sandbox");
+ int32 NewWorldPopulation=-1;
+ bool ValidationSessionStarted=false,ValidationDiscoveryStarted=false;
+ UPROPERTY(BlueprintReadWrite) FName SelectedHull=TEXT("corsair_cruiser");
+ UPROPERTY(BlueprintReadWrite) FVTLoadoutSelection SelectedFit;
+ UFUNCTION(BlueprintCallable) void StartSolo(const FString& Mode);
+ UFUNCTION(BlueprintCallable) void ReturnToMenu();
+ virtual void Init() override;
+ virtual void OnStart() override;
+ FDelegateHandle NetworkFailureHandle;
+ void NetworkFailed(UWorld* World,UNetDriver* Driver,ENetworkFailure::Type Type,const FString& Message);
  virtual void Shutdown() override;
  UFUNCTION(BlueprintCallable) void Host();
  UFUNCTION(BlueprintCallable) void Join(const FString& Address);

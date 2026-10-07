@@ -1,0 +1,18 @@
+{
+	"role": "Client2",
+	"max_players": 4,
+	"moved": true,
+	"system": 6,
+	"ship_id": "627696AC4B6FBAD3D99FD9BCCD394A02",
+	"position_x": 310.45048599099357,
+	"position_y": 184.47170267705965,
+	"origin_x": 0.022147288630480648,
+	"origin_y": -479.99999553158005,
+	"profile": "A073A70A46771F443F7D0BBA87A6DAFF",
+	"credits": 777,
+	"boarded": 7,
+	"ack": 876,
+	"npcs": 50,
+	"simulation_time": 34.296875,
+	"passed": true
+}

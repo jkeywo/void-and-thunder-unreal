@@ -9,9 +9,24 @@ UCLASS(BlueprintType)
 class VOIDANDTHUNDER_API UVTGameData : public UPrimaryDataAsset {
  GENERATED_BODY()
 public:
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TMap<FName,int32> PopulationProfiles={{FName("Authored"),-1},{FName("Shared sandbox"),500}};
  UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FVTShipDefinition> Ships;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FVTSystemDefinition> Systems;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<FVTScenarioDefinition> Scenarios;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<FVTLandmarkDefinition> Landmarks={{FVector2D::ZeroVector,120,0},{FVector2D(-700,500),60,3},{FVector2D(820,-420),44,3}};
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TMap<FName,TSoftObjectPtr<UStaticMesh>> FactionMeshes;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) FVTRules Rules;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) FVTAITuning AI;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) FVTFeel Feel;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) FVTWorldTuning World;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<FVTLoadoutOption> Loadouts;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<FName> TrackedFactions;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<float> InitialReputation;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<FVTFactionRelation> Relations;
+ int32 FactionIndex(FName Faction) const {return TrackedFactions.IndexOfByKey(Faction);}
+ float StandingBetween(FName A,FName B) const;
+ TArray<EVTDevice> CrewForFit(FName ClassId,const FVTLoadoutSelection& Fit) const;
+ bool ResolveFit(FName ClassId,const FVTLoadoutSelection& Fit,FVTShipDefinition& Out) const;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) FName StartSystem = "the_scar";
  #if WITH_EDITOR
  virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

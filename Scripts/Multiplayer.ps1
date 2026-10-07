@@ -1,4 +1,4 @@
-param([string]$EngineRoot='C:\Program Files\Epic Games\UE_5.8',[switch]$Emulate,[switch]$Reconnect,[switch]$Packaged)
+param([string]$EngineRoot='C:\Program Files\Epic Games\UE_5.8',[switch]$Emulate,[switch]$Reconnect,[switch]$Packaged,[int]$RoundTripMs=150,[int]$Loss=2,[switch]$SameSystem)
 $ErrorActionPreference='Stop'
 $ProjectRoot=Split-Path $PSScriptRoot -Parent
 $RunDir=Join-Path $ProjectRoot ('Saved\Validation\Multiplayer-'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
@@ -7,15 +7,17 @@ $Exe=if($Packaged){Join-Path $ProjectRoot 'Artifacts\Development\Windows\VoidAnd
 if(-not(Test-Path $Exe)){throw "Missing executable: $Exe"}
 $Common=@("$ProjectRoot\VoidAndThunder.uproject",'-game','-nullrhi','-nosound','-unattended','-nop4','-nosplash','-NoCrashDialog','-NoErrorReport',"-VTProbeDir=$RunDir",'-ExecCmds="t.MaxFPS 60"')
 if($Packaged){$Common=$Common[1..($Common.Length-1)]}
-if($Emulate){$Common+=@('-PktLag=75','-PktLoss=2')}
+if($Emulate){$Common+=@("-PktLag=$([math]::Floor($RoundTripMs/2))","-PktLoss=$Loss")}
 $Processes=@()
 $HostExtra=if($Reconnect){@('-VTProbeSeconds=80')}else{@()}
 try {
  $Processes+=Start-Process -FilePath $Exe -ArgumentList ($Common+@('/Game/Maps/Sandbox?listen','-VTProbe=Host','-port=7789',"-abslog=$RunDir\Host.log")+$HostExtra) -PassThru -WindowStyle Hidden
  Start-Sleep -Seconds 8
  $Destinations=@('meridian_gate','pale_meridian','vethara_seat')
+ if($SameSystem){$Destinations=@("","","")}
  for($I=0;$I -lt 3;$I++){
-  $Args=$Common+@('127.0.0.1:7789',"-VTProbe=Client$I","-VTProbeSystem=$($Destinations[$I])","-abslog=$RunDir\Client$I.log")
+  $Travel=@();if($Destinations[$I]){$Travel+="-VTProbeSystem=$($Destinations[$I])"}
+  $Args=$Common+@('127.0.0.1:7789',"-VTProbe=Client$I","-abslog=$RunDir\Client$I.log")+$Travel
   $Processes+=Start-Process -FilePath $Exe -ArgumentList $Args -PassThru -WindowStyle Hidden
  }
  if($Reconnect){

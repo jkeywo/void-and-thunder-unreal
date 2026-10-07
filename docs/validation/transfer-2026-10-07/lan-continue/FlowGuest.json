@@ -1,0 +1,18 @@
+{
+	"role": "FlowGuest",
+	"max_players": 2,
+	"moved": true,
+	"system": 9,
+	"ship_id": "02E8C14445E0283E39897BAAB17E8FDF",
+	"position_x": -653.56786078696393,
+	"position_y": -175.08469759984533,
+	"origin_x": 276.51811325966412,
+	"origin_y": 1409.6265257948573,
+	"profile": "0BC40A494E7838702669C6B2EA929C4F",
+	"credits": 0,
+	"boarded": 0,
+	"ack": 1589,
+	"npcs": 4,
+	"simulation_time": 83.109375,
+	"passed": true
+}

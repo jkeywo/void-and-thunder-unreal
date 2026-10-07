@@ -39,4 +39,47 @@ than PASM. This choice does not alter the original game or vellum.
   back to a validated backup. The identity-free initial prototype slot format and
   legacy Rust saves are unsupported.
 - [ai] The uncharged development jump helper is disabled in Shipping; charged
-  gameplay travel remains outstanding.
+  gameplay travel now uses the native charged, proximity-validated interaction.
+
+- [ai] Equipment configuration is imported in full into reflected native structs. GAS owns EMP stress and each firing cooldown; the combat component owns locks, launcher queues and ammunition. All clocks advance only at the coordinated 64 Hz boundary. Projectile kind and 3D torpedo motion share the durable projectile actor, with stationary mines using the same system relevance and save lifecycle.
+
+- [ai] Movement RPCs retransmit the eight latest unacknowledged sequenced commands in bounded unreliable batches. Authority consumes one accepted command per fixed step. Replicated acknowledgement refers to a consumed command, rather than the last packet received. This corrects latest-intent sampling under packet loss.
+- [ai] Multi-mount battery and special fits follow legacy catalogue order and preserve the hull battery floor. Crew assignment is derived from Playable.crewed (pilot-operated mount count), rather than accepted as a client-selected authority override.
+
+- [ai] Busy mixed-combat scale validation exposed redundant GAS attribute writes and headless cosmetic cue loads. Retain Actors and the fixed-step ordering, suppress commandlet cosmetics, and avoid attribute mutation when the value is unchanged. Re-run the unchanged 500-ship gate before accepting this optimization.
+
+- [ai] The busy 500-NPC fixture remained above budget after removing redundant GAS work (8.29 ms). Revisit queries inside the Actor architecture: use a per-system spatial broad phase for projectile collisions, retaining swept and 3D narrow-phase tests and all 64 Hz updates.
+
+- [ai] New hosted worlds default to the native Shared sandbox population profile (500 mortal NPC Actors). Authored preserves the legacy population counts and balance. Invulnerability remains exclusive to explicit synthetic scale fixtures. Recovery now places captains alongside the selected station; crime records use pre-shield damage as in the source.
+
+- [ai] Import resolved presentation tuning as reflected native Feel structs. PlayerCameraManager owns local camera trauma and velocity lead; controller rumble and cues are cosmetic. Solo dilation uses native time tuning while hosted worlds remain real-time.
+
+- [ai] Preserve the source career semantics: record completed solo runs, wins, deepest wave and boarding totals once at outcome. Store career independently from personal preferred hull/fit and host campaign snapshots; quit mid-run adds no completed run.
+
+- [ai] Transfer the source star (radius 120) and two planet landmarks, solid hull separation, projectile absorption and patrol line of sight. Define docking proximity from the station surface: the source centre-distance 95 gate was unreachable outside its 90-radius solid body plus hull radius. Keep the authored 95-unit interaction distance and three-second dwell.
+
+- [ai] Rebuild the source six-face sky atlas through an Unreal material sampled by local sky Actors, and animate stellar noise with native material expressions. Engine trail assets are Niagara systems attached to authored mesh sockets; no Rust shader or audio runtime remains.
+
+- [ai] Frozen docked/anchored ships must still sequence and acknowledge input. Otherwise long docking sessions exceed the movement sequence window and prevent steering after undocking. Freeze integration while retaining prediction history and acknowledgement.
+
+- [ai] Visual verification corrected two migration details: preserve Corsairs=Executioner/green and Freebooters=Challenger/purple as credited by the source; fully load the String Table when constructing menu choices so asynchronous missing labels cannot be cached as option IDs. Render reports use the RHI adapter, not the desktop display adapter.
+
+- [ai] The first concentrated-combat render check failed (29.4 ms p95). Scope cosmetic scene updates to the local player system even on a listen host, retain all-system authoritative simulation, disable unused navigation influence and planar mesh/projectile shadows, and re-run the graphics gate from within the busy arena. Mesh visibility is local component state so this optimization cannot hide another captain's system through Actor replication.
+
+- [ai] Busy rendering exposed a source-parity error: native mines emitted hit feedback every 64 Hz step, while the source reports it every 0.25 seconds. Restore that cadence without changing burn damage, save its report clock, and limit burst lifetime to native impact tuning. Restore camera-relative gamepad cursor integration so close torpedo targets can be locked rather than forcing the cursor to maximum range.
+
+- [ai] Render acceptance must run as a listen host so standalone hit-stop cannot reduce the real-time simulation workload. Include its simulation clock and p95 step time in the report. Preserve civilian no-cripple behavior, scanner confirmation before patrol engagement and solo celestial landmarks. A failed Continue must disable saving before returning to the menu so it cannot overwrite the rejected campaign.
+
+- [ai] Projectile attribution carries the firing faction and profile after its source pawn disappears. Apply heat and rescue reputation to disconnected host records as well as connected PlayerStates; the same records are restored on reconnect. Host connection loss clears the local session and returns through Unreal disconnect handling to Menu.
+
+- [ai] A crippled sandbox captain can request free station recovery through the native menu, R or controller D-pad down; Start opens the controller menu. Authority rejects recovery in solo scenarios so the Skirmish outcome cannot be bypassed.
+
+- [ai] Packaged Continue exposed a teardown overwrite: player/clock checks passed while NPCs vanished because Shutdown saved after NPC actors had ended play. Finalize saving at OnWorldBeginTearDown and disallow further saves from that world. Defer restore to the first world simulation boundary, defer identity until the saved world ID is loaded, and require a nonempty NPC population in session continuation probes. Skip unidentified controllers during snapshot restoration. Shipping ignores engine command-line map overrides, so expose normal VTHostWorld/VTJoinAddress frontend flows in GameInstance.OnStart instead of enabling debug map overrides.
+
+- [ai] New captain identity requests carry that client's selected hull and fit, validated by the host. Store initial selection per controller rather than using the host GameInstance selection for every guest. Returning captains restore their saved fit regardless of the requested initial choice. Joining through either menu flow stores the local selection before travel.
+
+- [ai] Starting solo play saves and closes any hosted session, then resets transient world identity and captain records. This prevents a prior campaign fit from replacing the solo selection and prevents solo identity tokens from overwriting campaign reconnect tokens. Ignore captain capture from worlds already finalized for teardown.
+
+- [ai] Complete the authored camera rig in PlayerCameraManager: real-time orbit/free-look, broadside lock, overhead torpedo/warp framing by vertical FOV and engagement range, idle/reverse recenter, menu orbit, eased focus/distance/FOV and impact kick. Native camera presentation owns no gameplay state.
+
+- [ai] Restrict player crippling/boarding to sandbox play. Solo captains retain the source ability to fight at low hull until destruction; civilians remain excluded from crippling.

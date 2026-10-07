@@ -15,3 +15,11 @@ public:
  UVTBenchmarkCommandlet();
  virtual int32 Main(const FString& Params) override;
 };
+
+UCLASS()
+class UVTContentCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTContentCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};
