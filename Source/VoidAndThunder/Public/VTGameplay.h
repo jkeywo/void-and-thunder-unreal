@@ -95,6 +95,8 @@ public:
  UPROPERTY(Replicated, BlueprintReadOnly) float StarboardReload = 0;
  UPROPERTY(ReplicatedUsing=OnRep_Fit,BlueprintReadOnly) FVTLoadoutSelection Fit;
  UFUNCTION() void OnRep_Fit();
+ UPROPERTY(ReplicatedUsing=OnRep_Autopilot,BlueprintReadOnly) bool Autopilot=false;
+ UFUNCTION() void OnRep_Autopilot();
  bool ApplyFit(const FVTLoadoutSelection& Selected,bool Refill);
  FVTShipDefinition Definition;
  FVTPilotIntent Intent;
@@ -128,6 +130,7 @@ public:
  AVTShipAI();
  static void CrewStep(AVTShip* Ship);
  void Decide(float Dt);
+ static void DecideShip(AVTShip* Ship,float Dt);
 };
 
 UCLASS()
@@ -175,10 +178,13 @@ public:
  AVTController();
  UPROPERTY() TObjectPtr<class UVTUI> UI;
  void ToggleMenu();
+ void ToggleAutopilot();
+ UFUNCTION(Server,Reliable,BlueprintCallable) void ServerSetAutopilot(bool Enabled);
  virtual void PawnLeavingGame() override;
  virtual void BeginPlay() override;
  virtual void SetupInputComponent() override;
  void ReadFlight(const FInputActionValue& Value, int32 Index);
+ void CancelFlight(const FInputActionValue& Value,int32 Index);
  virtual void PlayerTick(float Dt) override;
  UPROPERTY() TObjectPtr<UInputMappingContext> FlightMapping;
  UPROPERTY() TArray<TObjectPtr<UInputAction>> Actions;

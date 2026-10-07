@@ -40,9 +40,10 @@ bool UVTSimulation::BehaviorHostile(AVTShip* Mine,AVTShip* Other) const {
  if(Mine->ShipRole==0&&Mine->Faction==Houses) return true;
  return Data->StandingBetween(Mine->Faction,Other->Faction)<Data->World.hostile_threshold;
 }
-void AVTShipAI::Decide(float Dt) {
- auto* Ship=Cast<AVTShip>(GetPawn()); if(!Ship||Ship->Docked||Ship->Disabled||Ship->Anchored) return;
- auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); const auto& T=Sim->Data->AI; const auto& P=T.pilot; const auto& D=Ship->Definition; auto E=D.Equipment;
+void AVTShipAI::Decide(float Dt) {DecideShip(Cast<AVTShip>(GetPawn()),Dt);}
+void AVTShipAI::DecideShip(AVTShip* Ship,float Dt) {
+  if(!Ship||Ship->Docked||Ship->Disabled||Ship->Anchored) return;
+ auto* Sim=Ship->GetWorld()->GetSubsystem<UVTSimulation>(); const auto& T=Sim->Data->AI; const auto& P=T.pilot; const auto& D=Ship->Definition; auto E=D.Equipment;
  // The captain sees only their stations; crew operates the full fit separately.
  for(EVTDevice Device:Ship->Fit.CrewedDevices) {
   if(Device==EVTDevice::EMP)E.EMP=false;
@@ -75,7 +76,7 @@ void AVTShipAI::Decide(float Dt) {
    else if(!Target) {if(Brain.ScanProgress<1&&InRange) Face(Ship,Contact->Movement->Motion.Position-M.Position,Best>FMath::Square(T.surround_radius*0.7f) ? 0.4f : 0.f,T); else if(Brain.AlertTTL>0) Face(Ship,Brain.Alert-M.Position,1,T); return;}
   } else if(!Target) {if(Brain.AlertTTL>0) Face(Ship,Brain.Alert-M.Position,1,T); return;}
  }
- if(!D.AIAbilities) {if(Target) {Beam(Ship,Target,T,Hull<D.AIFleeFraction); float Angle=FMath::UnwindRadians(float(FMath::Atan2(Target->Movement->Motion.Position.Y-M.Position.Y,Target->Movement->Motion.Position.X-M.Position.X))-M.Heading); if(FMath::Abs(Angle-PI/2)<=D.AIFireArc) Ship->Intent.Buttons|=VTButtons::Port; if(FMath::Abs(Angle+PI/2)<=D.AIFireArc) Ship->Intent.Buttons|=VTButtons::Starboard; Ship->Intent.Aim=D.AIAim ? (Target->Movement->Motion.Position-M.Position).GetSafeNormal() : FVector2D::ZeroVector;} return;}
+ if(!D.AIAbilities&&!Ship->Autopilot) {if(Target) {Beam(Ship,Target,T,Hull<D.AIFleeFraction); float Angle=FMath::UnwindRadians(float(FMath::Atan2(Target->Movement->Motion.Position.Y-M.Position.Y,Target->Movement->Motion.Position.X-M.Position.X))-M.Heading); if(FMath::Abs(Angle-PI/2)<=D.AIFireArc) Ship->Intent.Buttons|=VTButtons::Port; if(FMath::Abs(Angle+PI/2)<=D.AIFireArc) Ship->Intent.Buttons|=VTButtons::Starboard; Ship->Intent.Aim=D.AIAim ? (Target->Movement->Motion.Position-M.Position).GetSafeNormal() : FVector2D::ZeroVector;} return;}
  float Shields=0,MaxShields=0; for(int I=0;I<4;++I) {Shields+=Ship->Combat->Shields[I]; MaxShields+=D.ShieldMax[I];}
  float Integrity=(Ship->Attributes->Hull.GetCurrentValue()+P.shield_worth*Shields)/(D.Hull+P.shield_worth*MaxShields);
  float Stock=float(R.TorpedoMagazine)/FMath::Max(1,E.TorpedoMagazine), Battery=Ship->Attributes->Battery.GetCurrentValue()/FMath::Max(0.001f,D.BatteryMax);

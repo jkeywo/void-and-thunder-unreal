@@ -16,7 +16,7 @@ void VT::HelmStep(FVTMotion& M, const FVTShipStats& S, const FVTPilotIntent& I, 
 }
 bool VT::ValidIntent(const FVTPilotIntent& I) {
  return FMath::IsFinite(I.Throttle) && FMath::IsFinite(I.Turn) && FMath::IsFinite(I.Aim.X) && FMath::IsFinite(I.Aim.Y)
-  && FMath::Abs(I.Throttle) <= 1 && FMath::Abs(I.Turn) <= 1 && !I.CursorOffset.ContainsNaN() && I.CursorOffset.SizeSquared()<=1300.0*1300.0+1 && I.Aim.SizeSquared() <= 1.01 && (I.Buttons & ~uint16(1023)) == 0;
+  && FMath::Abs(I.Throttle) <= 1 && FMath::Abs(I.Turn) <= 1 && !I.CursorOffset.ContainsNaN() && I.CursorOffset.SizeSquared()<=1300.0*1300.0+1 && I.Aim.SizeSquared() <= 1.01 && (I.Buttons & ~uint16(4095)) == 0;
 }
 FVector VT::ArenaOrigin(int32 S) { return FVector((S % 5) * 1000000.0, (S / 5) * 1000000.0, 0); }
 FVector VT::ToWorld(const FVector2D& P, int32 S) { return ArenaOrigin(S) + FVector(P.X * 100, -P.Y * 100, 0); }

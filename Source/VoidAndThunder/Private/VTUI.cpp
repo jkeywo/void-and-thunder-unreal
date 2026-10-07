@@ -5,6 +5,7 @@
 #include "Styling/CoreStyle.h"
 #include "VTGameplay.h"
 #include "VTCombat.h"
+#include "VTCombat.h"
 #include "VTSessionSubsystem.h"
 #include "VTSaveSubsystem.h"
 #include "Components/Button.h"
@@ -33,7 +34,7 @@ void UVTUI::NativeConstruct() {
  BatterySecond=Cast<UComboBoxString>(GetWidgetFromName(TEXT("BatterySecond"))); BatteryThird=Cast<UComboBoxString>(GetWidgetFromName(TEXT("BatteryThird"))); SpecialSecond=Cast<UComboBoxString>(GetWidgetFromName(TEXT("SpecialSecond"))); SpecialThird=Cast<UComboBoxString>(GetWidgetFromName(TEXT("SpecialThird")));
  HullChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("HullChoice"))); BatteryChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("BatteryChoice"))); GunChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("GunChoice"))); SpecialChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("SpecialChoice"))); LANChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("LANChoice"))); Address=Cast<UEditableTextBox>(GetWidgetFromName(TEXT("Address"))); WorldName=Cast<UEditableTextBox>(GetWidgetFromName(TEXT("WorldName")));
 #define BIND(Name,Method) if(auto* B=Cast<UButton>(GetWidgetFromName(TEXT(Name)))) B->OnClicked.AddDynamic(this,&UVTUI::Method)
- BIND("GraphicsLow",PerformanceGraphics);BIND("GraphicsBalanced",BalancedGraphics);BIND("GraphicsHigh",HighGraphics);BIND("Create",CreateWorld); BIND("Continue",ContinueWorld); BIND("Join",JoinAddress); BIND("Discover",FindLAN); BIND("JoinLAN",JoinLAN); BIND("Skirmish",Skirmish); BIND("Range",TestRange); BIND("Resume",Resume); BIND("Leave",Leave); BIND("Quit",Quit); BIND("Save",Save); BIND("Repair",Repair); BIND("Undock",Undock); BIND("PayHeat",PayHeat); BIND("Refit",Refit); BIND("Recover",Recover);
+ BIND("Autopilot",ToggleAutopilot);BIND("GraphicsLow",PerformanceGraphics);BIND("GraphicsBalanced",BalancedGraphics);BIND("GraphicsHigh",HighGraphics);BIND("Create",CreateWorld); BIND("Continue",ContinueWorld); BIND("Join",JoinAddress); BIND("Discover",FindLAN); BIND("JoinLAN",JoinLAN); BIND("Skirmish",Skirmish); BIND("Range",TestRange); BIND("Resume",Resume); BIND("Leave",Leave); BIND("Quit",Quit); BIND("Save",Save); BIND("Repair",Repair); BIND("Undock",Undock); BIND("PayHeat",PayHeat); BIND("Refit",Refit); BIND("Recover",Recover);
 #undef BIND
  auto* GI=CastChecked<UVTGameInstance>(GetGameInstance()); auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();
  if(HullChoice) {for(const auto& D:Data->Ships) if(D.Id.ToString().StartsWith(TEXT("corsair"))) HullChoice->AddOption(DisplayId(D.Id)); HullChoice->SetSelectedOption(DisplayId(GI->SelectedHull));}
@@ -86,6 +87,8 @@ void UVTUI::NativeTick(const FGeometry& Geometry,float Dt) {
  for(const TCHAR* Name:{TEXT("WorldHeading"),TEXT("SoloHeading"),TEXT("WorldName"),TEXT("PopulationChoice"),TEXT("Create"),TEXT("Continue"),TEXT("Address"),TEXT("Join"),TEXT("Discover"),TEXT("LANChoice"),TEXT("JoinLAN"),TEXT("Skirmish"),TEXT("Range")})Visible(Name,Frontend);
  for(const TCHAR* Name:{TEXT("StationHeading"),TEXT("Repair"),TEXT("PayHeat"),TEXT("Refit"),TEXT("Undock")})Visible(Name,!Frontend&&Vessel&&Vessel->Docked);
  for(const TCHAR* Name:{TEXT("Recover"),TEXT("Resume"),TEXT("Leave")})Visible(Name,!Frontend);
+ Visible(TEXT("Autopilot"),!Frontend&&Vessel&&!Vessel->Docked&&!Vessel->Disabled);
+ if(auto* Label=Cast<UTextBlock>(GetWidgetFromName(TEXT("AutopilotLabel"))))Label->SetText(FText::FromString(Vessel&&Vessel->Autopilot?TEXT("AI pilot: on"):TEXT("AI pilot: off")));
  Visible(TEXT("Save"),!Frontend&&GetWorld()->GetNetMode()!=NM_Client&&!GetWorld()->GetSubsystem<UVTSimulation>()->ActiveScenario());
  Visible(TEXT("FitRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("FitHeading"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountHeading"),Frontend||(Vessel&&Vessel->Docked));
  if(FocusPending&&MenuOpen){if(auto* Focus=GetWidgetFromName(Frontend?TEXT("Create"):TEXT("Resume")))Focus->SetUserFocus(GetOwningPlayer());FocusPending=false;}
@@ -109,6 +112,10 @@ int32 UVTUI::NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const 
  auto* PC=GetOwningPlayer(); auto* Mine=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; if(MenuOpen||!Mine) return Top;
  auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); auto* State=GetWorld()->GetGameState<AVTGameState>(); auto Font=FCoreStyle::GetDefaultFontStyle("Regular",10);
  auto Line=[&](FVector2D A,FVector2D B,FLinearColor Colour) {TArray<FVector2D> Points={A,B}; FSlateDrawElement::MakeLines(Elements,Top,Geometry.ToPaintGeometry(),Points,ESlateDrawEffect::None,Colour,true,1);};
+ if(auto* Captain=Cast<AVTController>(PC))for(bool Port:{true,false})if(Captain->LocalIntent.Buttons&(Port?VTButtons::AimPort:VTButtons::AimStarboard)) {
+  auto Direction=VTCombat::BroadsideDirection(Mine->Movement->Motion.Heading,Port,Captain->LocalIntent.Aim,Mine->Definition.Arc);FVector2D A,B;
+  if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position,Mine->SystemIndex),A,true)&&PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position+Direction*Mine->Definition.MuzzleSpeed*Sim->Data->Rules.ProjectileTTL,Mine->SystemIndex),B,true))Line(Geometry.AbsoluteToLocal(A),Geometry.AbsoluteToLocal(B),(Port?Mine->PortReload:Mine->StarboardReload)<=0?FLinearColor(1,0.65f,0.15f):FLinearColor(0.45f,0.08f,0.05f));
+ }
  for(AVTShip* Other:Sim->Ships) if(IsValid(Other)&&Other!=Mine&&Other->SystemIndex==Mine->SystemIndex) {
   FVector2D P; if(!PC->ProjectWorldLocationToScreen(Other->GetActorLocation(),P,true)) continue; P=Geometry.AbsoluteToLocal(P);
   if(P.X<10||P.Y<10||P.X>Geometry.GetLocalSize().X-10||P.Y>Geometry.GetLocalSize().Y-10) continue;
@@ -133,3 +140,5 @@ void UVTUI::ApplyGraphics(int32 Preset){if(GEngine)if(auto* Settings=GEngine->Ge
 void UVTUI::PerformanceGraphics(){ApplyGraphics(1);}
 void UVTUI::BalancedGraphics(){ApplyGraphics(2);}
 void UVTUI::HighGraphics(){ApplyGraphics(3);}
+
+void UVTUI::ToggleAutopilot(){if(auto* PC=Cast<AVTController>(GetOwningPlayer()))PC->ToggleAutopilot();}

@@ -68,8 +68,10 @@ void AVTGameplayProbe::ServerStep() {
  } else if(Phase==8&&S[1]->SystemIndex==DestinationSystem) {
   Checks.Add(TEXT("normal_charged_independent_jump"),Age+VT::Step>=Sim->Data->Rules.JumpDwell&&S[0]->SystemIndex==OtherSystems[0]&&S[2]->SystemIndex==OtherSystems[2]&&S[3]->SystemIndex==OtherSystems[3]);MovementOrigins.Reset();for(int I=0;I<4;++I){Place(S[I],S[I]->SystemIndex,FVector2D(-900-160*I,-900));MovementOrigins.Add(S[I]->Movement->Motion.Position);}Enter(9);
  } else if(Phase==9&&Age>30) {
-  bool AllMoved=true;for(int I=0;I<4;++I) AllMoved&=(S[I]->Movement->Motion.Position-MovementOrigins[I]).Size()>100&&S[I]->Movement->Authority.Ack>0;Checks.Add(TEXT("all_captains_moved_after_loss_burst"),AllMoved);auto* Save=GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();Checks.Add(TEXT("post_gameplay_snapshot"),Save->Save());Enter(11);FinishAt=Now+5;
+  bool AllMoved=true;for(int I=0;I<4;++I) AllMoved&=(S[I]->Movement->Motion.Position-MovementOrigins[I]).Size()>100&&S[I]->Movement->Authority.Ack>0;Checks.Add(TEXT("all_captains_moved_after_loss_burst"),AllMoved);auto* Save=GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();Checks.Add(TEXT("post_gameplay_snapshot"),Save->Save());Place(S[1],S[1]->SystemIndex,FVector2D(-900,-900));FVTMotion TargetMotion;TargetMotion.Position=FVector2D(-900,-700);auto* Target=Sim->SpawnShip("house_patrol",S[1]->SystemIndex,TargetMotion,true,"Freebooters");Target->Invulnerable=true;Target->Anchored=true;S[1]->PortReload=0;S[1]->StarboardReload=0;Enter(10);
  }
+ else if(Phase==10&&Age>3&&S[1]->Autopilot&&S[1]->PortReload>0) {Checks.Add(TEXT("network_ai_pilot_keeps_captain_and_operates_guns"),S[1]->Controller==Captains[1].Get()&&S[1]->GetPlayerState<AVTPlayerState>()==PS[1]);NetworkPilotAck=S[1]->Movement->Authority.Ack;Enter(12);}
+ else if(Phase==12&&Age>2&&!S[1]->Autopilot&&S[1]->Movement->Authority.Ack>NetworkPilotAck+32) {Checks.Add(TEXT("network_ai_pilot_returns_to_manual"),S[1]->Controller==Captains[1].Get());Enter(11);FinishAt=Now+5;}
  if(Phase==11&&Now>=FinishAt&&FinishAt>0) ReportLocal(Captains[0].Get());
 #endif
 }
@@ -86,6 +88,8 @@ void AVTGameplayProbe::DriveLocal(AVTController* PC) {
  if(!SentAction&&Index==1) {
   if(Phase==5) {PC->ServerStationAction(FName("repair"));PC->ServerStationAction(FName("pay_heat"));SentAction=true;}
   if(Phase==6) {PC->ServerRefit(FName("corsair_frigate"),FVTLoadoutSelection());SentAction=true;}
+  if(Phase==10) {PC->ServerSetAutopilot(true);SentAction=true;}
+  if(Phase==12) {PC->ServerSetAutopilot(false);SentAction=true;}
   if(Phase==7) {PC->ServerStationAction(FName("undock"));SentAction=true;}
  }
  if(Phase>=8&&PC->UI&&PC->UI->MenuOpen) PC->UI->SetMenu(false);

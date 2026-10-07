@@ -26,7 +26,7 @@ public:
  TArray<int32> OtherSystems;
  TArray<FVector2D> MovementOrigins;
  FVector2D LocalMovementOrigin=FVector2D::ZeroVector;
- uint32 BurstEndAck=0;
+ uint32 BurstEndAck=0,NetworkPilotAck=0;
  double InitialHull=0;
  int32 InitialPrizes=0,InitialCredits=0;
  void Enter(int32 Next);

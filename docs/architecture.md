@@ -69,3 +69,9 @@ and [GAS ownership model](https://dev.epicgames.com/documentation/en-us/unreal-e
 
 ## Acceptance harness
 Development probes coordinate four processes through a replicated AInfo fixture. Initial placement and vulnerable hull setup are explicit fixtures; broadside damage, simultaneous boarding, station services, death recovery and charged jumps use normal gameplay paths. Client reports include observed phase completion and reconciliation distances. A separate campaign soak preserves normal mortal populations, records per-system advancement, snapshots/reconnects and bounded memory/performance samples. Shipping neither creates nor runs probe actors.
+
+The optional player AI pilot is an authoritative control mode on the same pawn.
+The PlayerController retains possession and camera ownership; AVTShipAI supplies
+intent through its shared decision entry point. Remote clients interpolate that
+authoritative motion while AI is active, and resume sequenced prediction on return
+to manual control. Loading/reconnecting starts in manual mode and cancels held inputs.

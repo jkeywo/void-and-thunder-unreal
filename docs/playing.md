@@ -33,9 +33,12 @@ Guests return to Menu and can rejoin the same world with their saved identity/to
 | Mines | M | D-pad left |
 | Point defence | X | D-pad right |
 | Menu | Escape | Start |
+| Toggle AI pilot | T or menu button | Left stick press or menu button |
 | Recover a disabled sandbox ship | R or menu recovery button | D-pad down |
 
-Aim by steering to bring a broadside onto the target. Shields have directional
+Aim by steering to bring a broadside onto the target. Hold its mouse button or
+trigger to aim; release it to fire. Loaded aim beams are amber and reloading beams
+are dim red. Shields have directional
 banks. EMP affects systems; point defence intercepts hostile shots; torpedoes
 launch from the current hull pose and arc above/below the plane. Equipment shares
 battery, ammunition and authoritative cooldowns.
@@ -68,3 +71,7 @@ High graphics buttons save personal Unreal settings independently from campaign
 saves. The frontend scales to fit smaller windows; station actions appear while
 docked. No physical-controller or clean-machine installer validation is claimed
 by the automated keyboard/controller event probes.
+
+The optional AI pilot flies and operates your fitted ship while you retain the
+camera and captain identity. The host makes its decisions. Return to manual control
+with the same toggle; restored/reconnected ships start in manual mode.

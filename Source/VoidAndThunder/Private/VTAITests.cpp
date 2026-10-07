@@ -100,4 +100,27 @@ bool FVTGoldenAI::RunTest(const FString& Params) {
  }
  TestEqual(TEXT("Independent source AI choices"),Count,48);return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTPlayerPilot,"VT.AI.PlayerPilotAuthorityAndTransitions",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTPlayerPilot::RunTest(const FString& Params) {
+ FAIFixture F;auto* Captain=F.World->SpawnActor<AVTController>();F.Pilot->IsNPC=false;F.Pilot->Invulnerable=true;F.Target->Invulnerable=true;F.Target->Anchored=true;Captain->Possess(F.Pilot);auto* PS=Captain->GetPlayerState<AVTPlayerState>();PS->Profile=FGuid::NewGuid();
+ F.Pilot->Definition.AIAbilities=false;F.Pilot->Brain.LastAttacker=F.Target->PersistentId;F.Pilot->Combat->WarpHeld=true;F.Pilot->Combat->TorpedoHeld=true;F.Pilot->LastReceived=9;F.Pilot->InputQueue.Add(FVTPilotIntent());
+ Captain->ServerSetAutopilot_Implementation(true);
+ TestTrue("Captain can enable authoritative AI pilot",F.Pilot->Autopilot);TestTrue("AI pilot retains possession",Captain->GetPawn()==F.Pilot);TestEqual("AI pilot retains player state",F.Pilot->GetPlayerState<AVTPlayerState>(),PS);
+ TestEqual("Mode transition retains world attack attribution",F.Pilot->Brain.LastAttacker,F.Target->PersistentId);TestTrue("Mode transition cancels held devices and queued manual input",!F.Pilot->Combat->WarpHeld&&!F.Pilot->Combat->TorpedoHeld&&F.Pilot->InputQueue.IsEmpty());
+ FVTPilotIntent Manual;Manual.Sequence=10;Manual.Throttle=1;F.Pilot->ServerIntent_Implementation(Manual);TestEqual("AI mode rejects manual input stream",F.Pilot->LastReceived,uint32(9));
+ for(int I=0;I<45;++I)F.Sim->FixedStep();TestTrue("AI pilot operates the player broadside",F.Pilot->PortReload>0);TestEqual("AI decisions retain player ownership",F.Pilot->GetController(),static_cast<AController*>(Captain));
+ Captain->ServerSetAutopilot_Implementation(false);TestFalse("Captain can return to manual control",F.Pilot->Autopilot);F.Pilot->ServerIntent_Implementation(Manual);F.Sim->FixedStep();TestEqual("Manual commands resume acknowledged simulation",F.Pilot->Movement->Authority.Ack,uint32(10));
+ F.Pilot->Docked=true;Captain->ServerSetAutopilot_Implementation(true);TestFalse("Docked ship cannot enable AI pilot",F.Pilot->Autopilot);return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTManualBroadside,"VT.Input.BroadsideAimReleaseAndCancel",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTManualBroadside::RunTest(const FString& Params) {
+ FAIFixture F;auto* Captain=F.World->SpawnActor<AVTController>();F.Pilot->IsNPC=false;Captain->Possess(F.Pilot);
+ Captain->ReadFlight(FInputActionValue(true),3);TestTrue("Held port button produces aim intent",bool(Captain->LocalIntent.Buttons&VTButtons::AimPort));TestFalse("Holding does not issue fire",bool(Captain->LocalIntent.Buttons&VTButtons::Port));
+ F.Pilot->Intent=Captain->LocalIntent;F.Pilot->Combat->WeaponsStep();TestEqual("Held aim does not begin bank reload",F.Pilot->PortReload,0.f);TestTrue("Held aim emits no projectile",F.Sim->Projectiles.IsEmpty());
+ Captain->ReadFlight(FInputActionValue(false),3);TestFalse("Release clears aim",bool(Captain->LocalIntent.Buttons&VTButtons::AimPort));TestTrue("Release requests one fire pulse",bool(Captain->LocalIntent.Buttons&VTButtons::Port));F.Pilot->Intent=Captain->LocalIntent;F.Pilot->Combat->WeaponsStep();TestTrue("Release activates authoritative broadside",F.Pilot->PortReload>0);
+ Captain->LocalIntent=FVTPilotIntent();Captain->ReadFlight(FInputActionValue(true),4);Captain->CancelFlight(FInputActionValue(false),4);TestEqual("Cancelled bank aim never releases a shot",Captain->LocalIntent.Buttons,uint16(0));
+ Captain->ReadFlight(FInputActionValue(false),4);TestEqual("An unheld release does not manufacture fire",Captain->LocalIntent.Buttons,uint16(0));return true;
+}
 #endif

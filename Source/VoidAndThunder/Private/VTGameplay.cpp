@@ -67,7 +67,7 @@ void UVTShipMovement::OnRep_Authority() {
  if(ChangedSystem) {ReplicaFrames.Reset();RenderCorrection=FVector2D::ZeroVector;RenderHeadingCorrection=0;ReplicaSystem=S->SystemIndex;}
  LastAuthorityReceived=FPlatformTime::Seconds(); ReplicaFrames.Add(Authority);
  if(ReplicaFrames.Num()>8) ReplicaFrames.RemoveAt(0);
- if (!S->IsLocallyControlled()) { Previous = Motion; Motion = Authority; return; }
+ if (!S->IsLocallyControlled()||S->Autopilot) { Pending.Reset();RenderCorrection=FVector2D::ZeroVector;RenderHeadingCorrection=0;Previous = Motion; Motion = Authority; return; }
  const FVector2D PredictedPosition=Motion.Position;const float PredictedHeading=Motion.Heading;
  Pending.RemoveAll([this](const FPending& P) { return int32(P.Intent.Sequence - Authority.Ack) <= 0; });
  Motion = Authority;
@@ -86,7 +86,7 @@ void UVTShipMovement::ApplyPose() {
  const double Alpha = FMath::Clamp(GetWorld()->GetSubsystem<UVTSimulation>()->Accumulator / VT::Step, 0., 1.);
  FVTMotion Render = Motion;
  if(S->IsLocallyControlled()&&!S->HasAuthority()){Render.Position+=RenderCorrection;Render.Heading+=RenderHeadingCorrection;}
- if (!S->IsLocallyControlled()) {
+ if (!S->IsLocallyControlled()||S->Autopilot) {
   Render.Position=FMath::Lerp(Previous.Position,Motion.Position,Alpha);
   Render.Heading=Previous.Heading+FMath::UnwindRadians(Motion.Heading-Previous.Heading)*float(Alpha);
   if(!S->HasAuthority()&&!ReplicaFrames.IsEmpty()) {
@@ -159,7 +159,7 @@ void AVTShip::EndPlay(const EEndPlayReason::Type Reason) {
  Super::EndPlay(Reason);
 }
 void AVTShip::ServerIntent_Implementation(FVTPilotIntent Value) {
- if (!VT::ValidIntent(Value) || !VT::SequenceAdvanceAllowed(Value.Sequence,LastReceived,GetWorld()->GetRealTimeSeconds()-LastInputTime)) return;
+ if (Autopilot || !VT::ValidIntent(Value) || !VT::SequenceAdvanceAllowed(Value.Sequence,LastReceived,GetWorld()->GetRealTimeSeconds()-LastInputTime)) return;
  LastReceived=Value.Sequence; if(InputQueue.Num()<256) InputQueue.Add(Value); LastInputTime=GetWorld()->GetRealTimeSeconds();
 }
 void AVTShip::ServerIntentBatch_Implementation(const TArray<FVTPilotIntent>& Values) {if(Values.Num()>12) return; for(const auto& Value:Values) ServerIntent_Implementation(Value);}
@@ -170,7 +170,7 @@ bool AVTShip::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarge
 }
 void AVTShip::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
  Super::GetLifetimeReplicatedProps(OutLifetimeProps);
- DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip,JumpProgress); DOREPLIFETIME(AVTShip,JumpDestination); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
+ DOREPLIFETIME(AVTShip,Autopilot); DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip,JumpProgress); DOREPLIFETIME(AVTShip,JumpDestination); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
  DOREPLIFETIME(AVTShip, PersistentId); DOREPLIFETIME(AVTShip, Docked); DOREPLIFETIME(AVTShip, Disabled);
  DOREPLIFETIME(AVTShip, PortReload); DOREPLIFETIME(AVTShip, StarboardReload);
 }
@@ -196,10 +196,15 @@ void AVTController::BeginPlay() {
  }
 }
 void AVTController::ReadFlight(const FInputActionValue& Value, int32 Index) {
+ if(auto* Ship=Cast<AVTShip>(GetPawn()))if(Ship->Autopilot)return;
  if (Index == 0) LocalIntent.Throttle = Value.Get<float>();
  else if (Index == 1) LocalIntent.Turn = Value.Get<float>();
  else if (Index == 2) {
   GamepadAim=Value.Get<FVector2D>(); if(GamepadAim.SizeSquared()>0.0025) UsingGamepadAim=true;
+ } else if(Index==3||Index==4) {
+  const uint16 Aim=Index==3?VTButtons::AimPort:VTButtons::AimStarboard;const uint16 Fire=Index==3?VTButtons::Port:VTButtons::Starboard;
+  if(Value.Get<bool>())LocalIntent.Buttons|=Aim;
+  else {if(LocalIntent.Buttons&Aim)LocalIntent.Buttons|=Fire;LocalIntent.Buttons&=~Aim;}
  } else {
   const uint16 Bit = uint16(1 << (Index - 3));
   if (Value.Get<bool>()) LocalIntent.Buttons |= Bit; else LocalIntent.Buttons &= ~Bit;
@@ -209,6 +214,8 @@ void AVTController::SetupInputComponent() {
  Super::SetupInputComponent();
  InputComponent->BindKey(EKeys::Escape,IE_Pressed,this,&AVTController::ToggleMenu);
  InputComponent->BindKey(EKeys::Gamepad_Special_Right,IE_Pressed,this,&AVTController::ToggleMenu);
+ InputComponent->BindKey(EKeys::T,IE_Pressed,this,&AVTController::ToggleAutopilot);
+ InputComponent->BindKey(EKeys::Gamepad_LeftThumbstick,IE_Pressed,this,&AVTController::ToggleAutopilot);
  InputComponent->BindKey(EKeys::R,IE_Pressed,this,&AVTController::VTRecover);
  InputComponent->BindKey(EKeys::Gamepad_DPad_Down,IE_Pressed,this,&AVTController::VTRecover);
  auto* Input = Cast<UEnhancedInputComponent>(InputComponent);
@@ -220,7 +227,7 @@ void AVTController::SetupInputComponent() {
   if (Action) {
    Input->BindAction(Action,ETriggerEvent::Triggered,this,&AVTController::ReadFlight,I);
    Input->BindAction(Action,ETriggerEvent::Completed,this,&AVTController::ReadFlight,I);
-   Input->BindAction(Action,ETriggerEvent::Canceled,this,&AVTController::ReadFlight,I);
+   Input->BindAction(Action,ETriggerEvent::Canceled,this,&AVTController::CancelFlight,I);
   }
  }
 }
@@ -229,7 +236,7 @@ void AVTController::PlayerTick(float Dt) {
  ValidationInput(Dt);
  if(UI&&UI->MenuOpen) {LocalIntent=FVTPilotIntent();}
  AVTShip* Ship = Cast<AVTShip>(GetPawn()); if (!IsLocalController() || !Ship) return;
- if(UI&&UI->MenuOpen) LocalIntent=FVTPilotIntent();
+ if((UI&&UI->MenuOpen)||Ship->Autopilot) LocalIntent=FVTPilotIntent();
  float MouseX=0,MouseY=0; GetInputMouseDelta(MouseX,MouseY); if(FMath::Abs(MouseX)+FMath::Abs(MouseY)>0.1f) UsingGamepadAim=false;
  FVector Origin, Direction;
  if (!UsingGamepadAim && DeprojectMousePositionToWorld(Origin, Direction) && FMath::Abs(Direction.Z) > 0.0001) {
@@ -241,14 +248,14 @@ void AVTController::PlayerTick(float Dt) {
  }
 
  double Now=FPlatformTime::Seconds(); float RealDt=LastRealTick>0 ? float(FMath::Min(0.1,Now-LastRealTick)) : Dt; LastRealTick=Now;
- if(UsingGamepadAim&&(LocalIntent.Buttons&(VTButtons::Port|VTButtons::Starboard|VTButtons::Torpedo|VTButtons::Warp))) {
+ if(UsingGamepadAim&&(LocalIntent.Buttons&(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Torpedo|VTButtons::Warp))) {
   const auto& Controls=GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.controls;
   auto Axis=[&](double V){return FMath::Sign(V)*FMath::Clamp((FMath::Abs(V)-Controls.deadzone)/FMath::Max(0.001f,Controls.saturation-Controls.deadzone),0.,1.);};
   FRotator Rotation=PlayerCameraManager ? PlayerCameraManager->GetCameraRotation() : FRotator::ZeroRotator; FRotationMatrix Basis(Rotation); auto Right=Basis.GetScaledAxis(EAxis::Y),Up=Basis.GetScaledAxis(EAxis::Z);
   auto Delta=FVector2D(Right.X,-Right.Y).GetSafeNormal()*Axis(GamepadAim.X)+FVector2D(Up.X,-Up.Y).GetSafeNormal()*Axis(GamepadAim.Y);
   LocalIntent.CursorOffset=(LocalIntent.CursorOffset+Delta*Controls.aim_cursor_rate*RealDt).GetClampedToMaxSize(Controls.aim_cursor_max); LocalIntent.Aim=LocalIntent.CursorOffset.GetSafeNormal();
  }
- bool Aiming=(LocalIntent.Buttons&(VTButtons::Port|VTButtons::Starboard|VTButtons::Warp))!=0;
+ bool Aiming=(LocalIntent.Buttons&(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Warp))!=0;
  if(GetWorld()->GetNetMode()==NM_Standalone&&!(UI&&UI->MenuOpen)) {
   const auto& Time=GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.time;
   float Target=Aiming&&AimBattery>0 ? Time.aim_timescale : 1;
@@ -258,12 +265,14 @@ void AVTController::PlayerTick(float Dt) {
  HitStop=FMath::Max(0.f,HitStop-RealDt); CameraTrauma=FMath::Max(0.f,CameraTrauma-RealDt*GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.camera.trauma_decay);
  const auto& CameraFeel=GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.camera;
  Ship->Camera->SetFieldOfView(FMath::RadiansToDegrees(CameraFeel.base_fov+(Ship->Combat->BoostPowered ? CameraFeel.boost_fov_gain : 0)));
+ if(Ship->Autopilot){SendAccumulator=0;return;}
  SendAccumulator += Dt;
  while (SendAccumulator >= VT::Step) {
   SendAccumulator -= VT::Step;
   LocalIntent.Sequence = ++NextSequence;
   if (Ship->HasAuthority()) Ship->ServerIntent_Implementation(LocalIntent);
   else {Ship->Movement->Step(LocalIntent,true); TArray<FVTPilotIntent> Batch; const auto& Pending=Ship->Movement->Pending; for(int I=FMath::Max(0,Pending.Num()-8);I<Pending.Num();++I) Batch.Add(Pending[I].Intent); Ship->ServerIntentBatch(Batch);}
+  LocalIntent.Buttons&=~(VTButtons::Port|VTButtons::Starboard);
  }
 }
 void AVTController::VTJump(FString Destination) { ServerJump(FName(Destination)); }
@@ -352,6 +361,7 @@ void UVTSimulation::FixedStep() {
  for(AVTShip* S:Ships) if(IsValid(S)&&SystemShips.IsValidIndex(S->SystemIndex)) SystemShips[S->SystemIndex].Add(S);
  for (AVTShip* S : Ships) if (IsValid(S)) {
   if (auto* Brain = Cast<AVTShipAI>(S->Controller)) Brain->Decide(VT::Step);
+  else if(S->Autopilot) {uint32 Ack=S->Movement->Authority.Ack;AVTShipAI::DecideShip(S,VT::Step);S->Intent.Sequence=Ack;}
   else {if(!S->InputQueue.IsEmpty()) {S->Intent=S->InputQueue[0]; S->InputQueue.RemoveAt(0);}
    if (GetWorld()->GetRealTimeSeconds() - S->LastInputTime > 0.25) { S->Intent.Throttle=0; S->Intent.Turn=0; S->Intent.Buttons=0; } AVTShipAI::CrewStep(S);}
  }
@@ -368,7 +378,7 @@ void UVTSimulation::FixedStep() {
   if(Length>Radius) S->Movement->Motion.Velocity-=S->Movement->Motion.Position.GetSafeNormal()*((Length-Radius)*Data->Rules.BoundsSpring*VT::Step);
  }
  for (AVTShip* S : Ships) if (IsValid(S)) S->Movement->Authority=S->Movement->Motion;
- for (AVTShip* S : Ships) if (IsValid(S)) S->Combat->WeaponsStep();
+ for (AVTShip* S : Ships) if (IsValid(S)) {S->Combat->WeaponsStep();S->Intent.Buttons&=~(VTButtons::Port|VTButtons::Starboard);}
  Phase(4);
  ProjectileStep();
  Phase(5);
@@ -563,7 +573,7 @@ void AVTCameraManager::UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) {
  auto Lead=(M.Velocity*C.lead_secs).GetClampedToMaxSize(C.lead_max); FVector DesiredFocus=Ship->GetActorLocation()+FVector(Lead.X,-Lead.Y,0)*100;
  if(Menu) {DesiredFocus=Ship->GetActorLocation(); MenuOrbit=FMath::UnwindRadians(MenuOrbit+C.menu_orbit_rate*Dt); Yaw=M.Heading+MenuOrbit;}
  else if(Buttons&(VTButtons::Torpedo|VTButtons::Warp)) {Yaw=M.Heading; Pitch=C.topdown_pitch; Distance=Data->Rules.EngagementRange/FMath::Tan(FMath::Max(0.05,OrbitFov*0.5))*C.topdown_margin; Locked=true;}
- else if(Buttons&(VTButtons::Port|VTButtons::Starboard)) {auto Direction=VTCombat::BroadsideDirection(M.Heading,(Buttons&VTButtons::Port)!=0,PC->LocalIntent.Aim,Ship->Definition.Arc); Yaw=FMath::Atan2(Direction.Y,Direction.X); Pitch=C.aim_pitch; Distance=C.distance*C.aim_dist; Locked=true;}
+ else if(Buttons&(VTButtons::AimPort|VTButtons::AimStarboard)) {auto Direction=VTCombat::BroadsideDirection(M.Heading,(Buttons&VTButtons::AimPort)!=0,PC->LocalIntent.Aim,Ship->Definition.Arc); Yaw=FMath::Atan2(Direction.Y,Direction.X); Pitch=C.aim_pitch; Distance=C.distance*C.aim_dist; Locked=true;}
  else if(PC->UsingGamepadAim) {FreeYaw=FMath::Clamp(FreeYaw-SX*C.look_yaw_rate*Dt,-double(PI),double(PI)); FreePitch=FMath::Clamp(FreePitch-SY*C.look_pitch_rate*Dt,double(C.pitch_min),double(C.pitch_max)); Yaw=M.Heading+FreeYaw; Pitch=FreePitch;}
  else {Yaw=M.Heading-LX*0.9; Pitch=FMath::Clamp(C.pitch_base+LY*0.5,double(C.pitch_min),double(C.pitch_max));}
  LookIdle=Locked||Active ? 0 : LookIdle+Dt;
@@ -589,4 +599,22 @@ void UVTSimulation::ConfigurePopulationFixture(int32 Count,bool Busy,bool Armed)
  Bootstrap(Count);
  if(Busy) for(int I=0;I<Count/2;++I) {auto* Ship=Ships[I].Get(); Ship->SystemIndex=0; float Angle=float(I)*2.399963f; Ship->Movement->Motion.Position=FVector2D(FMath::Cos(Angle),FMath::Sin(Angle))*(200+float(I%20)*40);}
  if(Armed) for(int I=0;I<Count;++I) if(I%4==0) {auto* Ship=Ships[I].Get(); FVTLoadoutSelection Fit; Fit.Battery=I%8==0 ? FName("loadout.disruptor") : FName("loadout.point_defense"); Fit.Special=I%12==0 ? FName("loadout.mines") : FName("loadout.torpedoes"); Ship->ApplyFit(Fit,true); Ship->Definition.AIAbilities=true;}
+}
+
+void AVTShip::OnRep_Autopilot() {
+ Movement->Pending.Reset();Movement->RenderCorrection=FVector2D::ZeroVector;Movement->RenderHeadingCorrection=0;
+ if(auto* PC=Cast<AVTController>(GetController())){PC->LocalIntent=FVTPilotIntent();PC->SendAccumulator=0;}
+}
+void AVTController::ToggleAutopilot(){if(auto* Ship=Cast<AVTShip>(GetPawn()))ServerSetAutopilot(!Ship->Autopilot);}
+void AVTController::ServerSetAutopilot_Implementation(bool Enabled) {
+ auto* Ship=Cast<AVTShip>(GetPawn());auto* PS=GetPlayerState<AVTPlayerState>();
+ if(!Ship||Ship->IsNPC||!PS||!PS->Profile.IsValid()||(Enabled&&(Ship->Docked||Ship->Disabled)))return;
+ if(Ship->Autopilot==Enabled)return;Ship->Autopilot=Enabled;Ship->Intent=FVTPilotIntent();Ship->InputQueue.Reset();Ship->Brain.Action=-1;Ship->Brain.Shoulder=-1;Ship->Brain.Thumb=-1;Ship->Brain.AimLock=0;Ship->Brain.ThumbTravel=0;Ship->Brain.WarpPrime=0;
+ Ship->Combat->WarpHeld=false;Ship->Combat->TorpedoHeld=false;Ship->Combat->EquipmentState.Locks.Reset();Ship->Combat->EquipmentState.LockElapsed=0;
+ Ship->OnRep_Autopilot();Ship->ForceNetUpdate();
+}
+
+void AVTController::CancelFlight(const FInputActionValue& Value,int32 Index) {
+ if(Index==3||Index==4){LocalIntent.Buttons&=~(Index==3?(VTButtons::AimPort|VTButtons::Port):(VTButtons::AimStarboard|VTButtons::Starboard));}
+ else ReadFlight(Value,Index);
 }

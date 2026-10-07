@@ -45,6 +45,7 @@ public:
  UFUNCTION() void Skirmish();
  UFUNCTION() void TestRange();
  UFUNCTION() void Resume();
+ UFUNCTION() void ToggleAutopilot();
  UFUNCTION() void Leave();
  UFUNCTION() void Quit();
  UFUNCTION() void Save();

@@ -184,7 +184,7 @@ struct FVTPilotIntent {
 UENUM(BlueprintType)
 enum class EVTDevice : uint8 { Port, Starboard, EMP, Torpedo, Microwarp, Boost, Brace, Board, Mine, PointDefense };
 namespace VTButtons {
- constexpr uint16 Port=1, Starboard=2, EMP=4, Torpedo=8, Warp=16, Boost=32, Brace=64, Interact=128, Mine=256, PointDefense=512;
+ constexpr uint16 Port=1, Starboard=2, EMP=4, Torpedo=8, Warp=16, Boost=32, Brace=64, Interact=128, Mine=256, PointDefense=512,AimPort=1024,AimStarboard=2048;
 }
 USTRUCT(BlueprintType)
 struct FVTMotion {
