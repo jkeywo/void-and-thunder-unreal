@@ -50,8 +50,9 @@ with 500 NPCs plus the player. The first and final stress runs both passed;
 reference-machine and measurement scope are unchanged.
 
 Normal Shipping four-player startup/possession/checksummed autosave passed.
-The next Windows preview includes this code; its exact archive checksum and
-extracted-archive smoke result are recorded separately after bundling.
+The v0.3.1 Windows preview includes this code. Its exact ZIP was extracted into a
+fresh folder and passed ordinary four-player Shipping hosting and autosave. Archive
+SHA-256 and build metadata are adjacent; publication is recorded separately.
 
 This is a fixed-step simulation result on the Core Ultra 9 275HX / 64 GB reference
 machine. It does not claim 60 FPS or four-client network scalability at 1,000 NPCs,
