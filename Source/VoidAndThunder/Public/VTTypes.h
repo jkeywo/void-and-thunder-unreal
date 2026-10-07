@@ -331,7 +331,7 @@ struct FVTFactionRelation {
 USTRUCT()
 struct FVTBrainState {
  GENERATED_BODY()
- UPROPERTY() int32 Action=0;
+ UPROPERTY() int32 Action=-1;
  UPROPERTY() int32 Shoulder=-1;
  UPROPERTY() int32 Thumb=-1;
  UPROPERTY() float AimLock=0;

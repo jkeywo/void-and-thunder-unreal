@@ -42,7 +42,14 @@ bool UVTSimulation::BehaviorHostile(AVTShip* Mine,AVTShip* Other) const {
 }
 void AVTShipAI::Decide(float Dt) {
  auto* Ship=Cast<AVTShip>(GetPawn()); if(!Ship||Ship->Docked||Ship->Disabled||Ship->Anchored) return;
- auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); const auto& T=Sim->Data->AI; const auto& P=T.pilot; const auto& D=Ship->Definition; const auto& E=D.Equipment;
+ auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); const auto& T=Sim->Data->AI; const auto& P=T.pilot; const auto& D=Ship->Definition; auto E=D.Equipment;
+ // The captain sees only their stations; crew operates the full fit separately.
+ for(EVTDevice Device:Ship->Fit.CrewedDevices) {
+  if(Device==EVTDevice::EMP)E.EMP=false;
+  if(Device==EVTDevice::Torpedo)E.Torpedoes=false;
+  if(Device==EVTDevice::PointDefense)E.PointDefense=false;
+  if(Device==EVTDevice::Mine)E.Mines=false;
+ }
  auto& R=Ship->Combat->EquipmentState; auto& Brain=Ship->Brain; const auto& M=Ship->Movement->Motion;
  Ship->Intent=FVTPilotIntent(); TArray<AVTShip*> Targets,Prizes; float Threat=0,Danger=0;
  for(auto* Other:Sim->SystemShips[Ship->SystemIndex]) if(IsValid(Other)&&Other!=Ship&&!Other->Docked) {
@@ -74,13 +81,13 @@ void AVTShipAI::Decide(float Dt) {
  float Stock=float(R.TorpedoMagazine)/FMath::Max(1,E.TorpedoMagazine), Battery=Ship->Attributes->Battery.GetCurrentValue()/FMath::Max(0.001f,D.BatteryMax);
  float Bow=D.ShieldMax.X>0 ? Ship->Combat->Shields.X/D.ShieldMax.X : 0, Stern=D.ShieldMax.Y>0 ? Ship->Combat->Shields.Y/D.ShieldMax.Y : 0;
  auto Presentation=[&](bool ShowingBow) {float Mine=ShowingBow ? Bow : Stern,Theirs=ShowingBow ? Stern : Bow; bool MH=(ShowingBow ? Ship->Combat->Suppression.X : Ship->Combat->Suppression.Y)>0,TH=(ShowingBow ? Ship->Combat->Suppression.Y : Ship->Combat->Suppression.X)>0; float Edge=((Mine-Theirs)-((MH&&Mine<=0 ? 0.5f : 0)-(TH&&Theirs<=0 ? 0.5f : 0)))*P.shield_bias; return FMath::Max(P.presentation_floor,1+Edge*FMath::Clamp(Danger,0.f,1.f));};
- float Scores[7]={}; float Distance=Target ? float((Target->Movement->Motion.Position-M.Position).Size()) : 0; bool Armed=Ship->PortReload<=0||Ship->StarboardReload<=0||(E.Torpedoes&&R.Loaded>=1);
+ float Scores[7]={}; float Distance=Target ? float((Target->Movement->Motion.Position-M.Position).Size()) : 0; bool Armed=((Ship->PortReload<=0||Ship->StarboardReload<=0)&&Target&&Distance<=D.MuzzleSpeed*2.5f)||(E.Torpedoes&&R.Loaded>=1);
  if(Target) {
   Scores[0]=P.w_broadside*(Ship->PortReload<=0||Ship->StarboardReload<=0 ? 1 : P.reloading_interest)*(0.3f+0.7f*Ramp(Distance,D.AIEngageRange,D.AIEngageRange*4));
   if(E.Torpedoes&&R.Loaded>=1&&Distance<=E.TorpedoRange) Scores[1]=P.w_torpedo*(0.5f+0.5f*FMath::Clamp(Distance/E.TorpedoRange,0.f,1.f))*(P.scarcity_floor+(1-P.scarcity_floor)*Stock);
   float Alignment=FMath::Max(0.f,float(FVector2D::DotProduct(FVector2D(FMath::Cos(M.Heading),FMath::Sin(M.Heading)),(Target->Movement->Motion.Position-M.Position).GetSafeNormal())));
   if(E.Boost) Scores[3]=P.w_ram*Ramp(Distance,D.AIEngageRange*0.5f,D.AIEngageRange*1.5f)*(0.3f+0.7f*Alignment)*Battery*Ramp(Integrity,1,P.ram_hull_floor)*(Armed ? 0.3f : 1.f)*Presentation(true);
-  if(E.EMP&&Battery>0&&Distance<=E.EMPRange) Scores[5]=P.w_emp*(1-Target->Attributes->EMPStress.GetCurrentValue()/Target->Definition.EMPResist)*Ramp(Distance,E.EMPRange*0.5f,E.EMPRange)*(Armed ? P.emp_busy_interest : 1)*Presentation(true);
+  if(E.EMP&&Distance<=E.EMPRange) Scores[5]=P.w_emp*FMath::Clamp(1-Target->Attributes->EMPStress.GetCurrentValue()/Target->Definition.EMPResist,0.f,1.f)*Ramp(Distance,E.EMPRange*0.5f,E.EMPRange)*(Armed ? P.emp_busy_interest : 1)*Presentation(true);
   if(Integrity<D.AIFleeFraction) Scores[6]=P.w_disengage*(0.6f+0.4f*Ramp(Integrity,0,D.AIFleeFraction))*FMath::Clamp(Danger,0.f,1.f)*Presentation(false);
  }
  if(Prize) Scores[2]=P.w_board*FMath::Min(1.25f,P.board_base+P.board_repair_pull*(1-Hull)+P.board_resupply_pull*(1-Stock))*(0.3f+0.7f*Ramp(float((Prize->Movement->Motion.Position-M.Position).Size()),Sim->Data->Rules.BoardRange,E.TorpedoRange))*Ramp(Threat,0,P.board_safe_threat);

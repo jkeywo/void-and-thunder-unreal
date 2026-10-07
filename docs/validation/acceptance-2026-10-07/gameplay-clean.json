@@ -3,31 +3,31 @@
     "observed_phases": 3070,
     "failure": "",
     "passed": true,
-    "reconciliation_samples": 418,
+    "reconciliation_samples": 424,
     "correction_p95_units": 0,
-    "correction_max_units": 3.54749508712208,
-    "max_pending_inputs": 42,
-    "final_ack": 2684
+    "correction_max_units": 5.321045116104474,
+    "max_pending_inputs": 37,
+    "final_ack": 2678
   },
   "GameplayClient1": {
     "observed_phases": 3070,
     "failure": "",
     "passed": true,
-    "reconciliation_samples": 424,
+    "reconciliation_samples": 425,
     "correction_p95_units": 0,
-    "correction_max_units": 4.155990009010825,
-    "max_pending_inputs": 38,
-    "final_ack": 3586
+    "correction_max_units": 2.7706129326010696,
+    "max_pending_inputs": 36,
+    "final_ack": 3581
   },
   "GameplayClient2": {
     "observed_phases": 3070,
     "failure": "",
     "passed": true,
-    "reconciliation_samples": 431,
+    "reconciliation_samples": 423,
     "correction_p95_units": 0,
-    "correction_max_units": 11.082902258074869,
-    "max_pending_inputs": 36,
-    "final_ack": 3454
+    "correction_max_units": 23.55077494709583,
+    "max_pending_inputs": 35,
+    "final_ack": 3455
   },
   "GameplayHost": {
     "checks": {
@@ -53,6 +53,6 @@
     "correction_p95_units": 0,
     "correction_max_units": 0,
     "max_pending_inputs": 0,
-    "final_ack": 4367
+    "final_ack": 4423
   }
 }

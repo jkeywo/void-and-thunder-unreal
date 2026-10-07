@@ -1,4 +1,870 @@
 {
+  "ai": [
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 50.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.5219367742538452,
+        0.0,
+        0.27000001072883606,
+        0.3675000071525574,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 5,
+      "battery_fraction": 0.0,
+      "distance": 50.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 50.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.21660375595092773,
+        0.0,
+        0.27000001072883606,
+        0.0,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 50.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.5219367742538452,
+        0.0,
+        0.0,
+        0.5879999995231628,
+        0.2449999898672104,
+        1.418953776359558
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 6,
+      "battery_fraction": 0.0,
+      "distance": 50.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        1.418953776359558
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 50.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.21660375595092773,
+        0.0,
+        0.0,
+        0.0,
+        0.2449999898672104,
+        1.418953776359558
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 150.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.6158102750778198,
+        0.0,
+        0.27000001072883606,
+        0.26249998807907104,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 5,
+      "battery_fraction": 0.0,
+      "distance": 150.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 150.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.2555612623691559,
+        0.0,
+        0.27000001072883606,
+        0.0,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 150.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.6158102750778198,
+        0.0,
+        0.0,
+        0.42000001668930054,
+        0.2449999898672104,
+        1.2328615188598633
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 6,
+      "battery_fraction": 0.0,
+      "distance": 150.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        1.2328615188598633
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 150.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.2555612623691559,
+        0.0,
+        0.0,
+        0.0,
+        0.2449999898672104,
+        1.2328615188598633
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 250.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.7096837759017944,
+        0.0,
+        0.18000000715255737,
+        0.1574999988079071,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 5,
+      "battery_fraction": 0.0,
+      "distance": 250.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 250.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.29451876878738403,
+        0.0,
+        0.18000000715255737,
+        0.0,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 250.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.7096837759017944,
+        0.0,
+        0.0,
+        0.25200000405311584,
+        0.2449999898672104,
+        1.0467692613601685
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 6,
+      "battery_fraction": 0.0,
+      "distance": 250.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        1.0467692613601685
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 250.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.29451876878738403,
+        0.0,
+        0.0,
+        0.0,
+        0.2449999898672104,
+        1.0467692613601685
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 300.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.7566205263137817,
+        0.0,
+        0.13500000536441803,
+        0.10500000417232513,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 5,
+      "battery_fraction": 0.0,
+      "distance": 300.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 300.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.3139975070953369,
+        0.0,
+        0.13500000536441803,
+        0.0,
+        0.2449999898672104,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 300.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        1.0,
+        0.7566205263137817,
+        0.0,
+        0.0,
+        0.1679999977350235,
+        0.2449999898672104,
+        0.9537230730056763
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 6,
+      "battery_fraction": 0.0,
+      "distance": 300.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.550000011920929,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.699999988079071,
+        0.9537230730056763
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 300.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.550000011920929,
+        0.3139975070953369,
+        0.0,
+        0.0,
+        0.0,
+        0.2449999898672104,
+        0.9537230730056763
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 1,
+      "battery_fraction": 1.0,
+      "distance": 500.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        0.8444444537162781,
+        0.9443675875663757,
+        0.0,
+        0.0,
+        0.0,
+        0.0948387011885643,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 0,
+      "battery_fraction": 0.0,
+      "distance": 500.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.46444445848464966,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.2709677219390869,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 500.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.46444445848464966,
+        0.3919125497341156,
+        0.0,
+        0.0,
+        0.0,
+        0.0948387011885643,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 1,
+      "battery_fraction": 1.0,
+      "distance": 500.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        0.8444444537162781,
+        0.9443675875663757,
+        0.0,
+        0.0,
+        0.0,
+        0.0948387011885643,
+        0.5815384387969971
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 6,
+      "battery_fraction": 0.0,
+      "distance": 500.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.46444445848464966,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.2709677219390869,
+        0.5815384387969971
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 6,
+      "battery_fraction": 1.0,
+      "distance": 500.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.46444445848464966,
+        0.3919125497341156,
+        0.0,
+        0.0,
+        0.0,
+        0.0948387011885643,
+        0.5815384387969971
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 4,
+      "battery_fraction": 1.0,
+      "distance": 750.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        0.6499999761581421,
+        0.0,
+        0.0,
+        0.0,
+        0.792452871799469,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 0,
+      "battery_fraction": 0.0,
+      "distance": 750.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.35749998688697815,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 750.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.35749998688697815,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 4,
+      "battery_fraction": 1.0,
+      "distance": 750.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        0.6499999761581421,
+        0.0,
+        0.0,
+        0.0,
+        0.792452871799469,
+        0.0,
+        0.11630768328905106
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 0,
+      "battery_fraction": 0.0,
+      "distance": 750.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.35749998688697815,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.11630768328905106
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 750.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.35749998688697815,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.11630768328905106
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 4,
+      "battery_fraction": 1.0,
+      "distance": 1000.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        0.4555555582046509,
+        0.0,
+        0.0,
+        0.0,
+        0.8400000333786011,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 0,
+      "battery_fraction": 0.0,
+      "distance": 1000.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.2505555748939514,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 1000.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.2505555748939514,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 4,
+      "battery_fraction": 1.0,
+      "distance": 1000.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        0.4555555582046509,
+        0.0,
+        0.0,
+        0.0,
+        0.8400000333786011,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 0,
+      "battery_fraction": 0.0,
+      "distance": 1000.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.2505555748939514,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 1000.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.2505555748939514,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 4,
+      "battery_fraction": 1.0,
+      "distance": 1400.0,
+      "hull_fraction": 1.0,
+      "loaded": 6.0,
+      "scores": [
+        0.30000001192092896,
+        0.0,
+        0.0,
+        0.0,
+        0.8400000333786011,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 0,
+      "battery_fraction": 0.0,
+      "distance": 1400.0,
+      "hull_fraction": 1.0,
+      "loaded": 0.0,
+      "scores": [
+        0.16500000655651093,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 1400.0,
+      "hull_fraction": 1.0,
+      "loaded": 1.0,
+      "scores": [
+        0.16500000655651093,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    },
+    {
+      "action": 4,
+      "battery_fraction": 1.0,
+      "distance": 1400.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 6.0,
+      "scores": [
+        0.30000001192092896,
+        0.0,
+        0.0,
+        0.0,
+        0.8400000333786011,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 1.0,
+      "style": 0
+    },
+    {
+      "action": 0,
+      "battery_fraction": 0.0,
+      "distance": 1400.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 0.0,
+      "scores": [
+        0.16500000655651093,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.0,
+      "style": 1
+    },
+    {
+      "action": 0,
+      "battery_fraction": 1.0,
+      "distance": 1400.0,
+      "hull_fraction": 0.10000000149011612,
+      "loaded": 1.0,
+      "scores": [
+        0.16500000655651093,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stock_fraction": 0.10000000149011612,
+      "style": 2
+    }
+  ],
   "broadside": [
     {
       "aim": [

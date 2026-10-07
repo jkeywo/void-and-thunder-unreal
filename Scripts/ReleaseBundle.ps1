@@ -1,4 +1,4 @@
-param([ValidatePattern('^v[0-9]+\.[0-9]+\.[0-9]+[-a-zA-Z0-9.]*$')][string]$Version='v0.2.0-sandbox-preview')
+param([ValidatePattern('^v[0-9]+\.[0-9]+\.[0-9]+[-a-zA-Z0-9.]*$')][string]$Version='v0.2.1-sandbox-preview')
 $ErrorActionPreference='Stop'
 $ProjectRoot=Split-Path $PSScriptRoot -Parent
 $Package=Join-Path $ProjectRoot 'Artifacts/Shipping/Windows'

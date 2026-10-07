@@ -14,7 +14,7 @@ void UVTSimulation::SoakTick(const FString& ProbeRole) {
  auto* PC=Cast<AVTController>(GetWorld()->GetFirstPlayerController());auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr;
  if(Host)for(AVTShip* S:Ships)if(IsValid(S)&&!S->IsNPC)S->Invulnerable=true;
  if(Host) {
-  if(SoakFirstTime==0&&Age>1) {SoakFirstTime=SimulationTime;for(AVTShip* S:Ships)if(IsValid(S)&&S->IsNPC)++SoakInitialNPCs;}
+  if(SoakFirstTime==0&&Age>1) {int32 Population=500;FParse::Value(FCommandLine::Get(),TEXT("VTSoakPopulation="),Population);if(Population>=0)Bootstrap(FMath::Clamp(Population,0,2000),false);SoakFirstTime=SimulationTime;for(AVTShip* S:Ships)if(IsValid(S)&&S->IsNPC)++SoakInitialNPCs;}
   for(AVTShip* S:Ships)if(IsValid(S)) {if(!FMath::IsFinite(S->Movement->Motion.SimulationTime)||S->Movement->Motion.Position.ContainsNaN()||S->Movement->Motion.Velocity.ContainsNaN())SoakFailed=true; if(S->IsNPC&&S->Movement->Motion.SimulationTime>SoakFirstTime+10)SoakSystemsAdvanced.Add(S->SystemIndex);}
   if(SimulationTime>=SoakNextSave) {
    SoakNextSave+=300;auto* Save=GetWorld()->GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();const auto World=Save->WorldId;const double Clock=SimulationTime;

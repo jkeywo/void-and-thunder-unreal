@@ -29,7 +29,18 @@ fn main() {
   for port in [false,true] {for arc in [0.0f32,0.35,1.1780972] {let d=vt_sim::combat::broadside_direction(heading,port,Some(aim),arc);beams.push(json!({"heading":heading,"port":port,"aim":[aim.x,aim.y],"arc":arc,"direction":[d.x,d.y]}));}}
   for arcs in [1u8,2,4] {let a=vt_sim::shield::shield_arc(heading,Vec2::ZERO,aim,arcs);let index=match a {vt_sim::shield::ShieldArc::Fore=>0,vt_sim::shield::ShieldArc::Aft=>1,vt_sim::shield::ShieldArc::Port=>2,vt_sim::shield::ShieldArc::Starboard=>3};shields.push(json!({"heading":heading,"impact":[aim.x,aim.y],"arcs":arcs,"answer":index}));}
  }}
- let out=json!({"source_commit":"c138f2c9caab77ed8288ddcb46d1622e471c2b15","flight":flights,"broadside":beams,"shield":shields});
+ let mut ai=Vec::new();
+ for distance in [50.0f32,150.0,250.0,300.0,500.0,750.0,1000.0,1400.0] {for hull in [1.0f32,0.1] {for style in 0..3 {
+  let loaded=if style==0 {6.0} else if style==1 {0.0} else {1.0};
+  let stock=if style==0 {1.0} else if style==1 {0.0} else {0.1};let battery=if style==1 {0.0} else {1.0};
+  let kit=vt_sim::pilot::Kit{gun_reach:812.5,gun_arc:1.1780972,muzzle_speed:325.0,port_ready:style==0,starboard_ready:style==0,emp_range:620.0,emp_arc:std::f32::consts::FRAC_PI_2,torpedo_range:506.0,lock_radius:112.5,tubes:loaded,stock_frac:stock,locks:0,warp_range:506.0,warp_ready:style==0,board_range:95.0,battery_frac:battery,screen_radius:190.0,mine_radius:52.0,mines:8,mine_stock_frac:1.0,mine_ready:true,bow_frac:0.0,stern_frac:0.0,bow_suppressed:false,stern_suppressed:false};
+  let target=vt_sim::pilot::Contact{pos:Vec2::new(distance,0.0),vel:Vec2::ZERO,hull_frac:1.0,emp_frac:0.0,dist:distance};
+  let situation=vt_sim::pilot::Situation::new(Vec2::ZERO,0.0,Vec2::ZERO,hull,hull,vec![target],vec![],kit,vt_sim::components::AiController::piloting(),400.0,false);
+  let plan=vt_sim::pilot::plan(&situation,&vt_sim::tuning::AiTuning::default(),&vt_sim::pilot::PilotBrain::default(),1.0/64.0);
+  let action=match plan.action {vt_sim::pilot::Action::Hold=>-1,vt_sim::pilot::Action::Broadside=>0,vt_sim::pilot::Action::Torpedo=>1,vt_sim::pilot::Action::Board=>2,vt_sim::pilot::Action::Ram=>3,vt_sim::pilot::Action::Microwarp=>4,vt_sim::pilot::Action::Emp=>5,vt_sim::pilot::Action::Disengage=>6};
+  ai.push(json!({"distance":distance,"hull_fraction":hull,"style":style,"loaded":loaded,"stock_fraction":stock,"battery_fraction":battery,"action":action,"scores":plan.scores}));
+ }}}
+ let out=json!({"source_commit":"c138f2c9caab77ed8288ddcb46d1622e471c2b15","flight":flights,"broadside":beams,"shield":shields,"ai":ai});
  std::fs::write(&args[2],serde_json::to_string_pretty(&out).unwrap()).unwrap();
  println!("Exported {} flight trajectories, {} beams and {} shield bearings",flights.len(),beams.len(),shields.len());
 }

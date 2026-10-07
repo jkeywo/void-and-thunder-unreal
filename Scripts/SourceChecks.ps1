@@ -9,7 +9,7 @@ try {
  $Pinned='c138f2c9caab77ed8288ddcb46d1622e471c2b15'
  foreach($Path in @('Migration/source-inventory.json','Migration/resolved-baseline.json','Migration/factions.json','Migration/golden-rules.json')){$Data=Get-Content $Path -Raw|ConvertFrom-Json;if($Data.source_commit -ne $Pinned){throw "Wrong baseline attribution: $Path"}}
  $Golden=Get-Content Migration/golden-rules.json -Raw|ConvertFrom-Json
- if($Golden.flight.Count -ne 40 -or $Golden.broadside.Count -ne 210 -or $Golden.shield.Count -ne 105){throw 'Incomplete golden rule corpus'}
+ if($Golden.flight.Count -ne 40 -or $Golden.broadside.Count -ne 210 -or $Golden.shield.Count -ne 105 -or $Golden.ai.Count -ne 48){throw 'Incomplete golden rule corpus'}
  foreach($File in Get-ChildItem Scripts -Filter '*.ps1'){$Tokens=$null;$Errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($File.FullName,[ref]$Tokens,[ref]$Errors)|Out-Null;if($Errors.Count){throw "Invalid PowerShell: $($File.Name): $Errors"}}
  foreach($Path in @('LICENSE','SourceAssets/CREDITS.md','design/setting/SOURCE.md','docs/decisions.md')){if(!(Test-Path $Path)){throw "Missing attribution: $Path"}}
  $Tracked=git ls-files

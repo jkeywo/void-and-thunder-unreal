@@ -4,7 +4,7 @@ This evidence supplements the earlier transfer milestone. All 18 local native
 pipeline gates passed, including Editor/assets/automation, 500 busy NPCs,
 Development and Shipping packaging, four-process gameplay, reconnect, LAN
 Create/Continue, host departure and verified 1080p rendering. AI expectations were
-added afterward and the full native suite passed 17 groups (14 clean, three with
+expanded afterward and the full native suite passed 18 groups (15 clean, three with
 expected first-save warnings). The pinned Rust reference suite passed all 262 tests.
 
 Gameplay fixtures arrange initial ships/resources, then use ordinary client intent
@@ -15,6 +15,10 @@ movement after loss. Four packaged processes passed clean, 150 ms RTT/2% loss an
 250 ms RTT/5% loss with a five-second complete packet blackout. Movement correction
 metrics cover the 30-second final movement phase, including fixture placement and
 the disruption; maxima are not a steady-state prediction bound.
+
+Independent legacy AI expectations also exposed captain/crew utility ownership,
+EMP recharge stance and initial commitment differences. These are corrected and
+48 source-exported action choices now match.
 
 The blackout originally failed: the fixed sequence window rejected all subsequent
 inputs after more than 256 were lost. The elapsed-time recovery allowance preserves
@@ -27,7 +31,9 @@ physical-device testing. Rendering and timing here co-ran with campaign soak (an
 some resolution runs overlapped); the final isolated performance check is recorded
 separately when available. Source/binary hashes identify each executable, including
 the earlier isolated campaign soak binary whose persistence/world code is unchanged
-by the subsequent movement recovery and UI changes.
+by the subsequent movement recovery, UI and AI station-ownership changes.
+The two-hour direct-map run uses 53 authored NPCs; the explicit 500-NPC run is
+reported separately.
 
 Two-hour campaign soak results will be appended after completion. No completed
 long-run result is claimed until the report exists.
