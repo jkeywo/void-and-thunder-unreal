@@ -1,0 +1,37 @@
+{
+  "assets": [
+    {
+      "apiUrl": "https://api.github.com/repos/jkeywo/void-and-thunder-unreal/releases/assets/619721176",
+      "contentType": "text/plain; charset=utf-8",
+      "createdAt": "2026-10-07T20:23:40Z",
+      "digest": "sha256:a1fce7a728218af906b19efa55467fb7fb4dd606f98642d8d0cfb23bc307cda0",
+      "downloadCount": 0,
+      "id": "RA_kwDOU_akJc4k8DHY",
+      "label": "",
+      "name": "SHA256SUMS.txt",
+      "size": 117,
+      "state": "uploaded",
+      "updatedAt": "2026-10-07T20:23:41Z",
+      "url": "https://github.com/jkeywo/void-and-thunder-unreal/releases/download/v0.3.0-sandbox-preview/SHA256SUMS.txt"
+    },
+    {
+      "apiUrl": "https://api.github.com/repos/jkeywo/void-and-thunder-unreal/releases/assets/619742351",
+      "contentType": "application/zip",
+      "createdAt": "2026-10-07T20:33:09Z",
+      "digest": "sha256:a34f5724bf3fff166490881316e24ae40d7f5c6bab4edf67d5457c8379dab1a0",
+      "downloadCount": 0,
+      "id": "RA_kwDOU_akJc4k8ISP",
+      "label": "",
+      "name": "VoidAndThunder-v0.3.0-sandbox-preview-Windows.zip",
+      "size": 254634552,
+      "state": "uploaded",
+      "updatedAt": "2026-10-07T20:46:12Z",
+      "url": "https://github.com/jkeywo/void-and-thunder-unreal/releases/download/v0.3.0-sandbox-preview/VoidAndThunder-v0.3.0-sandbox-preview-Windows.zip"
+    }
+  ],
+  "isDraft": false,
+  "isPrerelease": true,
+  "publishedAt": "2026-10-07T20:47:15Z",
+  "targetCommitish": "2852ad421b699c4d07400c4fb33cd026d8a09a23",
+  "url": "https://github.com/jkeywo/void-and-thunder-unreal/releases/tag/v0.3.0-sandbox-preview"
+}
