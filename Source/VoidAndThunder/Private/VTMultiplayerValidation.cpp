@@ -1,4 +1,6 @@
 #include "VTGameplay.h"
+#include "VTGameplayProbe.h"
+#include "EngineUtils.h"
 #include "VTSaveSubsystem.h"
 #include "VTSessionSubsystem.h"
 #include "Misc/CommandLine.h"
@@ -9,10 +11,18 @@
 #include "Engine/World.h"
 #include "UnrealClient.h"
 #include "RHI.h"
+#include "VTUI.h"
+#include "Components/Button.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Input/Events.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 
 void AVTController::ValidationInput(float Dt) {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Soak"))) {LocalIntent=FVTPilotIntent();LocalIntent.Throttle=0.6f;LocalIntent.Turn=0.15f;return;}
+ if(ProbeRole.StartsWith(TEXT("Gameplay"))) {for(TActorIterator<AVTGameplayProbe> It(GetWorld());It;++It){It->DriveLocal(this);break;}return;}
  if(ProbeRole.StartsWith(TEXT("Render"))) return;
  LocalIntent.Throttle=0.8f; LocalIntent.Turn=0.2f;
  FString Destination;
@@ -24,6 +34,11 @@ void AVTController::ValidationInput(float Dt) {
 void UVTSimulation::ValidationTick() {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Soak"))) {SoakTick(ProbeRole);return;}
+ if(ProbeRole.StartsWith(TEXT("Gameplay"))) {
+  AVTGameplayProbe* Fixture=nullptr;for(TActorIterator<AVTGameplayProbe> It(GetWorld());It;++It){Fixture=*It;break;}
+  if(GetWorld()->GetNetMode()!=NM_Client) {if(!Fixture) {Bootstrap(0);Fixture=GetWorld()->SpawnActor<AVTGameplayProbe>();}Fixture->ServerStep();}return;
+ }
  if(ProbeRole.StartsWith(TEXT("Flow"))&&GetWorld()->GetMapName().Contains(TEXT("Menu"))) {
   auto* GI=CastChecked<UVTGameInstance>(GetWorld()->GetGameInstance()); auto* Session=GI->GetSubsystem<UVTSessionSubsystem>();
   if(ProbeRole==TEXT("FlowGuest")&&GI->ValidationSessionStarted&&FParse::Param(FCommandLine::Get(),TEXT("VTExpectHostDeparture"))&&Session->Status.Contains(TEXT("Host connection ended"))) {
@@ -44,11 +59,14 @@ void UVTSimulation::ValidationTick() {
   double Now=FPlatformTime::Seconds(), Age=GetWorld()->GetRealTimeSeconds();
   if(LastRenderFrame>0&&Age>20) RenderFrameMilliseconds.Add((Now-LastRenderFrame)*1000); LastRenderFrame=Now;
   if(ProbeRole==TEXT("Render")&&!ProbeScaled&&Age>1) {ConfigurePopulationFixture(500,FParse::Param(FCommandLine::Get(),TEXT("Busy")),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); if(FParse::Param(FCommandLine::Get(),TEXT("Busy"))) if(auto* Player=GetWorld()->GetFirstPlayerController()) if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) {Pawn->SystemIndex=0; Pawn->Movement->Motion.Position=FVector2D(0,-500); Pawn->Movement->Previous=Pawn->Movement->Motion; Pawn->Movement->Authority=Pawn->Movement->Motion;} ProbeScaled=true;}
+  if(ProbeRole==TEXT("RenderMenu")&&Age>22&&!UIProbeStarted){UIProbeStarted=true;if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(Player->UI)if(auto* Create=Player->UI->GetWidgetFromName(TEXT("Create"))){UIInitialFocus=Create->HasUserFocus(Player);FSlateApplication::Get().ProcessKeyDownEvent(FKeyEvent(EKeys::Gamepad_DPad_Right,FModifierKeysState(),0,false,0,0));}}
+  if(ProbeRole==TEXT("RenderMenu")&&Age>22.5&&!UIProbeFinished){UIProbeFinished=true;if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(Player->UI)if(auto* Continue=Player->UI->GetWidgetFromName(TEXT("Continue")))UINavigationPassed=UIInitialFocus&&Continue->HasUserFocus(Player);}
   if(!ScreenshotRequested&&Age>25) {ScreenshotRequested=true; FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".png"),true,false);}
   if(!ProbeWrote&&Age>35&&!RenderFrameMilliseconds.IsEmpty()) {
    ProbeWrote=true; auto Samples=RenderFrameMilliseconds; Samples.Sort(); double P95=Samples[FMath::FloorToInt(Samples.Num()*0.95)]; double Total=0; for(double Ms:Samples) Total+=Ms;
    FString Report=FString::Printf(TEXT("{\"frames\":%d,\"p95_frame_ms\":%.6f,\"mean_fps\":%.3f,\"width\":1920,\"height\":1080,\"population\":%d,\"gpu\":\"%s\",\"passed\":%s}"),Samples.Num(),P95,Samples.Num()*1000/Total,Ships.Num(),*GRHIAdapterName,P95<=1000./60 ? TEXT("true") : TEXT("false"));
-   TSharedPtr<FJsonObject> Parsed; FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Report),Parsed); Parsed->SetNumberField(TEXT("simulation_time"),SimulationTime); Parsed->SetBoolField(TEXT("busy"),FParse::Param(FCommandLine::Get(),TEXT("Busy"))); Parsed->SetBoolField(TEXT("armed"),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); auto Times=StepMilliseconds; if(!Times.IsEmpty()) {Times.Sort(); Parsed->SetNumberField(TEXT("p95_simulation_ms"),Times[FMath::FloorToInt(Times.Num()*0.95)]);} FJsonSerializer::Serialize(Parsed.ToSharedRef(),TJsonWriterFactory<>::Create(&Report)); FFileHelper::SaveStringToFile(Report,*(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".json"))); FPlatformMisc::RequestExitWithStatus(false,P95<=1000./60 ? 0 : 1);
+   TSharedPtr<FJsonObject> Parsed; FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Report),Parsed); if(GEngine&&GEngine->GameViewport&&GEngine->GameViewport->Viewport){auto Size=GEngine->GameViewport->Viewport->GetSizeXY();Parsed->SetNumberField(TEXT("width"),Size.X);Parsed->SetNumberField(TEXT("height"),Size.Y);}
+   Parsed->SetBoolField(TEXT("initial_menu_focus"),UIInitialFocus);Parsed->SetBoolField(TEXT("controller_menu_navigation"),UINavigationPassed);const bool Passed=P95<=1000./60&&(ProbeRole!=TEXT("RenderMenu")||UINavigationPassed);Parsed->SetBoolField(TEXT("passed"),Passed);Parsed->SetNumberField(TEXT("simulation_time"),SimulationTime); Parsed->SetBoolField(TEXT("busy"),FParse::Param(FCommandLine::Get(),TEXT("Busy"))); Parsed->SetBoolField(TEXT("armed"),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); auto Times=StepMilliseconds; if(!Times.IsEmpty()) {Times.Sort(); Parsed->SetNumberField(TEXT("p95_simulation_ms"),Times[FMath::FloorToInt(Times.Num()*0.95)]);} FJsonSerializer::Serialize(Parsed.ToSharedRef(),TJsonWriterFactory<>::Create(&Report)); FFileHelper::SaveStringToFile(Report,*(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".json"))); FPlatformMisc::RequestExitWithStatus(false,Passed ? 0 : 1);
   }
   return;
  }

@@ -58,19 +58,24 @@ void UVTShipMovement::Step(const FVTPilotIntent& Value, bool Predict) {
  if (Predict) {
   Pending.Add({Value});
   if (Pending.Num() > 256) Pending.RemoveAt(0, Pending.Num() - 256);
+  if(MeasureCorrections)MaxPendingObserved=FMath::Max(MaxPendingObserved,uint32(Pending.Num()));
  } else Authority = Motion;
 }
 void UVTShipMovement::OnRep_Authority() {
  AVTShip* S = CastChecked<AVTShip>(GetOwner());
- if(ReplicaSystem!=S->SystemIndex) {ReplicaFrames.Reset(); ReplicaSystem=S->SystemIndex;}
+ const bool ChangedSystem=ReplicaSystem!=S->SystemIndex;
+ if(ChangedSystem) {ReplicaFrames.Reset();RenderCorrection=FVector2D::ZeroVector;RenderHeadingCorrection=0;ReplicaSystem=S->SystemIndex;}
  LastAuthorityReceived=FPlatformTime::Seconds(); ReplicaFrames.Add(Authority);
  if(ReplicaFrames.Num()>8) ReplicaFrames.RemoveAt(0);
  if (!S->IsLocallyControlled()) { Previous = Motion; Motion = Authority; return; }
+ const FVector2D PredictedPosition=Motion.Position;const float PredictedHeading=Motion.Heading;
  Pending.RemoveAll([this](const FPending& P) { return int32(P.Intent.Sequence - Authority.Ack) <= 0; });
  Motion = Authority;
  auto Replay = Pending;
  Pending.Reset();
  for (const auto& P : Replay) Step(P.Intent, true);
+ if(!ChangedSystem&&!S->HasAuthority()){auto Difference=PredictedPosition-Motion.Position;if(Difference.SizeSquared()<200*200){RenderCorrection=(RenderCorrection+Difference).GetClampedToMaxSize(100);RenderHeadingCorrection=FMath::Clamp(FMath::UnwindRadians(RenderHeadingCorrection+PredictedHeading-Motion.Heading),-PI/4,PI/4);}else{RenderCorrection=FVector2D::ZeroVector;RenderHeadingCorrection=0;}}
+ if(MeasureCorrections) {if(CorrectionDistances.Num()<20000) CorrectionDistances.Add((Motion.Position-PredictedPosition).Size()); MaxPendingObserved=FMath::Max(MaxPendingObserved,uint32(Pending.Num()));}
 }
 void UVTShipMovement::ApplyPose() {
  AVTShip* S = CastChecked<AVTShip>(GetOwner());
@@ -80,6 +85,7 @@ void UVTShipMovement::ApplyPose() {
  if(!Visible) {S->PresentEngines(); return;}
  const double Alpha = FMath::Clamp(GetWorld()->GetSubsystem<UVTSimulation>()->Accumulator / VT::Step, 0., 1.);
  FVTMotion Render = Motion;
+ if(S->IsLocallyControlled()&&!S->HasAuthority()){Render.Position+=RenderCorrection;Render.Heading+=RenderHeadingCorrection;}
  if (!S->IsLocallyControlled()) {
   Render.Position=FMath::Lerp(Previous.Position,Motion.Position,Alpha);
   Render.Heading=Previous.Heading+FMath::UnwindRadians(Motion.Heading-Previous.Heading)*float(Alpha);
@@ -98,7 +104,7 @@ void UVTShipMovement::ApplyPose() {
  S->SetActorRotation(FRotator(0, -FMath::RadiansToDegrees(Render.Heading), 0));
  S->PresentEngines();
 }
-void UVTShipMovement::TickComponent(float Dt, ELevelTick Tick, FActorComponentTickFunction* Fn) { Super::TickComponent(Dt, Tick, Fn); ApplyPose(); }
+void UVTShipMovement::TickComponent(float Dt, ELevelTick Tick, FActorComponentTickFunction* Fn) { Super::TickComponent(Dt, Tick, Fn);RenderCorrection*=FMath::Exp(-12*Dt);RenderHeadingCorrection*=FMath::Exp(-12*Dt);ApplyPose(); }
 void UVTShipMovement::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const { Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(UVTShipMovement, Authority); }
 
 AVTShip::AVTShip() {
@@ -153,7 +159,7 @@ void AVTShip::EndPlay(const EEndPlayReason::Type Reason) {
  Super::EndPlay(Reason);
 }
 void AVTShip::ServerIntent_Implementation(FVTPilotIntent Value) {
- if (!VT::ValidIntent(Value) || int32(Value.Sequence - LastReceived) <= 0 || Value.Sequence - LastReceived > 256) return;
+ if (!VT::ValidIntent(Value) || !VT::SequenceAdvanceAllowed(Value.Sequence,LastReceived,GetWorld()->GetRealTimeSeconds()-LastInputTime)) return;
  LastReceived=Value.Sequence; if(InputQueue.Num()<256) InputQueue.Add(Value); LastInputTime=GetWorld()->GetRealTimeSeconds();
 }
 void AVTShip::ServerIntentBatch_Implementation(const TArray<FVTPilotIntent>& Values) {if(Values.Num()>12) return; for(const auto& Value:Values) ServerIntent_Implementation(Value);}

@@ -7,16 +7,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate project manifest
+      - name: Validate source, attribution and native asset pointers
         shell: pwsh
-        run: |
-          $project = Get-Content VoidAndThunder.uproject -Raw | ConvertFrom-Json
-          if ($project.EngineAssociation -ne '5.8') { throw 'Wrong engine association' }
-          foreach ($module in $project.Modules) {
-            if (-not (Test-Path "Source/$($module.Name)/$($module.Name).Build.cs")) {
-              throw "Missing module $($module.Name)"
-            }
-          }
+        run: ./Scripts/SourceChecks.ps1
       - name: Native validation policy
         shell: pwsh
-        run: Write-Output 'This workflow checks source metadata. Unreal compilation, automation, multiplayer and packaging gates run through Scripts/ on a licensed engine installation.'
+        run: Write-Output 'This workflow checks source metadata, script syntax, independent legacy fixtures and LFS pointers. Unreal compilation, gameplay, multiplayer, soak and packaging gates run through Scripts/ on a licensed engine installation.'

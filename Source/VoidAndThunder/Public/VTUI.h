@@ -11,6 +11,7 @@ class VOIDANDTHUNDER_API UVTUI : public UUserWidget {
  GENERATED_BODY()
 public:
  bool MenuOpen=false;
+ bool FocusPending=false;
  int32 LastWorlds=-1;
  UPROPERTY() TObjectPtr<UTextBlock> StatusText;
  UPROPERTY() TObjectPtr<UTextBlock> FlightText;
@@ -32,6 +33,10 @@ public:
  virtual void NativeTick(const FGeometry& Geometry,float Dt) override;
  void SetMenu(bool Open);
  bool StoreFit();
+ void ApplyGraphics(int32 Preset);
+ UFUNCTION() void PerformanceGraphics();
+ UFUNCTION() void BalancedGraphics();
+ UFUNCTION() void HighGraphics();
  UFUNCTION() void CreateWorld();
  UFUNCTION() void ContinueWorld();
  UFUNCTION() void JoinAddress();

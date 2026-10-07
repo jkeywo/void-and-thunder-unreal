@@ -66,3 +66,6 @@ regenerate baseline packages from the pinned export/source assets.
 
 This split follows Epic's [C++/Blueprint foundation guidance](https://dev.epicgames.com/documentation/en-us/unreal-engine/coding-in-unreal-engine-blueprint-vs-cplusplus)
 and [GAS ownership model](https://dev.epicgames.com/documentation/en-us/unreal-engine/understanding-the-unreal-engine-gameplay-ability-system).
+
+## Acceptance harness
+Development probes coordinate four processes through a replicated AInfo fixture. Initial placement and vulnerable hull setup are explicit fixtures; broadside damage, simultaneous boarding, station services, death recovery and charged jumps use normal gameplay paths. Client reports include observed phase completion and reconciliation distances. A separate campaign soak preserves normal mortal populations, records per-system advancement, snapshots/reconnects and bounded memory/performance samples. Shipping neither creates nor runs probe actors.

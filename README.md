@@ -13,6 +13,12 @@ See [implementation status](docs/implementation-status.md),
 [architecture](docs/architecture.md), [hosting and controls](docs/playing.md),
 and [validation](docs/validation/README.md).
 
+## Windows download
+
+Download the Shipping preview from [GitHub Releases](https://github.com/jkeywo/void-and-thunder-unreal/releases).
+Extract the entire bundle and launch `VoidAndThunder.exe`. The bundle includes
+controls, credits, a SHA-256 checksum and Unreal runtime prerequisites.
+
 ## Development
 
 Install Unreal 5.8.2, Visual Studio C++ tools, the Windows SDK and Git LFS.
@@ -36,6 +42,8 @@ commit authored asset changes before using it.
 ## Validation and packaging
 
 ```powershell
+.\Scripts\NativeValidation.ps1 # complete licensed engine pipeline
+.\Scripts\NativeValidation.ps1 -Soak # includes two-hour campaign validation
 .\Scripts\Test.ps1
 .\Scripts\ValidateAssets.ps1
 .\Scripts\Benchmark.ps1 -Population 500 -Busy -Armed
@@ -49,6 +57,9 @@ commit authored asset changes before using it.
 .\Scripts\SessionFlows.ps1 -Packaged -Continue
 .\Scripts\SessionFlows.ps1 -Packaged -HostDeparture
 .\Scripts\ShippingSmoke.ps1
+.\Scripts\Gameplay.ps1 -Packaged -RoundTripMs 250 -Loss 5 -Blackout
+.\Scripts\ExportParity.ps1 # regenerate independent Rust reference corpus
+.\Scripts\ReleaseBundle.ps1
 ```
 
 Engine-based scripts default to `C:/Program Files/Epic Games/UE_5.8` and accept `-EngineRoot`.

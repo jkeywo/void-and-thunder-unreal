@@ -22,3 +22,10 @@ FVector VT::ArenaOrigin(int32 S) { return FVector((S % 5) * 1000000.0, (S / 5) *
 FVector VT::ToWorld(const FVector2D& P, int32 S) { return ArenaOrigin(S) + FVector(P.X * 100, -P.Y * 100, 0); }
 
 float VT::LcgNext(uint32& Seed) {Seed=Seed*1664525u+1013904223u; return float(Seed>>8)/float(1u<<24);}
+
+bool VT::SequenceAdvanceAllowed(uint32 Next,uint32 Last,double SecondsSinceInput) {
+ if(!FMath::IsFinite(SecondsSinceInput)||SecondsSinceInput<0||int32(Next-Last)<=0)return false;
+ // Retain the normal window, allowing only elapsed 64 Hz input time after an outage.
+ const uint32 Recovery=uint32(FMath::Clamp((SecondsSinceInput-0.25)/Step,0.,4096.));
+ return Next-Last<=256+Recovery;
+}

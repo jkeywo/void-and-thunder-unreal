@@ -37,6 +37,12 @@ bool FVTInputTest::RunTest(const FString& Params) {
  FVTPilotIntent I; TestTrue("Neutral intent valid",VT::ValidIntent(I));
  I.Throttle=2; TestFalse("Out of range throttle rejected",VT::ValidIntent(I));
  I.Throttle=0; I.Aim.X=std::numeric_limits<double>::quiet_NaN(); TestFalse("NaN aim rejected",VT::ValidIntent(I));
+ TestFalse("Sequence jump without an outage is rejected",VT::SequenceAdvanceAllowed(400,64,0.1));
+ TestTrue("Five-second outage can resume the 64 Hz stream",VT::SequenceAdvanceAllowed(400,64,5));
+ TestFalse("Outage does not authorize an arbitrary sequence",VT::SequenceAdvanceAllowed(100000,64,5));
+ TestFalse("Duplicate/outdated input remains rejected",VT::SequenceAdvanceAllowed(64,64,5));
+ TestTrue("Sequence wrap advances safely",VT::SequenceAdvanceAllowed(8,0xfffffff0u,0.1));
+ TestFalse("Invalid elapsed clock is rejected",VT::SequenceAdvanceAllowed(8,1,std::numeric_limits<double>::quiet_NaN()));
  I.Aim=FVector2D(0,1); I.Buttons=65535; TestFalse("Unknown device bits rejected",VT::ValidIntent(I)); return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTArcTest,"VT.Combat.DirectionalShields",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)

@@ -471,6 +471,7 @@ namespace VT {
  constexpr float Step = 1.0f / 64.0f;
  VOIDANDTHUNDER_API void HelmStep(FVTMotion& Motion, const FVTShipStats& Stats, const FVTPilotIntent& Intent, float Reverse, float Dt);
  VOIDANDTHUNDER_API float LcgNext(uint32& Seed);
+ VOIDANDTHUNDER_API bool SequenceAdvanceAllowed(uint32 Next,uint32 Last,double SecondsSinceInput);
  VOIDANDTHUNDER_API bool ValidIntent(const FVTPilotIntent& Intent);
  VOIDANDTHUNDER_API FVector ArenaOrigin(int32 System);
  VOIDANDTHUNDER_API FVector ToWorld(const FVector2D& Position, int32 System);

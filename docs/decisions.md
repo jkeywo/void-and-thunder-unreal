@@ -83,3 +83,9 @@ than PASM. This choice does not alter the original game or vellum.
 - [ai] Complete the authored camera rig in PlayerCameraManager: real-time orbit/free-look, broadside lock, overhead torpedo/warp framing by vertical FOV and engagement range, idle/reverse recenter, menu orbit, eased focus/distance/FOV and impact kick. Native camera presentation owns no gameplay state.
 
 - [ai] Restrict player crippling/boarding to sandbox play. Solo captains retain the source ability to fight at low hull until destruction; civilians remain excluded from crippling.
+
+- [ai] Close acceptance gaps with a Development-only replicated gameplay fixture. It arranges initial poses/resources, then clients use the shipping intent, station and recovery interfaces; observations come from authoritative results and replicated client state. Keep scenario fixtures out of Shipping and record setup separately from actions under test. Measure reconciliation corrections and run a two-hour mortal-world soak with repeated guest reconnects and boundary save/load cycles.
+
+- [ai] A real five-second packet blackout reproduced permanent input rejection after the 256-sequence window. Permit only the additional sequence advance justified by elapsed 64 Hz input time, with a bounded recovery allowance; continue rejecting invalid, duplicate and arbitrary future input. Smooth small reconciliation differences only in cosmetic transforms, snapping system changes/large teleports; authoritative motion and damage remain untouched.
+
+- [ai] Validate AI through legacy behavioral expectations (beam combat, EMP priorities, quiet-field boarding, civilians, and crew authority), alongside numerical golden corpora. Aggregate tests are not evidence that every original assertion or utility score is identical.

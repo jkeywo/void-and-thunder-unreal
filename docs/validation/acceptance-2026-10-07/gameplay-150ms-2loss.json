@@ -1,0 +1,58 @@
+{
+  "GameplayClient0": {
+    "observed_phases": 3070,
+    "failure": "",
+    "passed": true,
+    "reconciliation_samples": 417,
+    "correction_p95_units": 0,
+    "correction_max_units": 7.095069595835558,
+    "max_pending_inputs": 40,
+    "final_ack": 2669
+  },
+  "GameplayClient1": {
+    "observed_phases": 3070,
+    "failure": "",
+    "passed": true,
+    "reconciliation_samples": 405,
+    "correction_p95_units": 0,
+    "correction_max_units": 4.1558064037588025,
+    "max_pending_inputs": 47,
+    "final_ack": 3590
+  },
+  "GameplayClient2": {
+    "observed_phases": 3070,
+    "failure": "",
+    "passed": true,
+    "reconciliation_samples": 423,
+    "correction_p95_units": 0,
+    "correction_max_units": 4.156091328293603,
+    "max_pending_inputs": 40,
+    "final_ack": 3448
+  },
+  "GameplayHost": {
+    "checks": {
+      "same_faction_pvp_damage": true,
+      "remote_invalid_station_refit_rejected": true,
+      "pvp_profile_attribution": true,
+      "personal_crime_attribution": true,
+      "simultaneous_boarding_single_prize": true,
+      "simultaneous_boarding_single_bounty": true,
+      "boarded_captain_free_recovery": true,
+      "network_weapon_death_recovery": true,
+      "network_station_dwell": true,
+      "network_station_repair_heat_purchase": true,
+      "network_station_refit": true,
+      "network_station_undock": true,
+      "normal_charged_independent_jump": true,
+      "all_captains_moved_after_loss_burst": true,
+      "post_gameplay_snapshot": true
+    },
+    "failure": "",
+    "passed": true,
+    "reconciliation_samples": 0,
+    "correction_p95_units": 0,
+    "correction_max_units": 0,
+    "max_pending_inputs": 0,
+    "final_ack": 4490
+  }
+}

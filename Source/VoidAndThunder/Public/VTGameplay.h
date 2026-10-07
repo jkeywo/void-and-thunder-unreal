@@ -59,6 +59,11 @@ public:
  int32 ReplicaSystem = INDEX_NONE;
  struct FPending { FVTPilotIntent Intent; };
  TArray<FPending> Pending;
+ FVector2D RenderCorrection=FVector2D::ZeroVector;
+ float RenderHeadingCorrection=0;
+ bool MeasureCorrections=false;
+ TArray<double> CorrectionDistances;
+ uint32 MaxPendingObserved=0;
  void Step(const FVTPilotIntent& Intent, bool Predict);
  void ApplyPose();
  UFUNCTION() void OnRep_Authority();
@@ -238,6 +243,7 @@ public:
  TArray<double> RenderFrameMilliseconds;
  double LastRenderFrame=0;
  bool ScreenshotRequested=false;
+ bool UIProbeStarted=false,UIProbeFinished=false,UIInitialFocus=false,UINavigationPassed=false;
  double Accumulator = 0;
  double SimulationTime = 0;
  int32 WorldSeed=12345;
@@ -247,6 +253,12 @@ public:
  int32 MaxPlayersObserved=0;
  FVector2D ProbeOrigin;
  void ValidationTick();
+ void SoakTick(const FString& ProbeRole);
+ double SoakNextSave=300,SoakNextSample=60,SoakFirstTime=0;
+ int32 SoakSnapshots=0,SoakInitialNPCs=0;
+ bool SoakFailed=false;
+ TArray<FString> SoakSamples;
+ TSet<int32> SoakSystemsAdvanced;
  virtual void Initialize(FSubsystemCollectionBase& Collection) override;
  virtual void Tick(float Dt) override;
  virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(UVTSimulation, STATGROUP_Tickables); }

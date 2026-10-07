@@ -62,3 +62,9 @@ Development-only console helpers include `VTHost`, `VTJoin <address>`, `VTScale
 menu flows are available in Shipping; bypass travel and validation probes are not.
 
 Command-line hosting/joining works in Development and Shipping: `-VTHostWorld=Campaign` (add `-VTContinueWorld` to load it), or `-VTJoinAddress=192.168.1.10:7777`. These invoke the same native session flows as the menu.
+
+The menu supports controller focus and D-pad navigation. Performance, Balanced and
+High graphics buttons save personal Unreal settings independently from campaign
+saves. The frontend scales to fit smaller windows; station actions appear while
+docked. No physical-controller or clean-machine installer validation is claimed
+by the automated keyboard/controller event probes.

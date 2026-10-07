@@ -1,9 +1,10 @@
-param()
+param([string]$PackagedRoot='')
 $ErrorActionPreference='Stop'
 $ProjectRoot=Split-Path $PSScriptRoot -Parent
 $RunDir=Join-Path $ProjectRoot ('Saved\Validation\Shipping-'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $RunDir -Force|Out-Null
-$Exe="$ProjectRoot\Artifacts\Shipping\Windows\VoidAndThunder\Binaries\Win64\VoidAndThunder-Win64-Shipping.exe"
+if(!$PackagedRoot){$PackagedRoot="$ProjectRoot/Artifacts/Shipping/Windows"}
+$Exe="$PackagedRoot/VoidAndThunder/Binaries/Win64/VoidAndThunder-Win64-Shipping.exe"
 $Processes=@()
 try {
  $Processes+=Start-Process -FilePath $Exe -ArgumentList @('-VTHostWorld=ShippingSmoke','-port=7793',"-UserDir=$RunDir/Host/",'-nullrhi','-unattended','-nosplash','-nosound') -WindowStyle Hidden -PassThru
