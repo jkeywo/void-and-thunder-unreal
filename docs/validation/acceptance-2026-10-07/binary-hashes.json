@@ -1,5 +1,6 @@
 {
-  "development": "bad3d24cdcb96d6b6f1baa23363b8d2edff81bf00396df7e513d0ef0ce974a6a",
-  "shipping": "05b3bb60ed13171bf4faec7eb1f194f53453be096f7a8f142a2bd48c19ce0ec2",
-  "campaign_soak": "a9693be342dac7b3c54727625a5bf3c7973340f8490ff65750aeef8184dffac1"
+  "final_development": "53253b70e5494c476f6eb3d646a94b80174a0d868c5c954699d83424cc7cbffa",
+  "final_shipping": "cbcea81e11e08dd842111fbfedcab9bd8b0fd8119a583b9b5e25585f0bd951d4",
+  "two_hour_authored_soak": "a9693be342dac7b3c54727625a5bf3c7973340f8490ff65750aeef8184dffac1",
+  "thirty_minute_500_soak": "7b1583023aa44513feae5cbec1d824979b5a80b8ead4813dbc7f1e84c149d364"
 }

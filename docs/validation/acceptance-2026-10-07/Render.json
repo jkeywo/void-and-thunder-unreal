@@ -1,7 +1,7 @@
 {
-  "frames": 3307,
-  "p95_frame_ms": 7.174101,
-  "mean_fps": 220.338,
+  "frames": 2815,
+  "p95_frame_ms": 8.542702,
+  "mean_fps": 187.584,
   "width": 1920,
   "height": 1080,
   "population": 501,
@@ -12,6 +12,6 @@
   "simulation_time": 35,
   "busy": true,
   "armed": true,
-  "p95_simulation_ms": 3.582000732421875,
+  "p95_simulation_ms": 4.315599799156189,
   "requested_quality": 2
 }

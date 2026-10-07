@@ -1,35 +1,5 @@
 {
-  "GameplayClient0": {
-    "observed_phases": 3070,
-    "failure": "",
-    "passed": true,
-    "reconciliation_samples": 424,
-    "correction_p95_units": 0,
-    "correction_max_units": 5.321045116104474,
-    "max_pending_inputs": 37,
-    "final_ack": 2678
-  },
-  "GameplayClient1": {
-    "observed_phases": 3070,
-    "failure": "",
-    "passed": true,
-    "reconciliation_samples": 425,
-    "correction_p95_units": 0,
-    "correction_max_units": 2.7706129326010696,
-    "max_pending_inputs": 36,
-    "final_ack": 3581
-  },
-  "GameplayClient2": {
-    "observed_phases": 3070,
-    "failure": "",
-    "passed": true,
-    "reconciliation_samples": 423,
-    "correction_p95_units": 0,
-    "correction_max_units": 23.55077494709583,
-    "max_pending_inputs": 35,
-    "final_ack": 3455
-  },
-  "GameplayHost": {
+  "host": {
     "checks": {
       "same_faction_pvp_damage": true,
       "remote_invalid_station_refit_rejected": true,
@@ -45,7 +15,9 @@
       "network_station_undock": true,
       "normal_charged_independent_jump": true,
       "all_captains_moved_after_loss_burst": true,
-      "post_gameplay_snapshot": true
+      "post_gameplay_snapshot": true,
+      "network_ai_pilot_keeps_captain_and_operates_guns": true,
+      "network_ai_pilot_returns_to_manual": true
     },
     "failure": "",
     "passed": true,
@@ -53,6 +25,38 @@
     "correction_p95_units": 0,
     "correction_max_units": 0,
     "max_pending_inputs": 0,
-    "final_ack": 4423
-  }
+    "final_ack": 4697
+  },
+  "clients": [
+    {
+      "observed_phases": 8190,
+      "failure": "",
+      "passed": true,
+      "reconciliation_samples": 461,
+      "correction_p95_units": 0,
+      "correction_max_units": 947.508684067533,
+      "max_pending_inputs": 48,
+      "final_ack": 2816
+    },
+    {
+      "observed_phases": 8190,
+      "failure": "",
+      "passed": true,
+      "reconciliation_samples": 503,
+      "correction_p95_units": 0,
+      "correction_max_units": 5.541463254277993,
+      "max_pending_inputs": 35,
+      "final_ack": 3911
+    },
+    {
+      "observed_phases": 8190,
+      "failure": "",
+      "passed": true,
+      "reconciliation_samples": 501,
+      "correction_p95_units": 0,
+      "correction_max_units": 4.155810962885891,
+      "max_pending_inputs": 31,
+      "final_ack": 3780
+    }
+  ]
 }

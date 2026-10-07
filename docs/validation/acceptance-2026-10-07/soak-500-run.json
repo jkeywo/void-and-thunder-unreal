@@ -1,0 +1,10 @@
+{
+  "seconds": 1800,
+  "normal_mortal_npcs": true,
+  "loss_percent": 2,
+  "rtt_ms": 150,
+  "invulnerable_captains_fixture": true,
+  "passed": true,
+  "requested_population": 500,
+  "reconnects": 14
+}

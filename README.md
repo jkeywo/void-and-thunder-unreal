@@ -15,7 +15,7 @@ and [validation](docs/validation/README.md).
 
 ## Windows download
 
-Download the Shipping preview from [GitHub Releases](https://github.com/jkeywo/void-and-thunder-unreal/releases).
+Download the Shipping preview from [GitHub Releases](https://github.com/jkeywo/void-and-thunder-unreal/releases/tag/v0.3.0-sandbox-preview).
 Extract the entire bundle and launch `VoidAndThunder.exe`. The bundle includes
 controls, credits, a SHA-256 checksum and Unreal runtime prerequisites.
 

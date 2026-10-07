@@ -1,7 +1,8 @@
 {
-  "succeeded": 15,
-  "succeededWithWarnings": 3,
+  "succeeded": 17,
+  "legacy_rust_reference_tests": 262,
+  "not_run": 0,
+  "total": 20,
   "failed": 0,
-  "notRun": 0,
-  "totalDuration": 1.654082179069519
+  "succeeded_with_warnings": 3
 }

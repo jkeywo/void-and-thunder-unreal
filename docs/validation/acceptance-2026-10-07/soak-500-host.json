@@ -1,0 +1,283 @@
+{
+	"passed": true,
+	"wall_seconds": 1800.0216524899006,
+	"simulation_seconds": 1799.984375,
+	"initial_npcs": 500,
+	"save_load_cycles": 5,
+	"systems_advanced": 10,
+	"max_captains": 4,
+	"profile": "84D248724FD94449FC051DB5553F2FDB",
+	"ship_id": "1E870FCB4B12A99879F467977C6B5505",
+	"samples": [
+		{
+			"wall_seconds": 60.005011700093746,
+			"simulation_seconds": 60,
+			"captains": 4,
+			"ships": 429,
+			"projectiles": 3,
+			"used_physical_mb": 414.04296875,
+			"step_p95_ms": 1.7544031143188477
+		},
+		{
+			"wall_seconds": 120.00426379963756,
+			"simulation_seconds": 120,
+			"captains": 4,
+			"ships": 413,
+			"projectiles": 13,
+			"used_physical_mb": 409.59765625,
+			"step_p95_ms": 1.3072974979877472
+		},
+		{
+			"wall_seconds": 180.011644102633,
+			"simulation_seconds": 180,
+			"captains": 4,
+			"ships": 407,
+			"projectiles": 19,
+			"used_physical_mb": 416.48046875,
+			"step_p95_ms": 1.4242976903915405
+		},
+		{
+			"wall_seconds": 240.01876490190625,
+			"simulation_seconds": 240.015625,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 34,
+			"used_physical_mb": 412.12890625,
+			"step_p95_ms": 1.4683008193969727
+		},
+		{
+			"wall_seconds": 300.00663360208273,
+			"simulation_seconds": 300,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 50,
+			"used_physical_mb": 432.4296875,
+			"step_p95_ms": 1.2020021677017212
+		},
+		{
+			"wall_seconds": 360.02494559809566,
+			"simulation_seconds": 360.015625,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 5,
+			"used_physical_mb": 417.9296875,
+			"step_p95_ms": 1.2532025575637817
+		},
+		{
+			"wall_seconds": 420.00212259590626,
+			"simulation_seconds": 419.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 0,
+			"used_physical_mb": 416.07421875,
+			"step_p95_ms": 1.2822002172470093
+		},
+		{
+			"wall_seconds": 480.01868829876184,
+			"simulation_seconds": 480,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 3,
+			"used_physical_mb": 417.3515625,
+			"step_p95_ms": 1.2038983404636383
+		},
+		{
+			"wall_seconds": 540.00026159733534,
+			"simulation_seconds": 539.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 8,
+			"used_physical_mb": 415.2734375,
+			"step_p95_ms": 1.2104995548725128
+		},
+		{
+			"wall_seconds": 600.01153579726815,
+			"simulation_seconds": 600,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 39,
+			"used_physical_mb": 429.28125,
+			"step_p95_ms": 1.1903010308742523
+		},
+		{
+			"wall_seconds": 660.01670329645276,
+			"simulation_seconds": 660,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 29,
+			"used_physical_mb": 417.33984375,
+			"step_p95_ms": 1.2491010129451752
+		},
+		{
+			"wall_seconds": 720.0114168971777,
+			"simulation_seconds": 719.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 3,
+			"used_physical_mb": 409.65625,
+			"step_p95_ms": 1.2650974094867706
+		},
+		{
+			"wall_seconds": 780.00436959788203,
+			"simulation_seconds": 779.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 8,
+			"used_physical_mb": 421.4296875,
+			"step_p95_ms": 1.2296028435230255
+		},
+		{
+			"wall_seconds": 840.02692499756813,
+			"simulation_seconds": 840,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 3,
+			"used_physical_mb": 418.30078125,
+			"step_p95_ms": 1.2484975159168243
+		},
+		{
+			"wall_seconds": 900.00429839640856,
+			"simulation_seconds": 899.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 9,
+			"used_physical_mb": 411.10546875,
+			"step_p95_ms": 1.2851022183895111
+		},
+		{
+			"wall_seconds": 960.01410769671202,
+			"simulation_seconds": 959.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 2,
+			"used_physical_mb": 417.66796875,
+			"step_p95_ms": 1.3700015842914581
+		},
+		{
+			"wall_seconds": 1020.0139554962516,
+			"simulation_seconds": 1019.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 3,
+			"used_physical_mb": 416.73828125,
+			"step_p95_ms": 1.3319998979568481
+		},
+		{
+			"wall_seconds": 1080.006567299366,
+			"simulation_seconds": 1079.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 5,
+			"used_physical_mb": 417.90234375,
+			"step_p95_ms": 1.3343021273612976
+		},
+		{
+			"wall_seconds": 1140.028802998364,
+			"simulation_seconds": 1140,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 10,
+			"used_physical_mb": 418.6015625,
+			"step_p95_ms": 1.3668984174728394
+		},
+		{
+			"wall_seconds": 1200.0200068987906,
+			"simulation_seconds": 1199.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 26,
+			"used_physical_mb": 415.15234375,
+			"step_p95_ms": 1.3255998492240906
+		},
+		{
+			"wall_seconds": 1260.0043629929423,
+			"simulation_seconds": 1259.96875,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 8,
+			"used_physical_mb": 421.71484375,
+			"step_p95_ms": 1.2510009109973907
+		},
+		{
+			"wall_seconds": 1320.0051278956234,
+			"simulation_seconds": 1319.96875,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 16,
+			"used_physical_mb": 415.22265625,
+			"step_p95_ms": 1.3186000287532806
+		},
+		{
+			"wall_seconds": 1380.0204054936767,
+			"simulation_seconds": 1379.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 1,
+			"used_physical_mb": 423.4375,
+			"step_p95_ms": 1.3520009815692902
+		},
+		{
+			"wall_seconds": 1440.0042483955622,
+			"simulation_seconds": 1439.96875,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 37,
+			"used_physical_mb": 423.75,
+			"step_p95_ms": 1.3619996607303619
+		},
+		{
+			"wall_seconds": 1500.0020829923451,
+			"simulation_seconds": 1499.96875,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 37,
+			"used_physical_mb": 416.94921875,
+			"step_p95_ms": 1.2899972498416901
+		},
+		{
+			"wall_seconds": 1560.0021488890052,
+			"simulation_seconds": 1559.953125,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 32,
+			"used_physical_mb": 418.625,
+			"step_p95_ms": 1.3994984328746796
+		},
+		{
+			"wall_seconds": 1620.0244183912873,
+			"simulation_seconds": 1619.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 10,
+			"used_physical_mb": 420.37890625,
+			"step_p95_ms": 1.377202570438385
+		},
+		{
+			"wall_seconds": 1680.0025688894093,
+			"simulation_seconds": 1679.953125,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 7,
+			"used_physical_mb": 420.16015625,
+			"step_p95_ms": 1.3829991221427917
+		},
+		{
+			"wall_seconds": 1740.0124311894178,
+			"simulation_seconds": 1739.96875,
+			"captains": 3,
+			"ships": 400,
+			"projectiles": 3,
+			"used_physical_mb": 423.87890625,
+			"step_p95_ms": 1.4070980250835419
+		},
+		{
+			"wall_seconds": 1800.0216524899006,
+			"simulation_seconds": 1799.984375,
+			"captains": 1,
+			"ships": 398,
+			"projectiles": 6,
+			"used_physical_mb": 426.27734375,
+			"step_p95_ms": 1.2909993529319763
+		}
+	]
+}

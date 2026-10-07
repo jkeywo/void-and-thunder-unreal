@@ -47,3 +47,5 @@ Automation groups source assertions by rule/lifecycle rather than preserving eve
 ## Recorded migration corrections
 
 The source station centre-distance docking threshold was unreachable outside the solid station body for a normal hull. Native docking measures the authored distance from the station surface; the three-second dwell and standing refusal remain. Source models retain +X bow, Z-up, their ~44-unit length and credited faction textures after glTF import basis conversion. Native sockets retain the rig-sidecar engine anchors. Source mine feedback cadence is 0.25 seconds while its damage remains at 64 Hz. These and other agent-origin choices retain `[ai]` provenance in `docs/decisions.md`.
+
+The expanded independent golden corpus and current integration evidence are mapped in [parity coverage](parity-coverage.md) and [acceptance](validation/acceptance-2026-10-07/README.md).

@@ -1,5 +1,9 @@
 # Native validation — 7 October 2026
 
+Current expanded evidence and the downloadable release are in
+[acceptance-2026-10-07](acceptance-2026-10-07/README.md). The measurements below
+are the earlier transfer milestone, retained for comparison.
+
 Final compact evidence is in [transfer-2026-10-07](transfer-2026-10-07/summary.json).
 Earlier flight-only reports elsewhere in this directory are historical milestones.
 The final source behavior map is [../transfer-map.md](../transfer-map.md).
@@ -47,8 +51,9 @@ endpoint; the scripts use Unreal packet lag/loss settings. Reconnect checks dura
 profile/ship IDs, saved credits/prizes and position continuity within 60 source units.
 Shipping uses distinct local `-UserDir` profiles and the normal `-VTHostWorld` / `-VTJoinAddress` flows (engine map overrides and Development probes are unavailable in Shipping). Its host autosave must contain four captain records and a valid checksum. The host is stopped only after that snapshot is verified.
 
-Exact universal prediction-error bounds, cross-machine WAN behavior and long-running
-soak tests are not claimed by these bounded probes.
+Exact universal prediction-error bounds and cross-machine WAN behavior are not
+claimed by these bounded probes. Extended soaks are recorded in the current
+acceptance evidence linked above.
 
 See Epic's [network emulation documentation](https://dev.epicgames.com/documentation/unreal-engine/using-network-emulation-in-unreal-engine)
 for the packet simulation controls. Local scripts are the licensed native gates;

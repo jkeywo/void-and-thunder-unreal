@@ -1,0 +1,10 @@
+{
+  "source_commit": "2852ad421b699c4d07400c4fb33cd026d8a09a23",
+  "created_utc": "2026-10-07T20:21:40.6680607Z",
+  "configuration": "Shipping",
+  "engine": "5.8.2",
+  "platform": "Win64",
+  "debug_symbols_included": false,
+  "version": "v0.3.0-sandbox-preview",
+  "binary_sha256": "cbcea81e11e08dd842111fbfedcab9bd8b0fd8119a583b9b5e25585f0bd951d4"
+}

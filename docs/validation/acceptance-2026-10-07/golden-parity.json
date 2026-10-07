@@ -1,0 +1,24 @@
+{
+  "ai_action_cases": 48,
+  "ai_action_selection_exact": true,
+  "source_commit": "c138f2c9caab77ed8288ddcb46d1622e471c2b15",
+  "flight_trajectories": 40,
+  "flight_checkpoints": 320,
+  "broadside_cases": 210,
+  "shield_selection_exact": true,
+  "flight_max_error": {
+    "angular_velocity_radians_per_second": 6E-07,
+    "position_units": 0.00230217,
+    "heading_radians": 6.08E-06,
+    "velocity_units_per_second": 0.00073933
+  },
+  "flight_tolerances": {
+    "angular_velocity_radians_per_second": 0.001,
+    "position_units": 0.05,
+    "heading_radians": 0.001,
+    "velocity_units_per_second": 0.02
+  },
+  "shield_cases": 105,
+  "broadside_max_direction_error": 2.67E-07,
+  "broadside_direction_tolerance": 0.0001
+}

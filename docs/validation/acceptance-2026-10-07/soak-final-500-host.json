@@ -1,0 +1,103 @@
+{
+	"passed": true,
+	"wall_seconds": 600.00904740020633,
+	"simulation_seconds": 600,
+	"initial_npcs": 500,
+	"save_load_cycles": 2,
+	"systems_advanced": 10,
+	"max_captains": 4,
+	"profile": "9AD7053E447A1C86179BE7A7CE57D2B5",
+	"ship_id": "7DAC85B643B8F866BD1A09A14E33959A",
+	"samples": [
+		{
+			"wall_seconds": 60.009122300893068,
+			"simulation_seconds": 60,
+			"captains": 4,
+			"ships": 430,
+			"projectiles": 14,
+			"used_physical_mb": 411.2578125,
+			"step_p95_ms": 1.4748983085155487
+		},
+		{
+			"wall_seconds": 120.00138100236654,
+			"simulation_seconds": 120,
+			"captains": 4,
+			"ships": 413,
+			"projectiles": 14,
+			"used_physical_mb": 408.734375,
+			"step_p95_ms": 0.99500268697738647
+		},
+		{
+			"wall_seconds": 180.00314160063863,
+			"simulation_seconds": 180,
+			"captains": 4,
+			"ships": 407,
+			"projectiles": 39,
+			"used_physical_mb": 411.0234375,
+			"step_p95_ms": 0.97569823265075684
+		},
+		{
+			"wall_seconds": 240.01283190026879,
+			"simulation_seconds": 240,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 22,
+			"used_physical_mb": 411.1796875,
+			"step_p95_ms": 0.9570978581905365
+		},
+		{
+			"wall_seconds": 300.00676520168781,
+			"simulation_seconds": 300,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 20,
+			"used_physical_mb": 432.06640625,
+			"step_p95_ms": 0.92490017414093018
+		},
+		{
+			"wall_seconds": 360.00752390176058,
+			"simulation_seconds": 360,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 9,
+			"used_physical_mb": 408.46875,
+			"step_p95_ms": 0.84729865193367004
+		},
+		{
+			"wall_seconds": 420.00955190137029,
+			"simulation_seconds": 420,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 3,
+			"used_physical_mb": 412.66015625,
+			"step_p95_ms": 0.93589723110198975
+		},
+		{
+			"wall_seconds": 480.00137490034103,
+			"simulation_seconds": 479.984375,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 4,
+			"used_physical_mb": 411.9765625,
+			"step_p95_ms": 1.0807998478412628
+		},
+		{
+			"wall_seconds": 540.01490750163794,
+			"simulation_seconds": 540,
+			"captains": 4,
+			"ships": 401,
+			"projectiles": 23,
+			"used_physical_mb": 418.5625,
+			"step_p95_ms": 0.9699016809463501
+		},
+		{
+			"wall_seconds": 600.00904740020633,
+			"simulation_seconds": 600,
+			"captains": 1,
+			"ships": 398,
+			"projectiles": 0,
+			"used_physical_mb": 442.17578125,
+			"step_p95_ms": 0.84190070629119873
+		}
+	]
+}

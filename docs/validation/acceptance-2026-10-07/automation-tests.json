@@ -1,0 +1,122 @@
+[
+  {
+    "fullTestPath": "VT.AI.LegacyBehaviorExpectations",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.AI.PlayerPilotAuthorityAndTransitions",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Combat.ArcAndSweptContact",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Combat.AuthoritativeVolley",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Combat.DirectionalShields",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Combat.EquipmentLifecycle",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Flight.AnisotropicDragAndClamp",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Flight.ThrustAndReverse",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Input.BroadsideAimReleaseAndCancel",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Migration.LegacySpawnJitter",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Network.IdentityReconnectAndRecovery",
+    "state": "Success",
+    "warnings": 2,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Network.RejectInvalidIntent",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Parity.LegacyAIActionChoices",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Parity.LegacyBroadsideBearings",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Parity.LegacyFlightTrajectories",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Parity.LegacyShieldBearings",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.Persistence.AtomicSnapshotAndFallback",
+    "state": "Success",
+    "warnings": 2,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.World.LandmarksAndIntentAuthority",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.World.SandboxOwnershipAndTravel",
+    "state": "Success",
+    "warnings": 2,
+    "errors": 0
+  },
+  {
+    "fullTestPath": "VT.World.SoloScenarioParity",
+    "state": "Success",
+    "warnings": 0,
+    "errors": 0
+  }
+]
