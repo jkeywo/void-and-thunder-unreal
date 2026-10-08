@@ -37,7 +37,7 @@ Guests return to Menu and can rejoin the same world with their saved identity/to
 | Recover a disabled sandbox ship | R or menu recovery button | D-pad down |
 
 Aim by steering to bring a broadside onto the target. Hold its mouse button or
-trigger to aim; release it to fire. Loaded aim beams are amber and reloading beams
+trigger to aim; move the mouse left/right (or use the right stick) to adjust within the bank's firing arc, then release to fire. A single press starts aiming. Loaded aim beams are amber and reloading beams
 are dim red. Shields have directional
 banks. EMP affects systems; point defence intercepts hostile shots; torpedoes
 launch from the current hull pose and arc above/below the plane. Equipment shares

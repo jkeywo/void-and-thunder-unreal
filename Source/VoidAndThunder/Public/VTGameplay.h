@@ -200,11 +200,15 @@ public:
  UFUNCTION(BlueprintCallable,Category="Input") bool RemapControl(FName MappingName,FKey NewKey);
  UPROPERTY() TArray<TObjectPtr<UInputAction>> Actions;
  FVTPilotIntent LocalIntent;
+ float BroadsideOffset=0;
+ bool UpdateBroadsideAim(float MouseDelta,const FVTFeelControls& Controls,float Heading,float Arc);
  uint32 NextSequence = 0;
  float AimBattery=5, AimDilation=1, HitStop=0, CameraTrauma=0;
  double LastRealTick=0;
  bool UsingGamepadAim=false;
  FVector2D GamepadAim=FVector2D::ZeroVector;
+ int32 BroadsideProbeStage=0;
+ bool BroadsideProbeHeld=false,BroadsideProbePassed=false;
  bool ProbeJumped=false;
  void ValidationInput(float Dt);
  float SendAccumulator = 0;

@@ -12,6 +12,7 @@ class AVTProjectile;
 namespace VTCombat {
  VOIDANDTHUNDER_API int32 ShieldArc(float Heading,const FVector2D& Offset,int32 Arcs);
  VOIDANDTHUNDER_API FVector2D BroadsideDirection(float Heading,bool Port,const FVector2D& Aim,float Arc);
+ VOIDANDTHUNDER_API TPair<FVector2D,FVector2D> BroadsideShot(const FVector2D& Position,const FVector2D& Velocity,const FVector2D& Direction,const FVTShipDefinition& Ship,const FVTRules& Rules,int32 Gun);
  VOIDANDTHUNDER_API float SegmentDistanceSquared(const FVector2D& A,const FVector2D& B,const FVector2D& P);
 }
 UCLASS()

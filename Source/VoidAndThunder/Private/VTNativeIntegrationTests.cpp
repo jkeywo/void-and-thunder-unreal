@@ -1,6 +1,7 @@
 #include "VTGameplay.h"
 #include "VTCombat.h"
 #include "VTUI.h"
+#include "InputActionValue.h"
 #include "Engine/Font.h"
 #include "Engine/FontFace.h"
 #include "Internationalization/StringTable.h"
@@ -125,6 +126,33 @@ bool FVTOriginalHUDAssets::RunTest(const FString&) {
  const auto& Faces=Font->GetInternalCompositeFont().DefaultTypeface.Fonts;if(!TestEqual(TEXT("Monospace typeface exists"),Faces.Num(),1))return false;
  auto* Face=Cast<UFontFace>(Faces[0].Font.GetFontFaceAsset());if(TestNotNull(TEXT("Packaged inline font face"),Face)){TestTrue(TEXT("Font contains glyph bytes"),Face->FontFaceData->HasData());TestTrue(TEXT("No external font file dependency"),Face->LoadingPolicy==EFontLoadingPolicy::Inline);}
  if(TestNotNull(TEXT("String table is a cooked UI dependency"),UI->TextTable.Get()))TestEqual(TEXT("Cruiser name resolves through the actual registered table"),FText::FromStringTable(UI->TextTable->GetStringTableId(),TEXT("class.corsair_cruiser.name")).ToString(),FString(TEXT("Cruiser")));
+ return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTBroadsideControls,"VT.Native.BroadsideHoldRelease",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTBroadsideControls::RunTest(const FString&) {
+ FNativeFixture F;auto* PC=F.World->SpawnActor<AVTController>();PC->Possess(F.Ship);
+ const auto& Controls=F.Sim->Data->Feel.controls;const float Arc=0.4f,Heading=0.7f;
+ PC->ReadFlight(FInputActionValue(true),3);
+ TestTrue(TEXT("First press starts aiming"),(PC->LocalIntent.Buttons&VTButtons::AimPort)!=0);
+ TestFalse(TEXT("Holding does not fire"),(PC->LocalIntent.Buttons&VTButtons::Port)!=0);
+ PC->UpdateBroadsideAim(100,Controls,Heading,Arc);
+ const float Expected=Heading+PI/2-100*Controls.mouse_aim_sens*Arc;
+ TestTrue(TEXT("Mouse steers original authored arc"),PC->LocalIntent.Aim.Equals(FVector2D(FMath::Cos(Expected),FMath::Sin(Expected)),0.00001));
+ const auto Held=PC->LocalIntent.Aim;
+ PC->ReadFlight(FInputActionValue(false),3);PC->UpdateBroadsideAim(-1000,Controls,Heading,Arc);
+ TestTrue(TEXT("Release requests one volley"),(PC->LocalIntent.Buttons&VTButtons::Port)!=0);
+ TestTrue(TEXT("Release keeps held direction despite mouse motion"),PC->LocalIntent.Aim.Equals(Held,0.00001));
+ PC->LocalIntent.Buttons=0;PC->UpdateBroadsideAim(0,Controls,Heading,Arc);
+ PC->ReadFlight(FInputActionValue(true),4);PC->UpdateBroadsideAim(0,Controls,Heading,Arc);
+ TestTrue(TEXT("New bank starts at its beam"),PC->LocalIntent.Aim.Equals(FVector2D(FMath::Cos(Heading-PI/2),FMath::Sin(Heading-PI/2)),0.00001));
+ PC->UsingGamepadAim=true;PC->GamepadAim=FVector2D(1,0);PC->UpdateBroadsideAim(0,Controls,Heading,Arc);
+ TestTrue(TEXT("Right stick selects full arc"),PC->LocalIntent.Aim.Equals(FVector2D(FMath::Cos(Heading-PI/2-Arc),FMath::Sin(Heading-PI/2-Arc)),0.00001));
+ PC->CancelFlight(FInputActionValue(false),4);
+ TestEqual(TEXT("Context cancellation never fires"),PC->LocalIntent.Buttons,uint16(0));
+ F.Ship->Definition.Guns=3;F.Ship->Movement->Motion.Velocity=FVector2D(120,40);const int32 Start=F.Sim->Projectiles.Num();
+ F.Ship->Combat->Volley(true,Held);
+ TestEqual(TEXT("Volley emits one projectile per preview muzzle"),F.Sim->Projectiles.Num(),Start+3);
+ for(int32 Gun=0;Gun<3;++Gun){const auto Preview=VTCombat::BroadsideShot(F.Ship->Movement->Motion.Position,F.Ship->Movement->Motion.Velocity,Held,F.Ship->Definition,F.Sim->Data->Rules,Gun);auto* Shot=F.Sim->Projectiles[Start+Gun].Get();TestTrue(TEXT("Preview origin matches emitted projectile"),Shot->Position.Equals(Preview.Key,0.00001));TestTrue(TEXT("Preview bearing matches momentum-inheriting projectile"),Shot->Velocity.GetSafeNormal().Equals(Preview.Value.GetSafeNormal(),0.00001));TestTrue(TEXT("Volley retains ship momentum"),Shot->Velocity.Equals(FVector2D(120,40)+Held*F.Ship->Definition.MuzzleSpeed,0.00001));}
  return true;
 }
 #endif

@@ -120,3 +120,9 @@ than PASM. This choice does not alter the original game or vellum.
 [ai] Restore the original amber CRT HUD composition using native Slate drawing within the authored UMG widget: five original panel frames exported as UI textures, native live gauges/tubes/shield edges, and matching amber menu styling. Static artwork retains source attribution; no HTML runtime is added. The sandbox chart remains available as a collapsible overlay rather than occupying the coordinate cluster.
 
 [ai] Preserve the original HUD artwork dimensions in viewport pixels by compensating UMG DPI once in the native painter; fit windows narrower than 900 pixels. Title/menu controls retain native UMG scaling and hit testing.
+
+- [ai] Restore legacy broadside arc steering: mouse horizontal motion accumulates the authored sensitivity, right stick selects an absolute arc offset, release preserves the held direction. Do not plane-pick through the camera while it tracks that same broadside. Flight capture includes the initial mouse press; tactical overlays convert viewport pixels to local UMG units.
+
+- [ai] Share muzzle layout and inherited projectile velocity between broadside previews and volleys so aiming indicators follow actual trajectories at speed.
+
+- [ai] Read raw mouse deltas for the authored pixel-based broadside sensitivity; Unreal default legacy axis sensitivity (0.07) must not scale it a second time.

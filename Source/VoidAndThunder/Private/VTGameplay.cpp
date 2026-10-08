@@ -1,4 +1,5 @@
 #include "VTGameplay.h"
+#include "GameFramework/PlayerInput.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "VTCombat.h"
@@ -245,15 +246,30 @@ void AVTController::SetupInputComponent() {
   }
  }
 }
+bool AVTController::UpdateBroadsideAim(float MouseDelta,const FVTFeelControls& Controls,float Heading,float Arc) {
+ const uint16 Held=LocalIntent.Buttons&(VTButtons::AimPort|VTButtons::AimStarboard);
+ const uint16 Released=LocalIntent.Buttons&(VTButtons::Port|VTButtons::Starboard);
+ if(!Held&&!Released){BroadsideOffset=0;return false;}
+ if(Held) {
+  const float Stick=FMath::Sign(GamepadAim.X)*FMath::Clamp((FMath::Abs(GamepadAim.X)-Controls.deadzone)/FMath::Max(0.001f,Controls.saturation-Controls.deadzone),0.f,1.f);
+  BroadsideOffset=UsingGamepadAim?Stick:FMath::Clamp(BroadsideOffset+MouseDelta*Controls.mouse_aim_sens,-1.f,1.f);
+ }
+ const bool Port=(Held?Held:Released)&(VTButtons::AimPort|VTButtons::Port);
+ const float Angle=Heading+(Port?PI/2:-PI/2)-BroadsideOffset*Arc;
+ LocalIntent.Aim=FVector2D(FMath::Cos(Angle),FMath::Sin(Angle));
+ return true;
+}
+
 void AVTController::PlayerTick(float Dt) {
  Super::PlayerTick(Dt);
  ValidationInput(Dt);
  if(UI&&UI->MenuOpen) {LocalIntent=FVTPilotIntent();}
  AVTShip* Ship = Cast<AVTShip>(GetPawn()); if (!IsLocalController() || !Ship) return;
  if((UI&&UI->MenuOpen)||Ship->Autopilot) LocalIntent=FVTPilotIntent();
- float MouseX=0,MouseY=0; GetInputMouseDelta(MouseX,MouseY); if(FMath::Abs(MouseX)+FMath::Abs(MouseY)>0.1f) UsingGamepadAim=false;
+ float MouseX=PlayerInput?PlayerInput->GetRawKeyValue(EKeys::MouseX):0,MouseY=PlayerInput?PlayerInput->GetRawKeyValue(EKeys::MouseY):0; if(FMath::Abs(MouseX)+FMath::Abs(MouseY)>0.1f) UsingGamepadAim=false;
+ const bool Broadside=UpdateBroadsideAim(MouseX,GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.controls,Ship->Movement->Motion.Heading,Ship->Definition.Arc);
  FVector Origin, Direction;
- if (!UsingGamepadAim && DeprojectMousePositionToWorld(Origin, Direction) && FMath::Abs(Direction.Z) > 0.0001) {
+ if (!Broadside && !UsingGamepadAim && DeprojectMousePositionToWorld(Origin, Direction) && FMath::Abs(Direction.Z) > 0.0001) {
   const FVector Hit = Origin + Direction * (-Origin.Z / Direction.Z);
   const FVector Delta = Hit - Ship->GetActorLocation();
   LocalIntent.CursorOffset=FVector2D(Delta.X,-Delta.Y)/100.;
@@ -262,7 +278,7 @@ void AVTController::PlayerTick(float Dt) {
  }
 
  double Now=FPlatformTime::Seconds(); float RealDt=LastRealTick>0 ? float(FMath::Min(0.1,Now-LastRealTick)) : Dt; LastRealTick=Now;
- if(UsingGamepadAim&&(LocalIntent.Buttons&(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Torpedo|VTButtons::Warp))) {
+ if(!Broadside&&UsingGamepadAim&&(LocalIntent.Buttons&(VTButtons::Torpedo|VTButtons::Warp))) {
   const auto& Controls=GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.controls;
   auto Axis=[&](double V){return FMath::Sign(V)*FMath::Clamp((FMath::Abs(V)-Controls.deadzone)/FMath::Max(0.001f,Controls.saturation-Controls.deadzone),0.,1.);};
   FRotator Rotation=PlayerCameraManager ? PlayerCameraManager->GetCameraRotation() : FRotator::ZeroRotator; FRotationMatrix Basis(Rotation); auto Right=Basis.GetScaledAxis(EAxis::Y),Up=Basis.GetScaledAxis(EAxis::Z);

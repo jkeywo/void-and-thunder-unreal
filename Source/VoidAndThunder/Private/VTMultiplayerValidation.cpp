@@ -1,4 +1,5 @@
 #include "VTGameplay.h"
+#include "VTCombat.h"
 #include "VTGameplayProbe.h"
 #include "EngineUtils.h"
 #include "VTSaveSubsystem.h"
@@ -17,13 +18,29 @@
 #include "Input/Events.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
+#include "Widgets/SViewport.h"
+#include "Widgets/SWindow.h"
 
 void AVTController::ValidationInput(float Dt) {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
  if(ProbeRole.StartsWith(TEXT("Soak"))) {LocalIntent=FVTPilotIntent();LocalIntent.Throttle=0.6f;LocalIntent.Turn=0.15f;return;}
  if(ProbeRole.StartsWith(TEXT("Gameplay"))) {for(TActorIterator<AVTGameplayProbe> It(GetWorld());It;++It){It->DriveLocal(this);break;}return;}
- if(ProbeRole.StartsWith(TEXT("Render"))) return;
+ if(ProbeRole.StartsWith(TEXT("Render"))) {
+  if(FParse::Param(FCommandLine::Get(),TEXT("VTBroadsideProbe"))&&GEngine&&GEngine->GameViewport) {
+   auto* Ship=Cast<AVTShip>(GetPawn());auto View=GEngine->GameViewport->GetGameViewportWidget();auto Window=GEngine->GameViewport->GetWindow();
+   if(Ship&&View.IsValid()&&Window.IsValid()) {
+    const double Age=GetWorld()->GetRealTimeSeconds();const auto& Geometry=View->GetCachedGeometry();const FVector2D Point=Geometry.LocalToAbsolute(Geometry.GetLocalSize()*0.5);
+    auto Mouse=[&](bool Down){TSet<FKey> Keys;if(Down)Keys.Add(EKeys::LeftMouseButton);FPointerEvent Event(0,Point,Point,Keys,EKeys::LeftMouseButton,0,FModifierKeysState());if(Down)FSlateApplication::Get().ProcessMouseButtonDownEvent(Window->GetNativeWindow(),Event);else FSlateApplication::Get().ProcessMouseButtonUpEvent(Event);};
+    if(BroadsideProbeStage==0&&Age>20){BroadsideProbeHeld=GEngine->GameViewport->GetMouseCaptureMode()==EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown;Mouse(true);BroadsideProbeStage=1;}
+    else if(BroadsideProbeStage==1&&Age>20.4){BroadsideProbeHeld&=(LocalIntent.Buttons&VTButtons::AimPort)!=0&&(LocalIntent.Buttons&VTButtons::Port)==0;Mouse(false);BroadsideProbeStage=2;}
+    else if(BroadsideProbeStage==2&&Age>20.8){BroadsideProbePassed=BroadsideProbeHeld&&(LocalIntent.Buttons&VTButtons::AimPort)==0&&(Ship->PortReload>0||Ship->Combat->PortCharge>0);BroadsideProbeStage=3;}
+    else if(BroadsideProbeStage==3&&Age>23){Mouse(true);BroadsideProbeStage=4;}
+    else if(BroadsideProbeStage==4&&Age>27){Mouse(false);BroadsideProbeStage=5;}
+   }
+  }
+  return;
+ }
  LocalIntent.Throttle=0.8f; LocalIntent.Turn=0.2f;
  FString Destination;
  if(GetWorld()->GetRealTimeSeconds()>4 && !ProbeJumped && FParse::Value(FCommandLine::Get(),TEXT("VTProbeSystem="),Destination)) {
@@ -67,7 +84,7 @@ void UVTSimulation::ValidationTick() {
    ProbeWrote=true; auto Samples=RenderFrameMilliseconds; Samples.Sort(); double P95=Samples[FMath::FloorToInt(Samples.Num()*0.95)]; double Total=0; for(double Ms:Samples) Total+=Ms;
    FString Report=FString::Printf(TEXT("{\"frames\":%d,\"p95_frame_ms\":%.6f,\"mean_fps\":%.3f,\"width\":1920,\"height\":1080,\"population\":%d,\"gpu\":\"%s\",\"passed\":%s}"),Samples.Num(),P95,Samples.Num()*1000/Total,Ships.Num(),*GRHIAdapterName,P95<=1000./60 ? TEXT("true") : TEXT("false"));
    TSharedPtr<FJsonObject> Parsed; FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Report),Parsed); if(GEngine&&GEngine->GameViewport&&GEngine->GameViewport->Viewport){auto Size=GEngine->GameViewport->Viewport->GetSizeXY();Parsed->SetNumberField(TEXT("width"),Size.X);Parsed->SetNumberField(TEXT("height"),Size.Y);}
-   Parsed->SetBoolField(TEXT("initial_menu_focus"),UIInitialFocus);Parsed->SetBoolField(TEXT("controller_menu_navigation"),UINavigationPassed);const bool Passed=P95<=1000./60&&(ProbeRole!=TEXT("RenderMenu")||UINavigationPassed);Parsed->SetBoolField(TEXT("passed"),Passed);Parsed->SetNumberField(TEXT("simulation_time"),SimulationTime); Parsed->SetBoolField(TEXT("busy"),FParse::Param(FCommandLine::Get(),TEXT("Busy"))); Parsed->SetBoolField(TEXT("armed"),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); auto Times=StepMilliseconds; if(!Times.IsEmpty()) {Times.Sort(); Parsed->SetNumberField(TEXT("p95_simulation_ms"),Times[FMath::FloorToInt(Times.Num()*0.95)]);} FJsonSerializer::Serialize(Parsed.ToSharedRef(),TJsonWriterFactory<>::Create(&Report)); FFileHelper::SaveStringToFile(Report,*(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".json"))); FPlatformMisc::RequestExitWithStatus(false,Passed ? 0 : 1);
+   Parsed->SetBoolField(TEXT("initial_menu_focus"),UIInitialFocus);Parsed->SetBoolField(TEXT("controller_menu_navigation"),UINavigationPassed);const auto* Captain=Cast<AVTController>(GetWorld()->GetFirstPlayerController());const bool MousePassed=!FParse::Param(FCommandLine::Get(),TEXT("VTBroadsideProbe"))||(Captain&&Captain->BroadsideProbePassed);Parsed->SetBoolField(TEXT("broadside_first_press_release"),MousePassed);const bool Passed=P95<=1000./60&&(ProbeRole!=TEXT("RenderMenu")||UINavigationPassed)&&MousePassed;Parsed->SetBoolField(TEXT("passed"),Passed);Parsed->SetNumberField(TEXT("simulation_time"),SimulationTime); Parsed->SetBoolField(TEXT("busy"),FParse::Param(FCommandLine::Get(),TEXT("Busy"))); Parsed->SetBoolField(TEXT("armed"),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); auto Times=StepMilliseconds; if(!Times.IsEmpty()) {Times.Sort(); Parsed->SetNumberField(TEXT("p95_simulation_ms"),Times[FMath::FloorToInt(Times.Num()*0.95)]);} FJsonSerializer::Serialize(Parsed.ToSharedRef(),TJsonWriterFactory<>::Create(&Report)); FFileHelper::SaveStringToFile(Report,*(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".json"))); FPlatformMisc::RequestExitWithStatus(false,Passed ? 0 : 1);
   }
   return;
  }

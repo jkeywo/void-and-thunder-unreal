@@ -111,3 +111,7 @@ Niagara Effect Types provide native presentation budgets without changing gamepl
 The flight HUD uses authored UMG resource bars and ability readouts fed by the existing coalesced refresh path. A local native grid Actor follows the current system; sky remains camera-centered. Projectile visual radius and flight pace are independently editable on DA_GameData; collision radii remain simulation-owned.
 
 [ai] Restore the original amber CRT HUD composition using native Slate drawing within the authored UMG widget: five original panel frames exported as UI textures, native live gauges/tubes/shield edges, and matching amber menu styling. Static artwork retains source attribution; no HTML runtime is added. The sandbox chart remains available as a collapsible overlay rather than occupying the coordinate cluster.
+
+Broadside aim is a local arc offset while held, preserved through release and encoded as the existing authoritative aim intent. The tracking camera and preview consume that direction. Viewport capture forwards the first mouse press; painted tactical markers use viewport-relative pixel scaling into widget coordinates.
+
+Broadside previews and authoritative firing share the muzzle/velocity geometry function, including inherited ship momentum. Each gun projects its own trajectory.

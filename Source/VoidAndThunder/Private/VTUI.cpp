@@ -49,7 +49,7 @@ void UVTUI::SetMenu(bool Open) {
  MenuOpen=Open;FocusPending=Open;if(auto* W=CachedWidget(TEXT("MenuBackdrop")))W->SetVisibility(Open?ESlateVisibility::HitTestInvisible:ESlateVisibility::Collapsed); if(auto* W=CachedWidget(TEXT("AbilityPanel")))W->SetVisibility(ESlateVisibility::Collapsed);
  if(auto* Captain=Cast<AVTController>(GetOwningPlayer())) Captain->UpdateInputContexts();
  RequestRefresh(); if(MenuPanel&&MenuPanel->GetParent()) MenuPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(MenuPanel) MenuPanel->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(HUDPanel) HUDPanel->SetVisibility(ESlateVisibility::Collapsed);if(HUDPanel&&HUDPanel->GetParent())HUDPanel->GetParent()->SetVisibility(ESlateVisibility::Collapsed);
- if(auto* PC=GetOwningPlayer()) {if(Open) {FInputModeGameAndUI Mode; auto* Focus=CachedWidget(GetWorld()->GetMapName().Contains(TEXT("Menu"))?(SessionOptions?TEXT("Create"):TEXT("Skirmish")):TEXT("Resume"));Mode.SetWidgetToFocus(Focus ? Focus->TakeWidget() : TakeWidget()); Mode.SetHideCursorDuringCapture(false); PC->SetInputMode(Mode);} else PC->SetInputMode(FInputModeGameOnly()); PC->bShowMouseCursor=true;
+ if(auto* PC=GetOwningPlayer()) {if(Open) {FInputModeGameAndUI Mode; auto* Focus=CachedWidget(GetWorld()->GetMapName().Contains(TEXT("Menu"))?(SessionOptions?TEXT("Create"):TEXT("Skirmish")):TEXT("Resume"));Mode.SetWidgetToFocus(Focus ? Focus->TakeWidget() : TakeWidget()); Mode.SetHideCursorDuringCapture(false); PC->SetInputMode(Mode);} else {FInputModeGameOnly Mode;Mode.SetConsumeCaptureMouseDown(false);PC->SetInputMode(Mode);} PC->bShowMouseCursor=true;
   if(GetWorld()->GetNetMode()==NM_Standalone&&!GetWorld()->GetMapName().Contains(TEXT("Menu"))) PC->SetPause(Open);}
 }
 bool UVTUI::StoreFit() {
@@ -116,19 +116,24 @@ int32 UVTUI::NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const 
  int32 Top=Super::NativePaint(Args,Geometry,Culling,Elements,Layer+1,Style,Enabled)+1;
  auto* PC=GetOwningPlayer(); auto* Mine=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; if(MenuOpen||!Mine) return Top;
  auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); auto* State=GetWorld()->GetGameState<AVTGameState>(); auto Font=HudFont;Font.Size=10;
+ int32 ViewWidth=0,ViewHeight=0;PC->GetViewportSize(ViewWidth,ViewHeight);
+ const FVector2D PixelToLocal=Geometry.GetLocalSize()/FVector2D(FMath::Max(1,ViewWidth),FMath::Max(1,ViewHeight));
  auto Line=[&](FVector2D A,FVector2D B,FLinearColor Colour) {TArray<FVector2D> Points={A,B}; FSlateDrawElement::MakeLines(Elements,Top,Geometry.ToPaintGeometry(),Points,ESlateDrawEffect::None,Colour,true,1);};
  if(auto* Captain=Cast<AVTController>(PC))for(bool Port:{true,false})if(Captain->LocalIntent.Buttons&(Port?VTButtons::AimPort:VTButtons::AimStarboard)) {
   auto Direction=VTCombat::BroadsideDirection(Mine->Movement->Motion.Heading,Port,Captain->LocalIntent.Aim,Mine->Definition.Arc);FVector2D A,B;
-  if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position,Mine->SystemIndex),A,true)&&PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position+Direction*Mine->Definition.MuzzleSpeed*Sim->Data->Rules.ProjectileTTL,Mine->SystemIndex),B,true))Line(Geometry.AbsoluteToLocal(A),Geometry.AbsoluteToLocal(B),(Port?Mine->PortReload:Mine->StarboardReload)<=0?FLinearColor(1,0.65f,0.15f):FLinearColor(0.45f,0.08f,0.05f));
+  for(int32 Gun=0;Gun<FMath::Max(1,Mine->Definition.Guns);++Gun) {
+   const auto Shot=VTCombat::BroadsideShot(Mine->Movement->Motion.Position,Mine->Movement->Motion.Velocity,Direction,Mine->Definition,Sim->Data->Rules,Gun);
+   if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Shot.Key,Mine->SystemIndex),A,true)&&PC->ProjectWorldLocationToScreen(VT::ToWorld(Shot.Key+Shot.Value.GetSafeNormal()*Mine->Definition.MuzzleSpeed*Sim->Data->Rules.ProjectileTTL,Mine->SystemIndex),B,true))Line(A*PixelToLocal,B*PixelToLocal,(Port?Mine->PortReload:Mine->StarboardReload)<=0?FLinearColor(1,0.65f,0.15f):FLinearColor(0.45f,0.08f,0.05f));
+  }
  }
  for(AVTShip* Other:Sim->Ships) if(IsValid(Other)&&Other!=Mine&&Other->SystemIndex==Mine->SystemIndex) {
-  FVector2D P; if(!PC->ProjectWorldLocationToScreen(Other->GetActorLocation(),P,true)) continue; P=Geometry.AbsoluteToLocal(P);
+  FVector2D P; if(!PC->ProjectWorldLocationToScreen(Other->GetActorLocation(),P,true)) continue; P=P*PixelToLocal;
   if(P.X<10||P.Y<10||P.X>Geometry.GetLocalSize().X-10||P.Y>Geometry.GetLocalSize().Y-10) continue;
   FLinearColor Colour=Other->Disabled ? FLinearColor::Yellow : Other->Faction==Mine->Faction ? FLinearColor(0.3f,0.8f,1) : FLinearColor(1,0.4f,0.25f);
   if(Mine->Combat->EquipmentState.Locks.Contains(Other->PersistentId)) {Line(P+FVector2D(-20,-20),P+FVector2D(20,20),FLinearColor::Yellow); Line(P+FVector2D(-20,20),P+FVector2D(20,-20),FLinearColor::Yellow);}
   if(Other->Disabled) FSlateDrawElement::MakeText(Elements,Top,Geometry.ToPaintGeometry(FVector2D(100,20),FSlateLayoutTransform(P+FVector2D(-20,25))),TEXT("BOARD"),Font,ESlateDrawEffect::None,Colour);
  }
- if(auto* Captain=Cast<AVTController>(PC)) if((Captain->LocalIntent.Buttons&VTButtons::Warp)&&Mine->Definition.Equipment.Warp&&Mine->Combat->EquipmentState.WarpCooldown<=0) {FVector2D P; if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position+Captain->LocalIntent.CursorOffset.GetClampedToMaxSize(Mine->Definition.Equipment.WarpRange),Mine->SystemIndex),P,true)) {P=Geometry.AbsoluteToLocal(P); Line(P+FVector2D(-25,0),P+FVector2D(25,0),FLinearColor(0.2f,1,0.8f)); Line(P+FVector2D(0,-25),P+FVector2D(0,25),FLinearColor(0.2f,1,0.8f));}}
+ if(auto* Captain=Cast<AVTController>(PC)) if((Captain->LocalIntent.Buttons&VTButtons::Warp)&&Mine->Definition.Equipment.Warp&&Mine->Combat->EquipmentState.WarpCooldown<=0) {FVector2D P; if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position+Captain->LocalIntent.CursorOffset.GetClampedToMaxSize(Mine->Definition.Equipment.WarpRange),Mine->SystemIndex),P,true)) {P=P*PixelToLocal; Line(P+FVector2D(-25,0),P+FVector2D(25,0),FLinearColor(0.2f,1,0.8f)); Line(P+FVector2D(0,-25),P+FVector2D(0,25),FLinearColor(0.2f,1,0.8f));}}
  Top=PaintFlightHUD(Geometry,Elements,Top+1);
  if(!ChartOpen||CastChecked<UVTGameInstance>(GetGameInstance())->PlayMode!=TEXT("sandbox")) return Top;
  FVector2D Offset(Geometry.GetLocalSize().X-430,35),Size(405,240);

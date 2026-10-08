@@ -18,6 +18,11 @@ FVector2D VTCombat::BroadsideDirection(float Heading,bool Port,const FVector2D& 
  if(Aim.SizeSquared()>1e-6) Angle+=FMath::Clamp(FMath::UnwindRadians(float(FMath::Atan2(Aim.Y,Aim.X))-Beam),-Arc,Arc);
  return FVector2D(FMath::Cos(Angle),FMath::Sin(Angle));
 }
+TPair<FVector2D,FVector2D> VTCombat::BroadsideShot(const FVector2D& Position,const FVector2D& Velocity,const FVector2D& Direction,const FVTShipDefinition& Ship,const FVTRules& Rules,int32 Gun) {
+ const int32 Guns=FMath::Max(1,Ship.Guns);
+ const float Fraction=Guns<=1?0:float(Gun)/(Guns-1)-0.5f;
+ return {Position+Direction*Rules.MuzzleStandoff+FVector2D(-Direction.Y,Direction.X)*(Fraction*Rules.HullLength),Velocity+Direction*Ship.MuzzleSpeed};
+}
 float VTCombat::SegmentDistanceSquared(const FVector2D& A,const FVector2D& B,const FVector2D& P) {
  auto D=B-A; double T=D.SizeSquared()>1e-12 ? FMath::Clamp(FVector2D::DotProduct(P-A,D)/D.SizeSquared(),0.,1.) : 0;
  return float((P-A-D*T).SizeSquared());
@@ -67,14 +72,13 @@ void UVTCombatComponent::Volley(bool Port,const FVector2D& Direction) {
  auto* S=CastChecked<AVTShip>(GetOwner()); auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();
  FGameplayCueParameters Cue; Cue.Location=VT::ToWorld(S->Movement->Motion.Position,S->SystemIndex); if(!IsRunningCommandlet()) S->Abilities->ExecuteGameplayCue(FGameplayTag::RequestGameplayTag(TEXT("GameplayCue.Ship.Fire")),Cue);
  const auto& D=S->Definition; const auto& Rules=Sim->Data->Rules;
- FVector2D Along(-Direction.Y,Direction.X);
  int Guns=FMath::Max(1,D.Guns);
  for(int I=0;I<Guns;++I) {
-  float Fraction=Guns<=1 ? 0 : float(I)/(Guns-1)-0.5f;
-  FVector2D P=S->Movement->Motion.Position+Direction*Rules.MuzzleStandoff+Along*(Fraction*Rules.HullLength);
+  const auto Geometry=VTCombat::BroadsideShot(S->Movement->Motion.Position,S->Movement->Motion.Velocity,Direction,D,Rules,I);
+  const auto P=Geometry.Key;
   auto* Shot=GetWorld()->SpawnActor<AVTProjectile>();
   Shot->SystemIndex=S->SystemIndex; Shot->PersistentId=FGuid::NewGuid(); Shot->Source=S; Shot->SourceId=S->PersistentId; Shot->SourceFaction=S->Faction; Shot->SourceNPC=S->IsNPC; if(auto* PS=S->GetPlayerState<AVTPlayerState>()) Shot->AttackerProfile=PS->Profile;
-  Shot->Position=P; Shot->Previous=P; Shot->Velocity=S->Movement->Motion.Velocity+Direction*D.MuzzleSpeed;
+  Shot->Position=P; Shot->Previous=P; Shot->Velocity=Geometry.Value;
   Shot->Damage=D.Damage; Shot->Remaining=Rules.ProjectileTTL; Shot->Radius=Rules.ProjectileRadius;
  }
 }
