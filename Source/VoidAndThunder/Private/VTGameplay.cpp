@@ -348,7 +348,7 @@ void AVTController::VTSave() { if (HasAuthority()) GetGameInstance()->GetSubsyst
 void AVTController::VTLoad() { if (HasAuthority()) GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->Load(); }
 
 void UVTSimulation::Initialize(FSubsystemCollectionBase& Collection) {
- Queries.Initialize(this);
+ Queries.Initialize(this);Standings.Initialize(this);
  Super::Initialize(Collection);
  auto& Manager=UAssetManager::Get();
  auto Handle=Manager.LoadPrimaryAsset(FPrimaryAssetId(TEXT("VTGameData"),TEXT("DA_GameData")));
@@ -555,10 +555,10 @@ void AVTController::ServerIdentify_Implementation(FGuid Profile,FGuid Token,FNam
  FVTShipDefinition Resolved; if(!Record&&(!Hull.ToString().StartsWith(TEXT("corsair"))||!GetWorld()->GetSubsystem<UVTSimulation>()->Data->ResolveFit(Hull,Selection,Resolved))) Valid=false;
  if(!Valid) {if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->GameSession->KickPlayer(this,FText::FromString(TEXT("Profile already connected or reconnect token invalid."))); return;}
  InitialHull=Record ? Record->Ship.ClassId : Hull; InitialFit=Record ? Record->Ship.Fit : Selection;
- PS->Profile=Profile; PS->Reputation=GetWorld()->GetSubsystem<UVTSimulation>()->Data->InitialReputation; PS->Heat.Init(0,PS->Reputation.Num());
+ PS->Reputation=GetWorld()->GetSubsystem<UVTSimulation>()->Data->InitialReputation; PS->Heat.Init(0,PS->Reputation.Num());
  if(Record) {
-  Possess(Save->RestoreShip(Record->Ship)); PS->Credits=Record->Credits; PS->Boarded=Record->Boarded; PS->Heat=Record->Heat; PS->Reputation=Record->Reputation;
- } else if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->RestartPlayer(this);
+  PS->Credits=Record->Credits; PS->Boarded=Record->Boarded; PS->Heat=Record->Heat; PS->Reputation=Record->Reputation;PS->Profile=Profile;Possess(Save->RestoreShip(Record->Ship));
+ } else {PS->Profile=Profile;if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->RestartPlayer(this);}
  Save->CapturePlayer(this);
  const auto* Accepted=Save->PlayerRecords.FindByPredicate([Profile](const FVTSavedPlayer& R){return R.Profile==Profile;});
  if(Accepted) ClientAcceptIdentity(Save->WorldId,Accepted->Token);

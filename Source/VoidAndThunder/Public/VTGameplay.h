@@ -1,5 +1,6 @@
 #pragma once
 #include "VTShipQueries.h"
+#include "VTCaptainStandings.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/GameModeBase.h"
@@ -250,6 +251,7 @@ public:
  UPROPERTY() TArray<TObjectPtr<AVTShip>> Ships;
  UPROPERTY() TArray<TObjectPtr<AVTProjectile>> Projectiles;
  FVTShipQueries Queries;
+ FVTCaptainStandings Standings;
  FVector2D JumpPosition(int32 System,FName Destination) const;
  void TravelShip(AVTShip* Ship,int32 Destination);
  void RecordHit(AVTShip* Victim,AVTShip* Attacker,float Amount,FGuid Profile=FGuid(),FName AttackerFaction=NAME_None);

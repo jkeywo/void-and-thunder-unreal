@@ -20,42 +20,20 @@ void UVTSimulation::RecordHit(AVTShip* Victim,AVTShip* Attacker,float Amount,FGu
  if(IsValid(Attacker)) {Victim->Brain.LastAttacker=Attacker->PersistentId; Victim->Brain.LastAttackerFaction=Attacker->Faction; if(auto* PS=Attacker->GetPlayerState<AVTPlayerState>()) Profile=PS->Profile;}
  Victim->Brain.LastAttackerProfile=Profile; Victim->Brain.AttackTime=SimulationTime;
  if(Victim->ShipRole==1&&!Victim->Brain.DistressSent&&Victim->Brain.DistressTimer<0) Victim->Brain.DistressTimer=3;
- if(!Profile.IsValid()||Amount<=0) return;
- AVTPlayerState* PS=nullptr;
- for(auto It=GetWorld()->GetPlayerControllerIterator();It;++It) if(auto* State=It->Get()->GetPlayerState<AVTPlayerState>()) if(State->Profile==Profile) {PS=State; break;}
- auto* Save=GetWorld()->GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();
- auto* Record=Save ? Save->PlayerRecords.FindByPredicate([Profile](const FVTSavedPlayer& R){return R.Profile==Profile;}) : nullptr;
- auto* Heat=PS ? &PS->Heat : Record ? &Record->Heat : nullptr; auto* Reputation=PS ? &PS->Reputation : Record ? &Record->Reputation : nullptr;
- if(!Heat||!Reputation) return;
- auto Crime=[&](FName Faction) {int I=Data->FactionIndex(Faction); if(Heat->IsValidIndex(I)&&Reputation->IsValidIndex(I)&&(*Reputation)[I]>=Data->World.hostile_threshold) (*Heat)[I]=FMath::Min(100.f,(*Heat)[I]+Amount*Data->World.heat_per_damage);};
- Crime(Victim->Faction); FName Owner=Data->Systems[Victim->SystemIndex].Owner;
- if(Owner!=Victim->Faction&&Data->StandingBetween(Owner,Victim->Faction)>=Data->World.hostile_threshold) Crime(Owner);
+ Standings.Crime(Profile,Victim,Amount);
 }
 void UVTSimulation::AwardAvenging(AVTShip* Destroyed,const TArray<TObjectPtr<AVTShip>>& Survivors) {
  const FGuid Profile=Destroyed->Brain.LastAttackerProfile; if(!Profile.IsValid()) return;
- TArray<float>* Reputation=nullptr;
- for(auto It=GetWorld()->GetPlayerControllerIterator();It;++It) if(auto* PS=It->Get()->GetPlayerState<AVTPlayerState>()) if(PS->Profile==Profile) {Reputation=&PS->Reputation; break;}
- if(!Reputation) if(auto* Save=GetWorld()->GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()) if(auto* Record=Save->PlayerRecords.FindByPredicate([Profile](const FVTSavedPlayer& R){return R.Profile==Profile;})) Reputation=&Record->Reputation;
- if(!Reputation) return;
- for(AVTShip* Rescued:Survivors) if(IsValid(Rescued)&&Rescued!=Destroyed&&Rescued->Attributes->Hull.GetCurrentValue()>0&&Rescued->Brain.LastAttackerFaction==Destroyed->Faction&&SimulationTime-Rescued->Brain.AttackTime<Data->World.recent_attack_memory) {int Faction=Data->FactionIndex(Rescued->Faction); if(Reputation->IsValidIndex(Faction)) (*Reputation)[Faction]=FMath::Min(100.f,(*Reputation)[Faction]+Data->World.avenge_reputation_bonus);}
+ for(AVTShip* Rescued:Survivors) if(IsValid(Rescued)&&Rescued!=Destroyed&&Rescued->Attributes->Hull.GetCurrentValue()>0&&Rescued->Brain.LastAttackerFaction==Destroyed->Faction&&SimulationTime-Rescued->Brain.AttackTime<Data->World.recent_attack_memory)Standings.Rescue(Profile,Rescued->Faction);
 }
 void UVTSimulation::WorldStep() {
- for(auto It=GetWorld()->GetPlayerControllerIterator();It;++It) if(auto* PS=It->Get()->GetPlayerState<AVTPlayerState>()) {
-  for(int I=0;I<PS->Heat.Num();++I) if(PS->Reputation.IsValidIndex(I)) {float Decay=FMath::Min(PS->Heat[I],Data->World.heat_decay_per_sec*VT::Step); PS->Heat[I]-=Decay; PS->Reputation[I]=FMath::Clamp(PS->Reputation[I]-Decay*Data->World.heat_to_reputation_rate,-100.f,100.f);}
- }
- // Disconnected captains retain individual standing while the hosted world runs.
- auto* Save=GetWorld()->GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();
- if(Save) for(auto& Record:Save->PlayerRecords) {
-  bool Connected=false; for(auto It=GetWorld()->GetPlayerControllerIterator();It;++It) if(auto* PS=It->Get()->GetPlayerState<AVTPlayerState>()) if(PS->Profile==Record.Profile) {Connected=true; break;}
-  if(Connected) continue;
-  for(int I=0;I<Record.Heat.Num();++I) if(Record.Reputation.IsValidIndex(I)) {float Decay=FMath::Min(Record.Heat[I],Data->World.heat_decay_per_sec*VT::Step); Record.Heat[I]-=Decay; Record.Reputation[I]=FMath::Clamp(Record.Reputation[I]-Decay*Data->World.heat_to_reputation_rate,-100.f,100.f);}
- }
+ Standings.Decay(VT::Step);
  for(AVTShip* Ship:Ships) if(IsValid(Ship)) {
   Ship->Brain.AlertTTL=FMath::Max(0.f,Ship->Brain.AlertTTL-VT::Step);
   if(Ship->Brain.DistressTimer>=0&&!Ship->Disabled) {Ship->Brain.DistressTimer-=VT::Step; if(Ship->Brain.DistressTimer<=0) {Ship->Brain.DistressSent=true; Ship->Brain.DistressTimer=-1; for(auto* Patrol:Queries.Ordered(Ship->SystemIndex)) if(Patrol->ShipRole==2&&(Patrol->Faction==Ship->Faction||Data->StandingBetween(Patrol->Faction,Ship->Faction)>=0)) {Patrol->Brain.Alert=Ship->Movement->Motion.Position; Patrol->Brain.AlertTTL=Data->World.alert_ttl;}}}
   if(Ship->IsNPC||Ship->Docked||Ship->Disabled||Ship->JumpArriving) continue;
-  const auto& System=Data->Systems[Ship->SystemIndex]; auto* PS=Ship->GetPlayerState<AVTPlayerState>(); int Owner=Data->FactionIndex(System.Owner);
-  bool Allowed=!PS||!PS->Reputation.IsValidIndex(Owner)||PS->Reputation[Owner]>=Data->World.dock_refusal_threshold;
+  const auto& System=Data->Systems[Ship->SystemIndex]; auto* PS=Ship->GetPlayerState<AVTPlayerState>(); auto Standing=Standings.Read(PS?PS->Profile:FGuid(),System.Owner);
+  bool Allowed=!Standing.Found||Standing.Reputation>=Data->World.dock_refusal_threshold;
   bool NearStation=System.HasStation&&Allowed&&(Ship->Movement->Motion.Position-Data->Rules.StationPosition).SizeSquared()<=FMath::Square(Data->Rules.StationRadius+Data->Rules.BoardRange);
   // Legacy station docking accrues by holding position; jump/boarding use the interaction key.
   Ship->DockProgress=NearStation ? Ship->DockProgress+VT::Step : 0;
@@ -78,7 +56,7 @@ void AVTController::ServerStationAction_Implementation(FName Action) {
  if((Ship->Movement->Motion.Position-Rules.StationPosition).SizeSquared()>FMath::Square(Rules.StationRadius+Rules.BoardRange)||!Sim->Data->Systems[Ship->SystemIndex].HasStation) return;
  if(Action==FName("undock")) {Ship->Docked=false; Ship->DockProgress=0; Ship->Movement->Motion.Position=Rules.StationPosition+FVector2D(0,-Rules.StationRadius-Rules.BoardRange); Ship->Intent=FVTPilotIntent();}
  if(Action==FName("repair")) {Ship->Abilities->SetNumericAttributeBase(UVTAttributes::HullAttribute(),Ship->Definition.Hull); Ship->Abilities->SetNumericAttributeBase(UVTAttributes::GetEMPStressAttribute(),0); Ship->Disabled=false;}
- if(Action==FName("pay_heat")) {int I=Sim->Data->FactionIndex(Sim->Data->Systems[Ship->SystemIndex].Owner); if(PS->Heat.IsValidIndex(I)) {int Cost=FMath::CeilToInt(PS->Heat[I]*Rules.CreditsPerHeat); if(PS->Credits>=Cost) {PS->Credits-=Cost; PS->Heat[I]=0;}}}
+ if(Action==FName("pay_heat")) Sim->Standings.PayHeat(PS->Profile,Sim->Data->Systems[Ship->SystemIndex].Owner,PS->Credits);
  GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->CapturePlayer(this);
 }
 void AVTController::ServerRefit_Implementation(FName Hull,FVTLoadoutSelection Selection) {

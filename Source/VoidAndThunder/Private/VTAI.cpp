@@ -35,8 +35,8 @@ bool UVTSimulation::BehaviorHostile(AVTShip* Mine,AVTShip* Other) const {
  if(Mine->Faction==Freebooters||Other->Faction==Freebooters) return true;
  if(Mine->Brain.LastAttacker==Other->PersistentId&&SimulationTime-Mine->Brain.AttackTime<Data->World.recent_attack_memory) return true;
  if(!Other->IsNPC) {
-  auto* PS=Other->GetPlayerState<AVTPlayerState>(); int I=Data->FactionIndex(Mine->Faction);
-  return PS&&I>=0&&((PS->Reputation.IsValidIndex(I)&&PS->Reputation[I]<Data->World.hostile_threshold)||(PS->Heat.IsValidIndex(I)&&PS->Heat[I]>=Data->World.heat_engage_threshold));
+  auto* PS=Other->GetPlayerState<AVTPlayerState>();const auto Standing=Standings.Read(PS?PS->Profile:FGuid(),Mine->Faction);
+  return Standing.Found&&(Standing.Reputation<Data->World.hostile_threshold||Standing.Heat>=Data->World.heat_engage_threshold);
  }
  if(Mine->ShipRole==0&&Mine->Faction==Houses) return true;
  return Data->StandingBetween(Mine->Faction,Other->Faction)<Data->World.hostile_threshold;
