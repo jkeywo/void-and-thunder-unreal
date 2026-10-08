@@ -58,11 +58,21 @@ FVTFitPreview FVTFitEditor::Inspect(const UVTGameData& Data,FName Hull,const FVT
  if(!P.Valid){P.Reason=NSLOCTEXT("VTFit","Invalid","Invalid equipment or mount limit exceeded.");return P;}
  P.Crew=Crew(Data,Hull,Fit);P.BatteryMounts=Fit.Batteries.IsEmpty()&&!Fit.OverrideBatteries?int(!Fit.Battery.IsNone()):Fit.Batteries.Num();P.SpecialMounts=Fit.Specials.IsEmpty()&&!Fit.OverrideSpecials?int(!Fit.Special.IsNone()):Fit.Specials.Num();return P;
 }
-FText FVTFitPreview::Summary() const{return FText::Format(NSLOCTEXT("VTFit","Summary","Battery {0}/{2} | Special {1}/{2} | Crewed devices {3}"),FText::AsNumber(BatteryMounts),FText::AsNumber(SpecialMounts),FText::AsNumber(Resolved.Mounts),FText::AsNumber(Crew.Num()));}
+FText FVTFitPreview::Summary() const{
+ const auto& E=Resolved.Equipment;TArray<FString> Devices;
+ if(E.EMP)Devices.Add(TEXT("EMP"));if(E.Boost)Devices.Add(TEXT("Boost"));if(E.PointDefense)Devices.Add(TEXT("Point defence"));if(E.Torpedoes)Devices.Add(TEXT("Torpedoes"));if(E.Warp)Devices.Add(TEXT("Microwarp"));if(E.Mines)Devices.Add(TEXT("Mines"));
+ auto Mounts=[&](int Count,bool Override,FName Primary){return !Override&&Count==0&&Primary.IsNone()?NSLOCTEXT("VTFit","Inherited","hull default"):FText::Format(NSLOCTEXT("VTFit","MountCount","{0}/{1}"),FText::AsNumber(Count),FText::AsNumber(Resolved.Mounts));};
+ return FText::Format(NSLOCTEXT("VTFit","ResolvedSummary","Battery {0} | Special {1} | Crewed devices {2}\n{3}"),Mounts(BatteryMounts,Selection.OverrideBatteries,Selection.Battery),Mounts(SpecialMounts,Selection.OverrideSpecials,Selection.Special),FText::AsNumber(Crew.Num()),Devices.IsEmpty()?NSLOCTEXT("VTFit","NoOptional","No optional devices"):FText::FromString(FString::Join(Devices,TEXT(", "))));
+}
+
 bool FVTFitEditor::Initialize(const UVTGameData& Data,FName Hull,const FVTLoadoutSelection& Fit){auto P=Inspect(Data,Hull,Fit);if(!P.Valid)return false;Accepted=MoveTemp(P);return true;}
 bool FVTFitEditor::Toggle(const UVTGameData& Data,FName Id,FText& Reason){
  const auto* O=Data.Loadouts.FindByPredicate([Id](const FVTLoadoutOption& Item){return Item.Id==Id;});if(!O){Reason=NSLOCTEXT("VTFit","Unknown","Unknown equipment.");return false;}
- auto Candidate=Accepted.Selection;Candidate.OverrideBatteries=Candidate.OverrideSpecials=true;Candidate.Battery=Candidate.Special=NAME_None;
+ auto Candidate=Accepted.Selection;
+ // Preserve explicit legacy primary choices when editing their checkbox representation.
+ if(Candidate.Batteries.IsEmpty()&&!Candidate.OverrideBatteries&&!Candidate.Battery.IsNone())Candidate.Batteries.Add(Candidate.Battery);
+ if(Candidate.Specials.IsEmpty()&&!Candidate.OverrideSpecials&&!Candidate.Special.IsNone())Candidate.Specials.Add(Candidate.Special);
+ Candidate.OverrideBatteries=Candidate.OverrideSpecials=true;Candidate.Battery=Candidate.Special=NAME_None;
  if(O->Slot==EVTLoadoutSlot::Broadside)Candidate.Broadside=Candidate.Broadside==Id?NAME_None:Id;
  else{auto& Items=O->Slot==EVTLoadoutSlot::Battery?Candidate.Batteries:Candidate.Specials;if(Items.Contains(Id))Items.Remove(Id);else Items.Add(Id);}
  auto P=Inspect(Data,Accepted.Hull,Candidate);Reason=P.Reason;if(!P.Valid)return false;Accepted=MoveTemp(P);return true;

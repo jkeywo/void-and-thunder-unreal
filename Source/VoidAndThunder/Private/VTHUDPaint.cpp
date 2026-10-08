@@ -70,7 +70,7 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
   if(Player){for(bool Port:{true,false}){float A=Heading+(Port?-PI/2:PI/2);float Reload=Port?Ship->PortReload:Ship->StarboardReload;float Ready=1-FMath::Clamp(Reload/FMath::Max(0.001f,Def.Reload),0.f,1.f);Band(0.94f,A-Def.Arc/2,Def.Arc,FLinearColor(1,0.698f,0,0.12f),2);Band(0.94f,A-Def.Arc/2,Def.Arc*Ready,FLinearColor(1,0.698f,0,0.65f),3);}}
  };
  Ring(S,true);int RingCount=0;
- for(AVTShip* Other:Sim->Ships)if(Other&&Other->SystemIndex==S->SystemIndex)if(IsValid(Other)&&Other!=S&&(Other->GetActorLocation()-S->GetActorLocation()).SizeSquared2D()<FMath::Square(60000.f)){Ring(Other,false);if(++RingCount>=24)break;}
+ for(AVTShip* Other:Sim->Queries.Ordered(S->SystemIndex))if(IsValid(Other)&&Other!=S&&(Other->GetActorLocation()-S->GetActorLocation()).SizeSquared2D()<FMath::Square(60000.f)){Ring(Other,false);if(++RingCount>=24)break;}
  FVector2D Top(Size.X/2-160,14),Status(18,14),Coords(Size.X-194,14),Left(18,Size.Y-178),Right(Size.X-270,Size.Y-140);
  Art(0,Top,{320,54});Art(1,Status,{210,92});Art(2,Coords,{176,62});Art(3,Left,{262,160});Art(4,Right,{252,122});
  Text(Top+FVector2D(24,22),TEXT("H U L L"),7,Dim);Bar(Top+FVector2D(60,22),192,10,Hull,HullColour);Text(Top+FVector2D(260,19),FString::Printf(TEXT("%3.0f%%"),Hull*100),10,HullColour);

@@ -20,6 +20,7 @@ class VOIDANDTHUNDER_API UVTGatePassage:public UActorComponent {
  void ResetTransient();
 public:
  UVTGatePassage();
+ UFUNCTION(BlueprintPure,Category="Travel") FVTGateState GetStatus() const{return State;}
  const FVTGateState& Status() const{return State;}
  bool Arriving() const{return State.Phase==EVTGatePhase::Arriving;}
  bool Departing() const{return State.Phase==EVTGatePhase::Departing;}

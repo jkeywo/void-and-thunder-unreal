@@ -2,7 +2,9 @@
 #include "VTCombat.h"
 void UVTSimulation::ContactStep() {
  const auto& R=Data->Rules;
- for(int System=0;System<Queries.SystemCount();++System) if(const auto& Bucket=Queries.Ordered(System);true) for(int I=0;I<Bucket.Num();++I) for(int J=I+1;J<Bucket.Num();++J) {
+ for(int System=0;System<Queries.SystemCount();++System) {
+  const auto& Bucket=Queries.Ordered(System);
+  for(int I=0;I<Bucket.Num();++I) for(int J=I+1;J<Bucket.Num();++J) {
   AVTShip* A=Bucket[I]; AVTShip* B=Bucket[J]; if(A->Docked||B->Docked) continue;
   auto& AM=A->Movement->Motion; auto& BM=B->Movement->Motion;
   FVector2D Delta=BM.Position-AM.Position; float Reach=A->Definition.Radius+B->Definition.Radius;
@@ -18,6 +20,7 @@ void UVTSimulation::ContactStep() {
   if(Damage<=0 || (A->IsNPC&&B->IsNPC&&A->Faction==B->Faction)) continue;
   A->Combat->Damage(Damage*(1+(B->Combat->BoostPowered ? 2.5f*FMath::Clamp(float(FVector2D::DotProduct(FVector2D(FMath::Cos(BM.Heading),FMath::Sin(BM.Heading)),-Normal)),0.f,1.f) : 0)),AM.Position+Normal*A->Definition.Radius,B);
   B->Combat->Damage(Damage*(1+(A->Combat->BoostPowered ? 2.5f*FMath::Clamp(float(FVector2D::DotProduct(FVector2D(FMath::Cos(AM.Heading),FMath::Sin(AM.Heading)),Normal)),0.f,1.f) : 0)),BM.Position-Normal*B->Definition.Radius,A);
+  }
  }
 }
 void UVTSimulation::PiracyStep() {
@@ -49,6 +52,7 @@ void UVTSimulation::PiracyStep() {
   else if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->RecoverShip(Target);
   Combat->BoardingTarget.Invalidate(); Combat->BoardingProgress=0;
  }
+ Queries.FinishBoarding();
 }
 
 bool UVTSimulation::Occluded(int32 System,const FVector2D& A,const FVector2D& B,float Height) const {

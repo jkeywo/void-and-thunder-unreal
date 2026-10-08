@@ -39,3 +39,5 @@ not establish a universal reconciliation error bound on every network.
 Browser delivery, dedicated servers, online accounts/invites, new multiplayer
 missions, host migration, legacy-save compatibility and Mass conversion remain
 outside the approved scope. GitHub CI checks metadata, not licensed engine gates.
+
+The five deep gameplay modules are implemented and validated in [deep modules](validation/deep-modules-2026-10-08/README.md): 50 automation cases, final Development/Shipping builds, packaged four-player gameplay/reconnect and Shipping autosave, and three-run busy/armed medians of 2.354 ms (500) and 6.773 ms (1,000). The advancing-host-clock gate restoration regression now exists and passes. The 1,000-NPC result remains a stress measurement rather than an expanded rendered/network population promise.

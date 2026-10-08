@@ -43,4 +43,5 @@ void UVTSimulation::ProjectileStep() {
    Shot->Destroy();
   } else if(Shot->Remaining<=0) Shot->Destroy();
  }
+ Queries.FinishSpatial();
 }

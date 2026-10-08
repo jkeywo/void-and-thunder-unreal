@@ -11,6 +11,8 @@ public:
  void Initialize(UVTSimulation* Sim){Owner=Sim;Dirty=true;}
  void Invalidate(){Dirty=true;}
  void BeginStep();void BuildSpatial();void BuildBoarding();
+ void FinishSpatial(){SpatialReady=false;}
+ void FinishBoarding(){BoardingReady=false;}
  int32 SystemCount() const;
  const TArray<AVTShip*>& Ordered(int32 System) const;
  AVTShip* Find(int32 System,FGuid Id) const;

@@ -18,3 +18,5 @@ The local run-unreal.bat launches the refreshed Development package. Existing re
 ![White gate flash](RenderGate.png)
 
 ![Restored original torpedo](RenderEnvironment.png)
+
+Follow-up: the previously missing advancing-host-clock regression is implemented and passes in the [five-module integration](../deep-modules-2026-10-08/README.md). The results above remain the evidence available at the time of the gate-surge change.

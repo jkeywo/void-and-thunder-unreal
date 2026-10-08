@@ -24,13 +24,13 @@
 FVTInteractionHint VTInteractionHint(const AVTShip* Ship,const UVTSimulation* Sim) {
  FVTInteractionHint Hint;if(!Ship||!Sim||!Sim->Data||Ship->Disabled||Ship->Docked||Ship->Autopilot||!Sim->Data->Systems.IsValidIndex(Ship->SystemIndex))return Hint;
  const auto& Rules=Sim->Data->Rules;const auto Position=Ship->Movement->Motion.Position;
- if(Ship->Combat->BoardingTarget.IsValid())for(const AVTShip* Other:Sim->Ships)if(IsValid(Other)&&Other!=Ship&&Other->PersistentId==Ship->Combat->BoardingTarget&&Other->SystemIndex==Ship->SystemIndex&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed&&(Other->Movement->Motion.Position-Position).SizeSquared()<=FMath::Square(Rules.BoardRange)){
+ if(Ship->Combat->BoardingTarget.IsValid())for(const AVTShip* Other:Sim->Queries.Ordered(Ship->SystemIndex))if(IsValid(Other)&&Other!=Ship&&Other->PersistentId==Ship->Combat->BoardingTarget&&Other->SystemIndex==Ship->SystemIndex&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed&&(Other->Movement->Motion.Position-Position).SizeSquared()<=FMath::Square(Rules.BoardRange)){
   Hint.Kind=EVTInteractionHint::Loot;Hint.Position=Other->Movement->Motion.Position;Hint.Label=NSLOCTEXT("VTUI","LootShip","Board and loot ship");Hint.Progress=FMath::Clamp(Ship->Combat->BoardingProgress/FMath::Max(0.001f,Rules.BoardDwell),0.f,1.f);return Hint;
  }
  const auto& System=Sim->Data->Systems[Ship->SystemIndex];
  if(System.Links.Contains(Ship->GatePassage->Status().Destination)){int32 Destination=Sim->Data->FindSystem(Ship->GatePassage->Status().Destination);const auto Jump=Sim->JumpPosition(Ship->SystemIndex,Ship->GatePassage->Status().Destination);if(Destination>=0&&(Position-Jump).SizeSquared()<FMath::Square(Rules.JumpRange)){Hint.Kind=EVTInteractionHint::Jump;Hint.Position=Jump;Hint.Label=FText::Format(NSLOCTEXT("VTUI","JumpTo","Align and fly through to {0}"),Sim->Data->Systems[Destination].DisplayName);Hint.Progress=FMath::Clamp(Ship->GatePassage->Status().Charge/FMath::Max(0.001f,Rules.JumpDwell),0.f,1.f);return Hint;}}
  if(System.HasStation&&(Position-Rules.StationPosition).SizeSquared()<=FMath::Square(Rules.StationRadius+Rules.BoardRange)){
-  const auto* PS=Ship->GetPlayerState<AVTPlayerState>();const int32 Owner=Sim->Data->FactionIndex(System.Owner);const bool Allowed=!PS||!PS->Reputation.IsValidIndex(Owner)||PS->Reputation[Owner]>=Sim->Data->World.dock_refusal_threshold;
+  const auto* PS=Ship->GetPlayerState<AVTPlayerState>();const auto Standing=Sim->Standings.Read(PS?PS->Profile:FGuid(),System.Owner);const bool Allowed=!Standing.Found||Standing.Reputation>=Sim->Data->World.dock_refusal_threshold;
   if(Allowed){Hint.Kind=EVTInteractionHint::Dock;Hint.Position=Rules.StationPosition;Hint.Label=NSLOCTEXT("VTUI","HoldToDock","Hold position to dock");Hint.Progress=FMath::Clamp(Ship->DockProgress/FMath::Max(0.001f,Rules.BoardDwell),0.f,1.f);}
  }
  return Hint;
@@ -78,16 +78,19 @@ void UVTUI::BuildFitEditor(){
  auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();
  auto* Row=Cast<UPanelWidget>(CachedWidget(TEXT("MountRow")));if(!Row)return;Row->ClearChildren();
  auto* Column=WidgetTree->ConstructWidget<UVerticalBox>();Row->AddChild(Column);
- FitSummary=WidgetTree->ConstructWidget<UTextBlock>();Column->AddChild(FitSummary);
+ if(auto* HullRow=Cast<UPanelWidget>(CachedWidget(TEXT("FitRow"))))while(HullRow->GetChildrenCount()>1)HullRow->RemoveChildAt(HullRow->GetChildrenCount()-1);
+ if(auto* Heading=Cast<UTextBlock>(CachedWidget(TEXT("MountHeading"))))Heading->SetText(NSLOCTEXT("VTFit","Heading","Loadout"));
+ auto* Defaults=WidgetTree->ConstructWidget<UVTFitCheckBox>();Defaults->Equipment=FName("__defaults");Defaults->Editor=this;auto* DefaultLabel=WidgetTree->ConstructWidget<UTextBlock>();if(HullChoice){DefaultLabel->SetFont(HullChoice->GetFont());DefaultLabel->SetColorAndOpacity(HullChoice->GetForegroundColor());}DefaultLabel->SetText(NSLOCTEXT("VTFit","DefaultFit","Use hull default equipment"));Defaults->AddChild(DefaultLabel);Defaults->OnCheckStateChanged.AddDynamic(Defaults,&UVTFitCheckBox::Changed);Column->AddChild(Defaults);FitChecks.Add(Defaults);
+ FitSummary=WidgetTree->ConstructWidget<UTextBlock>();FitSummary->SetAutoWrapText(true);if(HullChoice){FitSummary->SetFont(HullChoice->GetFont());FitSummary->SetColorAndOpacity(HullChoice->GetForegroundColor());}Column->AddChild(FitSummary);
  for(int MountSlot=0;MountSlot<3;++MountSlot){auto* Line=WidgetTree->ConstructWidget<UHorizontalBox>();Column->AddChild(Line);
- for(const auto& O:Data->Loadouts)if(int(O.Slot)==MountSlot){auto* Check=WidgetTree->ConstructWidget<UVTFitCheckBox>();Check->Equipment=O.Id;Check->Editor=this;auto* Label=WidgetTree->ConstructWidget<UTextBlock>();Label->SetText(FText::FromStringTable(TextTable?TextTable->GetStringTableId():FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));Check->AddChild(Label);Check->OnCheckStateChanged.AddDynamic(Check,&UVTFitCheckBox::Changed);Line->AddChild(Check);FitChecks.Add(Check);}}
+ for(const auto& O:Data->Loadouts)if(int(O.Slot)==MountSlot){auto* Check=WidgetTree->ConstructWidget<UVTFitCheckBox>();Check->Equipment=O.Id;Check->Editor=this;auto* Label=WidgetTree->ConstructWidget<UTextBlock>();if(HullChoice){Label->SetFont(HullChoice->GetFont());Label->SetColorAndOpacity(HullChoice->GetForegroundColor());}Label->SetMargin(FMargin(6,2));Label->SetText(FText::FromStringTable(TextTable?TextTable->GetStringTableId():FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));Check->AddChild(Label);Check->OnCheckStateChanged.AddDynamic(Check,&UVTFitCheckBox::Changed);Line->AddChild(Check);FitChecks.Add(Check);}}
  if(HullChoice)HullChoice->OnSelectionChanged.AddDynamic(this,&UVTUI::ChangeFitHull);RefreshFitEditor();
 }
-void UVTUI::RefreshFitEditor(const FText& Reason){FitUpdating=true;const auto& P=FitEditor.Preview();for(const auto& Check:FitChecks){const auto& F=P.Selection;Check->SetIsChecked(F.Broadside==Check->Equipment||F.Batteries.Contains(Check->Equipment)||F.Specials.Contains(Check->Equipment));}if(HullChoice)HullChoice->SetSelectedOption(P.Hull.ToString());if(FitSummary)FitSummary->SetText(Reason.IsEmpty()?P.Summary():FText::Format(NSLOCTEXT("VTFit","Feedback","{0}\n{1}"),P.Summary(),Reason));FitUpdating=false;}
-void UVTUI::ToggleFit(FName Equipment){FText Reason;FitEditor.Toggle(*GetWorld()->GetSubsystem<UVTSimulation>()->Data,Equipment,Reason);RefreshFitEditor(Reason);}
+void UVTUI::RefreshFitEditor(const FText& Reason){FitUpdating=true;const auto& P=FitEditor.Preview();for(const auto& Check:FitChecks){const auto& F=P.Selection;Check->SetIsChecked(Check->Equipment==FName("__defaults")?F.Broadside.IsNone()&&!F.OverrideBatteries&&!F.OverrideSpecials&&F.Battery.IsNone()&&F.Special.IsNone():F.Broadside==Check->Equipment||F.Batteries.Contains(Check->Equipment)||F.Specials.Contains(Check->Equipment)||(F.Batteries.IsEmpty()&&!F.OverrideBatteries&&F.Battery==Check->Equipment)||(F.Specials.IsEmpty()&&!F.OverrideSpecials&&F.Special==Check->Equipment));}if(HullChoice)HullChoice->SetSelectedOption(P.Hull.ToString());if(FitSummary)FitSummary->SetText(Reason.IsEmpty()?P.Summary():FText::Format(NSLOCTEXT("VTFit","Feedback","{0}\n{1}"),P.Summary(),Reason));FitUpdating=false;}
+void UVTUI::ToggleFit(FName Equipment){FText Reason;if(Equipment==FName("__defaults"))FitEditor.Initialize(*GetWorld()->GetSubsystem<UVTSimulation>()->Data,FitEditor.Preview().Hull,{});else FitEditor.Toggle(*GetWorld()->GetSubsystem<UVTSimulation>()->Data,Equipment,Reason);RefreshFitEditor(Reason);}
 void UVTUI::ChangeFitHull(FString Item,ESelectInfo::Type Type){if(FitUpdating)return;FText Reason;FitEditor.SelectHull(*GetWorld()->GetSubsystem<UVTSimulation>()->Data,SelectedId(HullChoice),Reason);RefreshFitEditor(Reason);}
 bool UVTUI::StoreFit() {
- auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();auto* GI=CastChecked<UVTGameInstance>(GetGameInstance());
+ auto* GI=CastChecked<UVTGameInstance>(GetGameInstance());
  if(!FitEditor.Preview().Valid)return false;
  GI->SelectedHull=FitEditor.Preview().Hull;GI->SelectedFit=FitEditor.Preview().Selection;
  if(auto* Box=Cast<UComboBoxString>(CachedWidget(TEXT("PopulationChoice"))))GI->PopulationProfile=FName(Box->GetSelectedOption());
@@ -157,7 +160,7 @@ int32 UVTUI::NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const 
    if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Shot.Key,Mine->SystemIndex),A,true)&&PC->ProjectWorldLocationToScreen(VT::ToWorld(Shot.Key+Shot.Value.GetSafeNormal()*Mine->Definition.MuzzleSpeed*Sim->Data->Rules.ProjectileTTL,Mine->SystemIndex),B,true))Line(A*PixelToLocal,B*PixelToLocal,(Port?Mine->PortReload:Mine->StarboardReload)<=0?FLinearColor(1,0.65f,0.15f):FLinearColor(0.45f,0.08f,0.05f));
   }
  }
- for(AVTShip* Other:Sim->Ships) if(IsValid(Other)&&Other!=Mine&&Other->SystemIndex==Mine->SystemIndex) {
+ for(AVTShip* Other:Sim->Queries.Ordered(Mine->SystemIndex)) if(IsValid(Other)&&Other!=Mine) {
   FVector2D P; if(!PC->ProjectWorldLocationToScreen(Other->GetActorLocation(),P,true)) continue; P=P*PixelToLocal;
   if(P.X<10||P.Y<10||P.X>Geometry.GetLocalSize().X-10||P.Y>Geometry.GetLocalSize().Y-10) continue;
   FLinearColor Colour=Other->Disabled ? FLinearColor::Yellow : Other->Faction==Mine->Faction ? FLinearColor(0.3f,0.8f,1) : FLinearColor(1,0.4f,0.25f);

@@ -20,6 +20,7 @@ public:
  UPROPERTY(Config,EditAnywhere,Category="Preview") EVTPIEMode Mode=EVTPIEMode::Sandbox;
  UPROPERTY(Config,EditAnywhere,Category="Preview") FName Hull=TEXT("corsair_cruiser");
  UPROPERTY(Config,EditAnywhere,Category="Preview") FVTLoadoutSelection Fit;
+ FText FitFeedback;
  static TArray<EVTPIEMode> Modes(UWorld* World);
  static FText ModeLabel(EVTPIEMode Value);
  static FString ModeId(EVTPIEMode Value);
