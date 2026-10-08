@@ -31,3 +31,11 @@ public:
  UVTPlayabilityCommandlet();
  virtual int32 Main(const FString& Params) override;
 };
+
+UCLASS()
+class UVTHUDStyleCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTHUDStyleCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};

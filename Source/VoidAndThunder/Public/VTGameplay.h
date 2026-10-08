@@ -215,6 +215,7 @@ public:
  UFUNCTION(Client,Reliable) void ClientAcceptIdentity(FGuid World,FGuid Token);
  UFUNCTION(Server,Reliable,BlueprintCallable) void ServerStationAction(FName Action);
  UFUNCTION(Server,Reliable,BlueprintCallable) void ServerRefit(FName Hull,FVTLoadoutSelection Selection);
+ void ToggleHUD(bool Chart);
  UFUNCTION(Exec) void VTRecover();
  UFUNCTION(Server,Reliable) void ServerRecover();
  UFUNCTION(Exec) void VTJump(FString Destination);

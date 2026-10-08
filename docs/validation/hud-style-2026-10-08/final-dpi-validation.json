@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "scope": "Final DPI adjustment: Editor, bootstrap/authoring protection, automation, required 500-NPC budget, Development/Shipping packages, packaged 1080p/720p flight, 720p menu navigation and Shipping multiplayer rerun. Prior unaffected network/lifecycle gates retained in pipeline.json.",
+  "automation_groups": 28,
+  "source_logs": [
+    "hud-style-dpi-build.log",
+    "hud-style-dpi-authoring.log",
+    "hud-style-dpi-test.log",
+    "hud-style-dpi-scale.log",
+    "hud-style-dpi-development.log",
+    "hud-style-dpi-render.log",
+    "hud-style-dpi-720.log",
+    "hud-style-dpi-menu.log",
+    "hud-style-dpi-shipping.log",
+    "hud-style-dpi-multiplayer.log"
+  ]
+}

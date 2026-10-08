@@ -231,6 +231,9 @@ void AVTController::SetupInputComponent() {
   if(I==2) Input->BindAction(Action,ETriggerEvent::Started,this,&AVTController::VTRecover);
  }
 
+ for(const TCHAR* Name:{TEXT("HUDControls"),TEXT("HUDChart")}) if(auto* Action=LoadObject<UInputAction>(nullptr,*FString::Printf(TEXT("/Game/Input/IA_%s.IA_%s"),Name,Name))) {
+  Input->BindAction(Action,ETriggerEvent::Started,this,&AVTController::ToggleHUD,Name==FString(TEXT("HUDChart")));
+ }
  const TCHAR* Names[] = {TEXT("Throttle"),TEXT("Turn"),TEXT("Aim"),TEXT("Port"),TEXT("Starboard"),TEXT("EMP"),TEXT("Torpedo"),TEXT("Warp"),TEXT("Boost"),TEXT("Brace"),TEXT("Interact"),TEXT("Mine"),TEXT("PointDefense")};
  for (int32 I=0; I<UE_ARRAY_COUNT(Names); ++I) {
   const FString Path = FString::Printf(TEXT("/Game/Input/IA_%s.IA_%s"), Names[I], Names[I]);
@@ -666,3 +669,5 @@ bool AVTController::RemapControl(FName MappingName,FKey NewKey) {
  FGameplayTagContainer Failures;Settings->MapPlayerKey(Args,Failures);if(!Failures.IsEmpty())return false;
  Settings->AsyncSaveSettings();Sub->RequestRebuildControlMappings();VTNotifyHUD(GetWorld());return true;
 }
+
+void AVTController::ToggleHUD(bool Chart){if(UI){if(Chart)UI->ToggleChart();else UI->ToggleControls();}}

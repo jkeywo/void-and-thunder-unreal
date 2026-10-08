@@ -21,6 +21,15 @@ UCLASS()
 class VOIDANDTHUNDER_API UVTUI : public UUserWidget {
  GENERATED_BODY()
 public:
+ UPROPERTY(EditDefaultsOnly,Category="HUD|Style") TArray<TObjectPtr<class UTexture2D>> HudPanels;
+ UPROPERTY(EditDefaultsOnly,Category="HUD|Style") FSlateFontInfo HudFont;
+ UPROPERTY(EditDefaultsOnly,Category="HUD|Style") TObjectPtr<class UStringTable> TextTable;
+ bool SessionOptions=false;
+ UFUNCTION() void ToggleSessionOptions();
+ bool ControlsOpen=false, ChartOpen=false;
+ void ToggleControls(){if(!MenuOpen)ControlsOpen=!ControlsOpen;}
+ void ToggleChart(){if(!MenuOpen){ChartOpen=!ChartOpen;ControlsOpen=false;}}
+ int32 PaintFlightHUD(const FGeometry& Geometry,FSlateWindowElementList& Elements,int32 Layer) const;
  bool MenuOpen=false;
  bool FocusPending=false;
  int32 LastWorlds=-1;

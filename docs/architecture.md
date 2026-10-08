@@ -109,3 +109,5 @@ costs retain their existing GAS attribute path. Audio attenuation/concurrency an
 Niagara Effect Types provide native presentation budgets without changing gameplay.
 
 The flight HUD uses authored UMG resource bars and ability readouts fed by the existing coalesced refresh path. A local native grid Actor follows the current system; sky remains camera-centered. Projectile visual radius and flight pace are independently editable on DA_GameData; collision radii remain simulation-owned.
+
+[ai] Restore the original amber CRT HUD composition using native Slate drawing within the authored UMG widget: five original panel frames exported as UI textures, native live gauges/tubes/shield edges, and matching amber menu styling. Static artwork retains source attribution; no HTML runtime is added. The sandbox chart remains available as a collapsible overlay rather than occupying the coordinate cluster.

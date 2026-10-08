@@ -1,6 +1,10 @@
 #include "VTGameplay.h"
 #include "VTCombat.h"
 #include "VTUI.h"
+#include "Engine/Font.h"
+#include "Engine/FontFace.h"
+#include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableCore.h"
 #include "VTSaveSubsystem.h"
 #include "Components/ComboBoxString.h"
 #include "Engine/Engine.h"
@@ -111,6 +115,16 @@ bool FVTRepeatedBankIntent::RunTest(const FString&) {
  S->Combat->WeaponsStep();TestEqual(TEXT("Windup fires exactly once"),F.Sim->Projectiles.Num(),Initial+1);
  for(int I=0;I<3;++I)S->Combat->WeaponsStep();TestEqual(TEXT("Reload does not duplicate shots"),F.Sim->Projectiles.Num(),Initial+1);
  S->Combat->WeaponsStep();S->Combat->WeaponsStep();TestEqual(TEXT("Ready bank restarts immediately with its original windup"),F.Sim->Projectiles.Num(),Initial+2);
+ return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTOriginalHUDAssets,"VT.Native.OriginalHUDAssets",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTOriginalHUDAssets::RunTest(const FString&) {
+ auto* Class=LoadClass<UVTUI>(nullptr,TEXT("/Game/UI/WBP_UI.WBP_UI_C"));if(!TestNotNull(TEXT("Native authored UI class"),Class))return false;auto* UI=Class->GetDefaultObject<UVTUI>();
+ TestEqual(TEXT("Original five panel frames are packaged references"),UI->HudPanels.Num(),5);
+ auto* Font=Cast<UFont>(UI->HudFont.FontObject);if(!TestNotNull(TEXT("HUD uses a composite font, not a bare face"),Font))return false;
+ const auto& Faces=Font->GetInternalCompositeFont().DefaultTypeface.Fonts;if(!TestEqual(TEXT("Monospace typeface exists"),Faces.Num(),1))return false;
+ auto* Face=Cast<UFontFace>(Faces[0].Font.GetFontFaceAsset());if(TestNotNull(TEXT("Packaged inline font face"),Face)){TestTrue(TEXT("Font contains glyph bytes"),Face->FontFaceData->HasData());TestTrue(TEXT("No external font file dependency"),Face->LoadingPolicy==EFontLoadingPolicy::Inline);}
+ if(TestNotNull(TEXT("String table is a cooked UI dependency"),UI->TextTable.Get()))TestEqual(TEXT("Cruiser name resolves through the actual registered table"),FText::FromStringTable(UI->TextTable->GetStringTableId(),TEXT("class.corsair_cruiser.name")).ToString(),FString(TEXT("Cruiser")));
  return true;
 }
 #endif

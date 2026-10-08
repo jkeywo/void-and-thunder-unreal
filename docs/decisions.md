@@ -116,3 +116,7 @@ than PASM. This choice does not alter the original game or vellum.
 - [ai] The 1,000-NPC regression exposed per-projectile presentation setup in headless execution. Preload the editable projectile material once through Asset Manager and skip visual setup in commandlets/NullRHI, retaining projectile registration and all authoritative state. This removes presentation work from the weapons phase without changing simulation behavior.
 
 - [ai] Skip redundant GAS activation requests for active broadside instances and cooling EMP devices. Inspect readiness after advancing existing fixed-step tasks, preserving expiry-step activation, held intent, windup and native authority. Guard this with persistent-intent windup/reload automation. No AI cadence or population reduction.
+
+[ai] Restore the original amber CRT HUD composition using native Slate drawing within the authored UMG widget: five original panel frames exported as UI textures, native live gauges/tubes/shield edges, and matching amber menu styling. Static artwork retains source attribution; no HTML runtime is added. The sandbox chart remains available as a collapsible overlay rather than occupying the coordinate cluster.
+
+[ai] Preserve the original HUD artwork dimensions in viewport pixels by compensating UMG DPI once in the native painter; fit windows narrower than 900 pixels. Title/menu controls retain native UMG scaling and hit testing.

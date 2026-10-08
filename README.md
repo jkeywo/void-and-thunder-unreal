@@ -114,3 +114,5 @@ targeted authored upgrades; normal validation preserves their packages.
 
 After packaging, double-click `run-unreal.bat` to start the current Development
 build from this checkout. Published older preview ZIPs do not contain these fixes.
+
+The original amber CRT GUI is restored in native UMG/Slate: five salvaged-metal panel textures, cooldown dials, segmented bars, torpedo tubes, shield edges and projected ship rings. Tab toggles controls; F toggles the sandbox chart (controller View/right-stick respectively). The centered title card keeps Cast off and Test range, with hosting/joining under Shared world. Run `Scripts/HUDStyle.ps1` for the explicit asset upgrade after building the Editor module. `Scripts/ExportLegacyHUD.cjs <source hud.html>` regenerates static artwork with Playwright; it is a development tool, not a game dependency. Normal bootstrap preserves authored UI.
