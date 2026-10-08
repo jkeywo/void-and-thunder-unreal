@@ -2,6 +2,7 @@
 #include "VTCombat.h"
 #include "VTUI.h"
 #include "VTWorldAnchor.h"
+#include "VTGate.h"
 #include "InputActionValue.h"
 #include "Engine/Font.h"
 #include "Engine/FontFace.h"
@@ -177,5 +178,31 @@ bool FVTNearestStar::RunTest(const FString&) {
  TestTrue(TEXT("Travel applies the current system arena translation"),(VT::ToWorld(Centre,1)-VT::ToWorld(Centre,0)).Equals(VT::ArenaOrigin(1)-VT::ArenaOrigin(0)));
  Bodies.Reset();TestFalse(TEXT("No star means no fabricated radial centre"),VTGrid::NearestStar(Bodies,FVector2D::ZeroVector,Centre));
  return true;
+}
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FVTGatePassage,"VT.Native.PhysicalGatePassage",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+void FVTGatePassage::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const {for(const TCHAR* Id:{TEXT("corsair_frigate"),TEXT("corsair_cruiser"),TEXT("corsair_battleship")}){Names.Add(Id);Commands.Add(Id);}}
+bool FVTGatePassage::RunTest(const FString& Hull) {
+ FNativeFixture F;auto* S=F.Ship;S->InitializeShip(FName(Hull),0,FVTMotion());S->Combat->Shields=S->Definition.ShieldMax;S->IsNPC=false;S->Anchored=false;S->Disabled=false;const int Origin=S->SystemIndex;const FName Link=F.Sim->Data->Systems[Origin].Links[0];const auto Centre=F.Sim->JumpPosition(Origin,Link),Axis=Centre.GetSafeNormal();
+ S->Movement->Motion=FVTMotion();S->Movement->Motion.Position=Centre;S->Movement->Previous=S->Movement->Motion;S->Intent.Buttons=VTButtons::Interact;
+ bool Moved=false,Aligned=false,Entering=false;for(int I=0;I<64*30&&S->SystemIndex==Origin;++I){F.Sim->FixedStep();Moved|=(S->Movement->Motion.Position-Centre).Size()>20;Aligned|=FVector2D::DotProduct(FVector2D(FMath::Cos(S->Movement->Motion.Heading),FMath::Sin(S->Movement->Motion.Heading)),Axis)>0.98;Entering|=S->JumpEntering;}
+ TestTrue(TEXT("Hold physically approaches ring"),Moved);TestTrue(TEXT("Hold aligns hull with aperture"),Aligned);TestTrue(TEXT("Charge unlocks physical entry"),Entering);TestEqual(TEXT("Crossing moves captain to linked system"),S->SystemIndex,F.Sim->Data->FindSystem(Link));
+ FVTMotion A,B;A.Position=Centre-Axis*10;B=A;B.Position=Centre+Axis*10;B.Heading=FMath::Atan2(Axis.Y,Axis.X);TestTrue(TEXT("Outward aligned aperture crossing"),VTGate::Crossed(A,B,Centre,30,0.18));B.Position=A.Position;TestFalse(TEXT("Stationary charge cannot cross"),VTGate::Crossed(A,B,Centre,30,0.18));B.Position=Centre+Axis*10;B.Heading+=PI;TestFalse(TEXT("Backward hull rejected"),VTGate::Crossed(A,B,Centre,30,0.18));
+ return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTExclusiveAim,"VT.Native.ExclusiveSpecialAim",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTExclusiveAim::RunTest(const FString&) {
+ FNativeFixture F;auto* S=F.Ship;F.Sim->SystemShips.SetNum(F.Sim->Data->Systems.Num());F.Sim->SystemShips[S->SystemIndex].Add(S);auto* PC=F.World->SpawnActor<AVTController>();PC->Possess(S);
+ for(uint16 Bit:{VTButtons::Warp,VTButtons::Torpedo}){PC->LocalIntent.Buttons=Bit|VTButtons::AimPort|VTButtons::Port;TestFalse(TEXT("Special aim suppresses broadside cursor"),PC->UpdateBroadsideAim(10,F.Sim->Data->Feel.controls,0,S->Definition.Arc));TestEqual(TEXT("Pending broadside inputs cleared"),PC->LocalIntent.Buttons,Bit);PC->ReadFlight(FInputActionValue(true),3);PC->ReadFlight(FInputActionValue(false),3);TestEqual(TEXT("Broadside press/release ignored while special held"),PC->LocalIntent.Buttons,Bit);S->Intent.Buttons=Bit|VTButtons::Port|VTButtons::Starboard;S->Combat->WeaponsStep();TestEqual(TEXT("Authoritative bank remains available"),S->PortReload,0.f);TestEqual(TEXT("No broadside windup accepted"),S->Combat->PortCharge,0.f);}
+ return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTLocalPresentation,"VT.Native.LocalPoseInterpolation",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTLocalPresentation::RunTest(const FString&) {
+ FNativeFixture F;auto* PC=F.World->SpawnActor<AVTController>();PC->Possess(F.Ship);auto* M=F.Ship->Movement.Get();M->Previous.Position=FVector2D(10,20);M->Motion.Position=FVector2D(30,20);M->Previous.Heading=PI-0.1;M->Motion.Heading=-PI+0.1;
+ F.Sim->Accumulator=VT::Step*0.25;auto Pose=M->PresentationPose();TestTrue(TEXT("Local ship has fractional-step position"),Pose.Position.Equals(FVector2D(15,20),0.001));TestTrue(TEXT("Yaw takes short arc through wrap"),FMath::Abs(FMath::UnwindRadians(Pose.Heading-(PI-0.05)))<0.001);TestTrue(TEXT("Presentation leaves simulation untouched"),M->Motion.Position.Equals(FVector2D(30,20)));return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTFitLifecycle,"VT.Native.FitLifecycleAndFrontend",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTFitLifecycle::RunTest(const FString&) {
+ FNativeFixture F;FVTLoadoutSelection Fit;Fit.OverrideBatteries=Fit.OverrideSpecials=true;Fit.Batteries={FName("loadout.boost")};Fit.Specials={FName("loadout.microwarp")};F.Ship->Fit=Fit;F.Ship->OnRep_ClassId();TestFalse(TEXT("Class notification retains selected fit instead of EMP"),F.Ship->Definition.Equipment.EMP);TestTrue(TEXT("Selected warp survives class resolution"),F.Ship->Definition.Equipment.Warp);
+ auto* Deferred=F.World->SpawnActorDeferred<AVTShip>(AVTShip::StaticClass(),FTransform::Identity);Deferred->InitializeShip(TEXT("corsair_cruiser"),0,FVTMotion());Deferred->Fit=Fit;Deferred->FinishSpawning(FTransform::Identity);TestFalse(TEXT("BeginPlay preserves received fit instead of EMP"),Deferred->Definition.Equipment.EMP);TestTrue(TEXT("BeginPlay preserves fitted warp"),Deferred->Definition.Equipment.Warp);return true;
 }
 #endif

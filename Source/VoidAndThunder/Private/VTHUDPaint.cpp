@@ -8,6 +8,7 @@
 #include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Rendering/SlateRenderer.h"
+#include "Fonts/FontMeasure.h"
 
 // Native readout rendering over the original, once-rasterised metal/CRT artwork.
 // Coordinates match hud.html's five clusters in logical pixels; no gameplay state is stored here.
@@ -90,8 +91,11 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
  Row(38,TEXT("BATTERY"),Battery,FString::Printf(TEXT("%.0f%%"),Battery*100));Row(56,TEXT("AIM"),Aim,GetWorld()->GetNetMode()==NM_Standalone?FString::Printf(TEXT("%.0f%%"),Aim*100):TEXT("RT"));
  Row(74,TEXT("HELM"),Agility,FMath::Abs(PC->LocalIntent.Throttle)>0.75f?TEXT("FULL"):FMath::Abs(PC->LocalIntent.Throttle)>0.1f?TEXT("HALF"):TEXT("STOP"));
  Dial(Right+FVector2D(204,58),E.WarpCooldown,D.Equipment.WarpCooldown,TEXT("WARP"),D.Equipment.Warp,FLinearColor(1,0.48f,0.09f));
+ auto DeviceBinding=[&](const TCHAR* ActionName){FString Result;auto* Sub=PC->GetLocalPlayer()?ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()):nullptr;if(Sub)for(const UInputAction* Action:PC->Actions)if(Action&&Action->GetFName()==FName(ActionName))for(const auto& Key:Sub->QueryKeysMappedToAction(Action))if(Key.IsGamepadKey()==PC->UsingGamepadAim){Result=Key.GetDisplayName().ToString();break;}return Result;};
+ if(D.Equipment.Warp){const auto Key=DeviceBinding(TEXT("IA_Warp"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-53},FString::Printf(TEXT("[%s] HOLD TO AIM WARP / RELEASE TO JUMP"),*Key),8,Amber);}
+ if(D.Equipment.Torpedoes){const auto Key=DeviceBinding(TEXT("IA_Torpedo"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-38},FString::Printf(TEXT("[%s] HOLD TO LOCK / RELEASE TORPEDOES"),*Key),8,Dim);}
  Text({Size.X/2-140,Size.Y-22},TEXT("[TAB] CONTROLS   [F] CHART   [ESC] MENU"),7,Dim);
- if(S->Disabled||S->JumpProgress>0||S->DockProgress>0||(GS&&!GS->Outcome.IsEmpty())){FString Message=S->Disabled?TEXT("SHIP DISABLED  |  [R] RECOVER"):S->JumpProgress>0?TEXT("JUMP CHARGING"):S->DockProgress>0?TEXT("DOCKING"):GS->Outcome;Text({Size.X/2-160,Size.Y*0.36},Message.ToUpper(),16,S->Disabled?Red:Amber);}
+ if(S->Disabled||S->JumpProgress>0||S->DockProgress>0||(GS&&!GS->Outcome.IsEmpty())){FString Message=S->Disabled?TEXT("SHIP DISABLED  |  [R] RECOVER"):S->JumpProgress>0?(S->JumpEntering?TEXT("FLYING THROUGH GATE"):TEXT("ALIGNING / CHARGING GATE")):S->DockProgress>0?TEXT("DOCKING"):GS->Outcome;Text({Size.X/2-160,Size.Y*0.36},Message.ToUpper(),16,S->Disabled?Red:Amber);}
  const auto Hint=VTInteractionHint(S,Sim);
  if(Hint.Kind!=EVTInteractionHint::None){FVector2D Anchor;if(Project(VT::ToWorld(Hint.Position,S->SystemIndex),Anchor)){
   FString Keys;auto* Sub=PC->GetLocalPlayer()?ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()):nullptr;
@@ -100,8 +104,8 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
   }
   const bool NeedsKey=Hint.Kind!=EVTInteractionHint::Dock;
   if(!NeedsKey||!Keys.IsEmpty()){
-   const FVector2D Ext(420,58);FVector2D P=Anchor/Scale+FVector2D(-210,65);P.X=FMath::Clamp(P.X,15.,FMath::Max(15.,Size.X-Ext.X-15));P.Y=FMath::Clamp(P.Y,115.,FMath::Max(115.,Size.Y-230));
-   Rect(P,Ext,FLinearColor(0.025f,0.016f,0.005f,0.94f),5);Layer+=6;Text(P+FVector2D(12,8),NeedsKey?FString::Printf(TEXT("Hold %s  %s"),*Keys,*Hint.Label.ToString()):Hint.Label.ToString(),10);Bar(P+FVector2D(12,38),396,8,Hint.Progress,Amber);
+   const FString Prompt=NeedsKey?FString::Printf(TEXT("Hold %s  %s"),*Keys,*Hint.Label.ToString()):Hint.Label.ToString();auto PromptFont=HudFont;PromptFont.Size=10;const double Width=FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(Prompt,PromptFont).X;const FVector2D Ext(FMath::Min(Size.X-30,FMath::Max(420.,Width+24)),58);FVector2D P=Anchor/Scale+FVector2D(-Ext.X/2,65);P.X=FMath::Clamp(P.X,15.,FMath::Max(15.,Size.X-Ext.X-15));P.Y=FMath::Clamp(P.Y,115.,FMath::Max(115.,Size.Y-230));
+   Rect(P,Ext,FLinearColor(0.025f,0.016f,0.005f,0.94f),5);Layer+=6;Text(P+FVector2D(12,8),Prompt,10);Bar(P+FVector2D(12,38),Ext.X-24,8,Hint.Progress,Amber);
   }
  }}
  if(ControlsOpen){FVector2D P(Size.X-340,Size.Y/2-180);Rect(P,{322,360},FLinearColor(0.025f,0.016f,0.005f,0.97f),5);Layer+=6;Text(P+FVector2D(24,20),TEXT("C O N T R O L S"),12);const TCHAR* Keys[]={TEXT("W / S"),TEXT("A / D"),TEXT("LMB / RMB"),TEXT("SPACE / Q"),TEXT("SHIFT / CTRL"),TEXT("C / B"),TEXT("M / X"),TEXT("T / R"),TEXT("TAB / F"),TEXT("ESC")};const TCHAR* Desc[]={TEXT("Thrust"),TEXT("Steer"),TEXT("Aim / fire broadsides"),TEXT("Boost / EMP"),TEXT("Warp / torpedoes"),TEXT("Brace / interact"),TEXT("Mines / point defence"),TEXT("AI pilot / recover"),TEXT("Controls / chart"),TEXT("Pause / menu")};for(int I=0;I<10;++I){Text(P+FVector2D(24,56+I*27),Keys[I],9);Text(P+FVector2D(142,56+I*27),Desc[I],8,FLinearColor(0.85f,0.7f,0.5f));}}

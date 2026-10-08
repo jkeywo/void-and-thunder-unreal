@@ -1,5 +1,7 @@
 #include "VTPIESettings.h"
 #include "VTGameplay.h"
+#include "VTUI.h"
+#include "Components/ComboBoxString.h"
 #include "VTSaveSubsystem.h"
 #include "Engine/World.h"
 #include "GameFramework/WorldSettings.h"
@@ -16,7 +18,8 @@ bool FVTPIESelection::RunTest(const FString&) {
  auto* Data=LoadObject<UVTGameData>(nullptr,TEXT("/Game/Data/DA_GameData.DA_GameData"));if(!TestNotNull(TEXT("Native catalogue"),Data))return false;Data->LoadCatalog();
  auto* Sandbox=LoadObject<UWorld>(nullptr,TEXT("/Game/Maps/Sandbox.Sandbox"));auto* Menu=LoadObject<UWorld>(nullptr,TEXT("/Game/Maps/Menu.Menu"));
  TestEqual(TEXT("Sandbox supports all three rulesets"),UVTPIESettings::Modes(Sandbox).Num(),3);TestTrue(TEXT("Frontend does not offer gameplay modes"),UVTPIESettings::Modes(Menu).IsEmpty());
- auto* Settings=NewObject<UVTPIESettings>();Settings->Hull=TEXT("corsair_battleship");
+ auto* Settings=NewObject<UVTPIESettings>();Settings->Hull=TEXT("corsair_battleship");Settings->Fit=FVTLoadoutSelection();
+ const auto* Guns=Data->Loadouts.FindByPredicate([](const FVTLoadoutOption& Option){return Option.Slot==EVTLoadoutSlot::Broadside;});if(TestNotNull(TEXT("Broadside variant"),Guns)){TestTrue(TEXT("Selecting a gun variant explicitly selects its checkbox fit"),Settings->ToggleLoadout(Data,Guns->Id));FVTShipDefinition GunOnly;TestTrue(TEXT("Gun-only fit resolves"),Data->ResolveFit(Settings->Hull,Settings->Fit,GunOnly));TestFalse(TEXT("Unselected EMP is not inherited behind unchecked boxes"),GunOnly.Equipment.EMP);TestFalse(TEXT("Unselected torpedoes are not inherited"),GunOnly.Equipment.Torpedoes);Settings->Fit=FVTLoadoutSelection();}
  for(FName Id:{FName("loadout.disruptor"),FName("loadout.boost"),FName("loadout.point_defense"),FName("loadout.torpedoes"),FName("loadout.microwarp"),FName("loadout.mines")})TestTrue(TEXT("Battleship accepts checked module"),Settings->ToggleLoadout(Data,Id));
  Settings->SelectHull(Data,TEXT("corsair_frigate"));const auto* Hull=Data->FindShip(Settings->Hull);TestEqual(TEXT("Smaller hull prunes batteries"),Settings->Fit.Batteries.Num(),Hull->Mounts);TestEqual(TEXT("Smaller hull prunes specials"),Settings->Fit.Specials.Num(),Hull->Mounts);
  FVTLoadoutSelection Candidate;TestFalse(TEXT("Mount limit disables extra battery"),Settings->LoadoutCandidate(Data,TEXT("loadout.point_defense"),Candidate));
@@ -33,8 +36,9 @@ public:
  FVTCheckPIE(FAutomationTestBase* InTest,EVTPIEMode InMode):Test(InTest),Mode(InMode){}
  bool Update() override {
   auto* World=GEditor->PlayWorld.Get();if(!World){if(FPlatformTime::Seconds()-Started<30)return false;Test->AddError(TEXT("PIE failed to start"));return true;}
-  auto* GI=Cast<UVTGameInstance>(World->GetGameInstance());auto* PC=World->GetFirstPlayerController();auto* Ship=PC?Cast<AVTShip>(PC->GetPawn()):nullptr;if(!Ship&&FPlatformTime::Seconds()-Started<30)return false;
-  Test->TestNotNull(TEXT("PIE possesses selected hull"),Ship);if(Ship){Test->TestEqual(TEXT("Hull override before spawning"),Ship->ClassId,FName(TEXT("corsair_frigate")));Test->TestTrue(TEXT("Empty custom fit applied to pawn"),Ship->Fit.OverrideBatteries&&Ship->Fit.OverrideSpecials&&Ship->Fit.Batteries.IsEmpty()&&Ship->Fit.Specials.IsEmpty());}
+  auto* GI=Cast<UVTGameInstance>(World->GetGameInstance());auto* PC=Cast<AVTController>(World->GetFirstPlayerController());auto* Ship=PC?Cast<AVTShip>(PC->GetPawn()):nullptr;if(!Ship&&FPlatformTime::Seconds()-Started<30)return false;
+  Test->TestNotNull(TEXT("PIE possesses selected hull"),Ship);if(Ship){Test->TestEqual(TEXT("Hull override before spawning"),Ship->ClassId,FName(TEXT("corsair_frigate")));Test->TestTrue(TEXT("Empty custom fit applied to pawn"),Ship->Fit.OverrideBatteries&&Ship->Fit.OverrideSpecials&&Ship->Fit.Batteries==GetDefault<UVTPIESettings>()->Fit.Batteries&&Ship->Fit.Specials==GetDefault<UVTPIESettings>()->Fit.Specials);}
+  if(PC&&Test->TestNotNull(TEXT("Actual PIE frontend widget"),PC->UI.Get())){const auto Expected=GetDefault<UVTPIESettings>()->Fit;Test->TestEqual(TEXT("Frontend restores first checked battery"),PC->UI->BatteryChoice->GetSelectedOption(),Expected.Batteries.IsEmpty()?FString(TEXT("__empty")):Expected.Batteries[0].ToString());Test->TestTrue(TEXT("Frontend stores explicit fit"),PC->UI->StoreFit());Test->TestTrue(TEXT("Frontend retains optional mask"),GI->SelectedFit.Batteries==Expected.Batteries&&GI->SelectedFit.Specials==Expected.Specials&&GI->SelectedFit.OverrideBatteries&&GI->SelectedFit.OverrideSpecials);}
   Test->TestEqual(TEXT("Mode applied before simulation"),GI->PlayMode,UVTPIESettings::ModeId(Mode));auto* Save=GI->GetSubsystem<UVTSaveSubsystem>();Test->TestTrue(TEXT("PIE personal preferences isolated"),Save->PersonalSlot.Contains(TEXT("-PIE-")));Test->TestTrue(TEXT("PIE campaign path isolated even after slot changes"),Save->CampaignPrefix.StartsWith(TEXT("PIE/")));
   Test->TestEqual(TEXT("Scenario selection matches mode"),World->GetSubsystem<UVTSimulation>()->ActiveScenario()!=nullptr,Mode!=EVTPIEMode::Sandbox);return true;
  }

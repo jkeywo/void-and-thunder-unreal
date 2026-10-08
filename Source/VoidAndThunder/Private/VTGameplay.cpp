@@ -1,4 +1,5 @@
 #include "VTGameplay.h"
+#include "VTGate.h"
 #include "GameFramework/PlayerInput.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
@@ -52,6 +53,11 @@ void UVTShipMovement::Step(const FVTPilotIntent& Value, bool Predict) {
  FVTPilotIntent Effective=S->Disabled ? FVTPilotIntent() : Value;
  FVTShipStats Stats=S->Definition.Stats; Stats.Thrust*=S->Combat->SpeedScale; Stats.MaxSpeed*=S->Combat->SpeedScale;
  if(Sim->Data) {Stats.Thrust*=Sim->Data->FlightSpeedMultiplier; Stats.MaxSpeed*=Sim->Data->FlightSpeedMultiplier;}
+ if(!Frozen&&!S->IsNPC&&!S->Autopilot&&(Effective.Buttons&VTButtons::Interact)&&!S->Combat->BoardingTarget.IsValid()&&Sim->Data&&Sim->Data->Systems.IsValidIndex(S->SystemIndex)) {
+  FName Link=S->JumpEntering?S->JumpDestination:NAME_None;double Best=FMath::Square(Sim->Data->Rules.JumpRange);
+  if(Link.IsNone())for(FName Candidate:Sim->Data->Systems[S->SystemIndex].Links){double Distance=(Motion.Position-Sim->JumpPosition(S->SystemIndex,Candidate)).SizeSquared();if(Distance<Best){Best=Distance;Link=Candidate;}}
+  if(!Link.IsNone())Effective=VTGate::Guide(Motion,Stats,Effective,Sim->JumpPosition(S->SystemIndex,Link),S->JumpEntering,Sim->Data->GateApproachDistance,Sim->Data->GateCruiseSpeed,Sim->Data->GateArrivalTolerance,Reverse);
+ }
  if(!Frozen) VT::HelmStep(Motion, Stats, Effective, Reverse, VT::Step);
  if (!Frozen && Predict && Sim->Data && Sim->Data->Systems.IsValidIndex(S->SystemIndex)) {
   float Radius = Sim->Data->Systems[S->SystemIndex].Radius;
@@ -75,26 +81,24 @@ void UVTShipMovement::OnRep_Authority() {
  if (!S->IsLocallyControlled()||S->Autopilot) { Pending.Reset();RenderCorrection=FVector2D::ZeroVector;RenderHeadingCorrection=0;Previous = Motion; Motion = Authority; return; }
  const FVector2D PredictedPosition=Motion.Position;const float PredictedHeading=Motion.Heading;
  Pending.RemoveAll([this](const FPending& P) { return int32(P.Intent.Sequence - Authority.Ack) <= 0; });
- Motion = Authority;
+ Motion = Authority; Previous=Authority;
  auto Replay = Pending;
  Pending.Reset();
  for (const auto& P : Replay) Step(P.Intent, true);
  if(!ChangedSystem&&!S->HasAuthority()){auto Difference=PredictedPosition-Motion.Position;if(Difference.SizeSquared()<200*200){RenderCorrection=(RenderCorrection+Difference).GetClampedToMaxSize(100);RenderHeadingCorrection=FMath::Clamp(FMath::UnwindRadians(RenderHeadingCorrection+PredictedHeading-Motion.Heading),-PI/4,PI/4);}else{RenderCorrection=FVector2D::ZeroVector;RenderHeadingCorrection=0;}}
  if(MeasureCorrections) {if(CorrectionDistances.Num()<20000) CorrectionDistances.Add((Motion.Position-PredictedPosition).Size()); MaxPendingObserved=FMath::Max(MaxPendingObserved,uint32(Pending.Num()));}
 }
-void UVTShipMovement::ApplyPose() {
- AVTShip* S = CastChecked<AVTShip>(GetOwner());
- if(!FApp::CanEverRender()) return;
- auto* PC=GetWorld()->GetFirstPlayerController(); auto* Viewer=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr;
- bool Visible=Viewer&&Viewer->SystemIndex==S->SystemIndex; if(S->Mesh->IsVisible()!=Visible) S->Mesh->SetVisibility(Visible);
- if(!Visible) {S->PresentEngines(); return;}
- const double Alpha = FMath::Clamp(GetWorld()->GetSubsystem<UVTSimulation>()->Accumulator / VT::Step, 0., 1.);
+FVTMotion UVTShipMovement::PresentationPose() const {
+ auto* S=CastChecked<AVTShip>(GetOwner());
+ const auto* Captain=Cast<AVTController>(S->GetController());
+ const double Remainder=S->IsLocallyControlled()&&!S->HasAuthority()&&Captain?Captain->SendAccumulator:GetWorld()->GetSubsystem<UVTSimulation>()->Accumulator;
+ const double Alpha=FMath::Clamp(Remainder/VT::Step,0.,1.);
  FVTMotion Render = Motion;
- if(S->IsLocallyControlled()&&!S->HasAuthority()){Render.Position+=RenderCorrection;Render.Heading+=RenderHeadingCorrection;}
- if (!S->IsLocallyControlled()||S->Autopilot) {
+
+ {
   Render.Position=FMath::Lerp(Previous.Position,Motion.Position,Alpha);
   Render.Heading=Previous.Heading+FMath::UnwindRadians(Motion.Heading-Previous.Heading)*float(Alpha);
-  if(!S->HasAuthority()&&!ReplicaFrames.IsEmpty()) {
+  if((!S->IsLocallyControlled()||S->Autopilot)&&!S->HasAuthority()&&!ReplicaFrames.IsEmpty()) {
    double Target=Authority.SimulationTime+(FPlatformTime::Seconds()-LastAuthorityReceived)-0.1;
    Render=ReplicaFrames[0];
    for(int I=1;I<ReplicaFrames.Num();++I) {
@@ -105,6 +109,16 @@ void UVTShipMovement::ApplyPose() {
    }
   }
  }
+ if(S->IsLocallyControlled()&&!S->HasAuthority()){Render.Position+=RenderCorrection;Render.Heading+=RenderHeadingCorrection;}
+ return Render;
+}
+void UVTShipMovement::ApplyPose() {
+ AVTShip* S = CastChecked<AVTShip>(GetOwner());
+ if(!FApp::CanEverRender()) return;
+ auto* PC=GetWorld()->GetFirstPlayerController(); auto* Viewer=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr;
+ bool Visible=Viewer&&Viewer->SystemIndex==S->SystemIndex; if(S->Mesh->IsVisible()!=Visible) S->Mesh->SetVisibility(Visible);
+ if(!Visible) {S->PresentEngines(); return;}
+ const auto Render=PresentationPose();
  S->SetActorLocation(VT::ToWorld(Render.Position, S->SystemIndex));
  S->SetActorRotation(FRotator(0, -FMath::RadiansToDegrees(Render.Heading), 0));
  S->PresentEngines();
@@ -140,7 +154,7 @@ void AVTShip::BeginPlay() {
  Super::BeginPlay();
  Abilities->AddAttributeSetSubobject(Attributes.Get()); Abilities->InitAbilityActorInfo(this, this);
  auto* Sim = GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Ships.AddUnique(this);
- if (Sim->Data) if (const auto* D = Sim->Data->FindShip(ClassId)) Definition = *D;
+ if(Sim->Data)Sim->Data->ResolveFit(ClassId,Fit,Definition);
  UStaticMesh* HullMesh = Sim->Data&&Sim->Data->FactionMeshes.Contains(Faction) ? Sim->Data->FactionMeshes[Faction].Get() : Definition.Mesh.Get();
  if (!HullMesh) {
   HullMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
@@ -175,7 +189,7 @@ bool AVTShip::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarge
 }
 void AVTShip::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
  Super::GetLifetimeReplicatedProps(OutLifetimeProps);
- DOREPLIFETIME(AVTShip,Autopilot); DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip,JumpProgress); DOREPLIFETIME(AVTShip,JumpDestination); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
+ DOREPLIFETIME(AVTShip,Autopilot); DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip,JumpProgress); DOREPLIFETIME(AVTShip,JumpEntering); DOREPLIFETIME(AVTShip,JumpDestination); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
  DOREPLIFETIME(AVTShip, PersistentId); DOREPLIFETIME(AVTShip, Docked); DOREPLIFETIME(AVTShip, Disabled);
  DOREPLIFETIME(AVTShip, PortReload); DOREPLIFETIME(AVTShip, StarboardReload);
 }
@@ -213,12 +227,13 @@ void AVTController::ReadFlight(const FInputActionValue& Value, int32 Index) {
  else if (Index == 2) {
   GamepadAim=Value.Get<FVector2D>(); if(GamepadAim.SizeSquared()>0.0025) UsingGamepadAim=true;
  } else if(Index==3||Index==4) {
+  if(LocalIntent.Buttons&(VTButtons::Torpedo|VTButtons::Warp)){LocalIntent.Buttons&=~(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Port|VTButtons::Starboard);return;}
   const uint16 Aim=Index==3?VTButtons::AimPort:VTButtons::AimStarboard;const uint16 Fire=Index==3?VTButtons::Port:VTButtons::Starboard;
   if(Value.Get<bool>())LocalIntent.Buttons|=Aim;
   else {if(LocalIntent.Buttons&Aim)LocalIntent.Buttons|=Fire;LocalIntent.Buttons&=~Aim;}
  } else {
   const uint16 Bit = uint16(1 << (Index - 3));
-  if (Value.Get<bool>()) LocalIntent.Buttons |= Bit; else LocalIntent.Buttons &= ~Bit;
+  if (Value.Get<bool>()) {LocalIntent.Buttons |= Bit;if(Bit&(VTButtons::Warp|VTButtons::Torpedo))LocalIntent.Buttons&=~(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Port|VTButtons::Starboard);} else LocalIntent.Buttons &= ~Bit;
  }
 }
 void AVTController::SetupInputComponent() {
@@ -249,6 +264,7 @@ void AVTController::SetupInputComponent() {
 bool AVTController::UpdateBroadsideAim(float MouseDelta,const FVTFeelControls& Controls,float Heading,float Arc) {
  const uint16 Held=LocalIntent.Buttons&(VTButtons::AimPort|VTButtons::AimStarboard);
  const uint16 Released=LocalIntent.Buttons&(VTButtons::Port|VTButtons::Starboard);
+ if(LocalIntent.Buttons&(VTButtons::Torpedo|VTButtons::Warp)){LocalIntent.Buttons&=~(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Port|VTButtons::Starboard);BroadsideOffset=0;return false;}
  if(!Held&&!Released){BroadsideOffset=0;return false;}
  if(Held) {
   const float Stick=FMath::Sign(GamepadAim.X)*FMath::Clamp((FMath::Abs(GamepadAim.X)-Controls.deadzone)/FMath::Max(0.001f,Controls.saturation-Controls.deadzone),0.f,1.f);
@@ -598,8 +614,8 @@ void AVTCameraManager::UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) {
  auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get(); const auto& C=Data->Feel.camera;
  double Now=GetWorld()->GetRealTimeSeconds(),Dt=LastCameraReal>0 ? FMath::Clamp(Now-LastCameraReal,0.,0.1) : 0; LastCameraReal=Now;
  if(GetWorld()->IsPaused()) Dt=0;
- const auto& M=Ship->Movement->Motion;
- if(!RigReady||RigShip!=Ship->PersistentId||RigSystem!=Ship->SystemIndex) {RigReady=true; RigShip=Ship->PersistentId; RigSystem=Ship->SystemIndex; OrbitYaw=M.Heading; OrbitPitch=FreePitch=C.pitch_base; OrbitDistance=C.distance; OrbitFov=C.base_fov; Focus=Ship->GetActorLocation(); FreeYaw=LookIdle=MenuOrbit=0; ImpactKick=FVector::ZeroVector;}
+ const auto M=Ship->Movement->PresentationPose();const auto ShipPosition=VT::ToWorld(M.Position,Ship->SystemIndex);
+ if(!RigReady||RigShip!=Ship->PersistentId||RigSystem!=Ship->SystemIndex) {RigReady=true; RigShip=Ship->PersistentId; RigSystem=Ship->SystemIndex; OrbitYaw=M.Heading; OrbitPitch=FreePitch=C.pitch_base; OrbitDistance=C.distance; OrbitFov=C.base_fov; Focus=ShipPosition; FreeYaw=LookIdle=MenuOrbit=0; ImpactKick=FVector::ZeroVector;}
  float MX=0,MY=0; int32 W=0,H=0; PC->GetViewportSize(W,H); bool Mouse=PC->GetMousePosition(MX,MY)&&W>0&&H>0;
  double LX=Mouse ? FMath::Clamp(double(MX)/W*2-1,-1.,1.) : 0,LY=Mouse ? FMath::Clamp(double(MY)/H*2-1,-1.,1.) : 0;
  bool Active=Mouse&&!PC->UsingGamepadAim&&(FVector2D(MX,MY)-LastCursor).Size()>1; LastCursor=FVector2D(MX,MY);
@@ -607,8 +623,8 @@ void AVTCameraManager::UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) {
  double SX=Axis(PC->GamepadAim.X),SY=Axis(PC->GamepadAim.Y); if(PC->UsingGamepadAim) Active=SX!=0||SY!=0;
  uint16 Buttons=PC->LocalIntent.Buttons; bool Menu=(PC->UI&&PC->UI->MenuOpen)||Ship->Docked,Locked=false;
  double Yaw=OrbitYaw,Pitch=C.pitch_base,Distance=C.distance;
- auto Lead=(M.Velocity*C.lead_secs).GetClampedToMaxSize(C.lead_max); FVector DesiredFocus=Ship->GetActorLocation()+FVector(Lead.X,-Lead.Y,0)*100;
- if(Menu) {DesiredFocus=Ship->GetActorLocation(); MenuOrbit=FMath::UnwindRadians(MenuOrbit+C.menu_orbit_rate*Dt); Yaw=M.Heading+MenuOrbit;}
+ auto Lead=(M.Velocity*C.lead_secs).GetClampedToMaxSize(C.lead_max); FVector DesiredFocus=ShipPosition+FVector(Lead.X,-Lead.Y,0)*100;
+ if(Menu) {DesiredFocus=ShipPosition; MenuOrbit=FMath::UnwindRadians(MenuOrbit+C.menu_orbit_rate*Dt); Yaw=M.Heading+MenuOrbit;}
  else if(Buttons&(VTButtons::Torpedo|VTButtons::Warp)) {Yaw=M.Heading; Pitch=C.topdown_pitch; Distance=Data->Rules.EngagementRange/FMath::Tan(FMath::Max(0.05,OrbitFov*0.5))*C.topdown_margin; Locked=true;}
  else if(Buttons&(VTButtons::AimPort|VTButtons::AimStarboard)) {auto Direction=VTCombat::BroadsideDirection(M.Heading,(Buttons&VTButtons::AimPort)!=0,PC->LocalIntent.Aim,Ship->Definition.Arc); Yaw=FMath::Atan2(Direction.Y,Direction.X); Pitch=C.aim_pitch; Distance=C.distance*C.aim_dist; Locked=true;}
  else if(PC->UsingGamepadAim) {FreeYaw=FMath::Clamp(FreeYaw-SX*C.look_yaw_rate*Dt,-double(PI),double(PI)); FreePitch=FMath::Clamp(FreePitch-SY*C.look_pitch_rate*Dt,double(C.pitch_min),double(C.pitch_max)); Yaw=M.Heading+FreeYaw; Pitch=FreePitch;}
@@ -660,6 +676,7 @@ void VTNotifyHUD(UWorld* World) {
  if(!World||IsRunningCommandlet()) return;
  for(auto It=World->GetPlayerControllerIterator();It;++It) if(auto* PC=Cast<AVTController>(It->Get())) if(PC->IsLocalController()&&PC->UI) PC->UI->RequestRefresh();
 }
+void AVTShip::OnRep_ClassId() {OnRep_Fit();VTNotifyHUD(GetWorld());}
 void AVTShip::OnRep_UIState() {VTNotifyHUD(GetWorld());}
 void AVTPlayerState::OnRep_UIState() {VTNotifyHUD(GetWorld());}
 void AVTGameState::OnRep_UIState() {VTNotifyHUD(GetWorld());}

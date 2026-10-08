@@ -7,7 +7,7 @@ FText UVTPIESettings::ModeLabel(EVTPIEMode Value){switch(Value){case EVTPIEMode:
 FString UVTPIESettings::ModeId(EVTPIEMode Value){return Value==EVTPIEMode::Skirmish?TEXT("skirmish"):Value==EVTPIEMode::TestRange?TEXT("range"):TEXT("sandbox");}
 bool UVTPIESettings::LoadoutCandidate(const UVTGameData* Data,FName Id,FVTLoadoutSelection& Candidate) const {
  const auto* Option=Data?Data->Loadouts.FindByPredicate([Id](const FVTLoadoutOption& O){return O.Id==Id;}):nullptr;if(!Option)return false;
- Candidate=Fit;
+ Candidate=Fit;Candidate.OverrideBatteries=Candidate.OverrideSpecials=true;Candidate.Battery=Candidate.Special=NAME_None;
  if(Option->Slot==EVTLoadoutSlot::Broadside)Candidate.Broadside=Candidate.Broadside==Id?NAME_None:Id;
  else{Candidate.OverrideBatteries=Candidate.OverrideSpecials=true;Candidate.Battery=Candidate.Special=NAME_None;auto& Items=Option->Slot==EVTLoadoutSlot::Battery?Candidate.Batteries:Candidate.Specials;if(Items.Contains(Id))Items.Remove(Id);else Items.Add(Id);}
  FVTShipDefinition Resolved;return Data->ResolveFit(Hull,Candidate,Resolved);

@@ -103,7 +103,7 @@ void UVTCombatComponent::ExecuteDevice(EVTDevice Device) {
  if(Device==EVTDevice::Microwarp&&!IsRunningCommandlet()) S->Abilities->ExecuteGameplayCue(FGameplayTag::RequestGameplayTag(TEXT("GameplayCue.Ship.Warp")),Cue);
  if(Device==EVTDevice::EMP) {float Angle=M.Heading+R.EMPAim; FVector2D Direction(FMath::Cos(Angle),FMath::Sin(Angle)); SpawnDeviceProjectile(EVTProjectileKind::EMP,M.Position+Direction*26,Direction*E.EMPSpeed,E.EMPFraction,E.EMPRange/E.EMPSpeed+0.2f,6);}
  if(Device==EVTDevice::Mine) {--R.MineMagazine; SpawnDeviceProjectile(EVTProjectileKind::Mine,M.Position-Forward*34,FVector2D::ZeroVector,E.MineDamage,E.MineTTL,E.MineRadius);}
- if(Device==EVTDevice::Microwarp) {S->Movement->Motion.Position+=S->Intent.CursorOffset.GetClampedToMaxSize(E.WarpRange); S->Movement->Authority=S->Movement->Motion; S->ForceNetUpdate();}
+ if(Device==EVTDevice::Microwarp) {S->Movement->Motion.Position+=S->Intent.CursorOffset.GetClampedToMaxSize(E.WarpRange); S->Movement->Authority=S->Movement->Motion;S->Movement->Previous=S->Movement->Motion;S->Movement->RenderCorrection=FVector2D::ZeroVector; S->ForceNetUpdate();}
  if(Device==EVTDevice::PointDefense) {
   AVTProjectile* Target=nullptr; double Best=E.PDRadius*E.PDRadius;
   for(AVTProjectile* Shot:GetWorld()->GetSubsystem<UVTSimulation>()->Projectiles) if(IsValid(Shot)&&Shot->SystemIndex==S->SystemIndex&&Shot->SourceId!=S->PersistentId&&Shot->Kind!=EVTProjectileKind::Mine&&(!Shot->SourceNPC||!S->IsNPC||Shot->SourceFaction!=S->Faction)) {double Distance=(Shot->Position-M.Position).SizeSquared(); if(Distance<Best) {Target=Shot; Best=Distance;}}

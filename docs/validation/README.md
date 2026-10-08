@@ -69,3 +69,5 @@ Screenshots were reviewed from the packaged native renderer:
 ![Busy listen-host arena](transfer-2026-10-07/Render.png)
 
 PIE mode/ship/loadout selector validation: [2026-10-08](pie-toolbar-2026-10-08/README.md).
+
+Physical gate travel, smooth local poses and equipment control validation: [2026-10-08](flight-gates-2026-10-08/README.md).

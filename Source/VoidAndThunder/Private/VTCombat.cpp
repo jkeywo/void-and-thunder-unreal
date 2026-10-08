@@ -52,7 +52,7 @@ void UVTCombatComponent::WeaponsStep() {
  bool PortActive=false,StarboardActive=false;
  for(auto& Spec:S->Abilities->GetActivatableAbilities()) if(auto* A=Cast<UVTBroadsideAbility>(Spec.GetPrimaryInstance())) {if(A->IsActive())A->FixedStep();(A->Port ? PortActive : StarboardActive)=A->IsActive();}
  EquipmentWeapons();
- if(S->Docked||S->Disabled) return;
+ if(S->Docked||S->Disabled||(S->Intent.Buttons&(VTButtons::Warp|VTButtons::Torpedo))) return;
  if((S->Intent.Buttons&VTButtons::Port)&&!PortActive) S->Abilities->TryActivateAbilityByClass(UVTBroadsideAbility::StaticClass());
  if((S->Intent.Buttons&VTButtons::Starboard)&&!StarboardActive) S->Abilities->TryActivateAbilityByClass(UVTStarboardAbility::StaticClass());
 }
@@ -91,7 +91,7 @@ UVTBroadsideAbility::UVTBroadsideAbility() {
 }
 void UVTBroadsideAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,const FGameplayAbilityActivationInfo ActivationInfo,const FGameplayEventData* Event) {
  auto* S=Cast<AVTShip>(Info->AvatarActor.Get());
- if(!S||((S->Docked||S->Disabled)&&!S->Combat->RestoringBank)) {EndAbility(Handle,Info,ActivationInfo,true,true); return;}
+ if(!S||((S->Docked||S->Disabled||(S->Intent.Buttons&(VTButtons::Warp|VTButtons::Torpedo)))&&!S->Combat->RestoringBank)) {EndAbility(Handle,Info,ActivationInfo,true,true); return;}
  if(S->Combat->RestoringBank) {Fired=true; ChargeRemaining=0; ReloadRemaining=0; BankTask=UVTFixedStepTask::Start(this,0); return;}
  if(!CommitAbility(Handle,Info,ActivationInfo)) {EndAbility(Handle,Info,ActivationInfo,true,true);return;}
  Fired=false; ChargeRemaining=S->Definition.ChargeTime; ReloadRemaining=0;
@@ -104,6 +104,7 @@ void UVTBroadsideAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 void UVTBroadsideAbility::FixedStep() {
  auto* S=CastChecked<AVTShip>(GetAvatarActorFromActorInfo());
  if(!Fired) {
+  if(S->Intent.Buttons&(VTButtons::Warp|VTButtons::Torpedo)){ChargeRemaining=0;(Port?S->Combat->PortCharge:S->Combat->StarboardCharge)=0;EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,true);return;}
   BankTask->Advance(VT::Step); ChargeRemaining=BankTask->GetRemaining();
   if(ChargeRemaining<=0) {if(!S->Disabled&&!S->Docked) S->Combat->Volley(Port,ChargeDirection); Fired=true; ReloadRemaining=S->Definition.Reload; BankTask->Restore(ReloadRemaining);}
  } else {BankTask->Advance(VT::Step); ReloadRemaining=BankTask->GetRemaining();}
@@ -118,8 +119,8 @@ AVTProjectile::AVTProjectile() {
 }
 void AVTProjectile::BeginPlay() {Super::BeginPlay(); auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Projectiles.AddUnique(this);
  if(IsRunningCommandlet()||!FApp::CanEverRender())return;
- auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent); Mesh->SetRelativeScale3D(FVector(2*(Sim->Data ? Sim->Data->ProjectileVisualRadius : 7.f)));
- if(Sim->Data)Mesh->SetMaterial(0,Sim->Data->ProjectileMaterial.Get());}
+ auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent); Mesh->SetRelativeScale3D(FVector(2*(Sim->Data ? (Kind==EVTProjectileKind::Torpedo?Sim->Data->TorpedoVisualRadius:Sim->Data->ProjectileVisualRadius) : 7.f)));
+ if(Sim->Data)Mesh->SetMaterial(0,Kind==EVTProjectileKind::Torpedo?Sim->Data->TorpedoMaterial.LoadSynchronous():Sim->Data->ProjectileMaterial.Get());}
 void AVTProjectile::EndPlay(const EEndPlayReason::Type Reason) {if(auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>()) Sim->Projectiles.Remove(this); Super::EndPlay(Reason);}
 void AVTProjectile::Tick(float Dt) {Super::Tick(Dt); if(!FApp::CanEverRender()) return; auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent);
  auto* PC=GetWorld()->GetFirstPlayerController(); auto* Viewer=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; bool Visible=Viewer&&Viewer->SystemIndex==SystemIndex; if(Mesh->IsVisible()!=Visible) Mesh->SetVisibility(Visible); if(Visible) SetActorLocation(VT::ToWorld(Position,SystemIndex)+FVector(0,0,Height*100));}

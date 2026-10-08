@@ -66,6 +66,7 @@ public:
  TArray<double> CorrectionDistances;
  uint32 MaxPendingObserved=0;
  void Step(const FVTPilotIntent& Intent, bool Predict);
+ FVTMotion PresentationPose() const;
  void ApplyPose();
  UFUNCTION() void OnRep_Authority();
  virtual void TickComponent(float Dt, ELevelTick Tick, FActorComponentTickFunction* Fn) override;
@@ -88,7 +89,7 @@ public:
  UPROPERTY() TArray<TObjectPtr<class UNiagaraComponent>> EngineTrails;
  void PresentEngines();
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) int32 SystemIndex = 0;
- UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FName ClassId = "corsair_cruiser";
+ UPROPERTY(ReplicatedUsing=OnRep_ClassId, BlueprintReadOnly) FName ClassId = "corsair_cruiser";
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FName Faction = "Corsairs";
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FGuid PersistentId;
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool Docked = false;
@@ -97,6 +98,7 @@ public:
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) float StarboardReload = 0;
  UPROPERTY(ReplicatedUsing=OnRep_Fit,BlueprintReadOnly) FVTLoadoutSelection Fit;
  UFUNCTION() void OnRep_Fit();
+ UFUNCTION() void OnRep_ClassId();
  UPROPERTY(ReplicatedUsing=OnRep_Autopilot,BlueprintReadOnly) bool Autopilot=false;
  UFUNCTION() void OnRep_Autopilot();
  bool ApplyFit(const FVTLoadoutSelection& Selected,bool Refill);
@@ -112,6 +114,7 @@ public:
  FVTBrainState Brain;
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float DockProgress=0;
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float JumpProgress=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) bool JumpEntering=false;
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) FName JumpDestination;
  virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return Abilities; }
  virtual void PossessedBy(AController* NewController) override;
@@ -210,6 +213,7 @@ public:
  int32 InteractionProbeStage=0,InteractionProbeBoarded=0;
  bool InteractionProbePrompt=false,InteractionProbeLooted=false;
  FKey InteractionProbeKey;
+ int32 FlightProbeStage=0;bool FlightProbeHeld=false,FlightProbePassed=false;FVector2D FlightProbeOrigin;
  int32 BroadsideProbeStage=0;
  bool BroadsideProbeHeld=false,BroadsideProbePassed=false;
  bool ProbeJumped=false;

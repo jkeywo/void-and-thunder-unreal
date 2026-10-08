@@ -77,3 +77,15 @@ camera and captain identity. The host makes its decisions. Return to manual cont
 with the same toggle; restored/reconnected ships start in manual mode.
 
 Nearby lootable ships and jump gates show the current keyboard/controller interaction buttons and hold progress beside the object. Looting prompts follow the host-selected eligible prize and disappear when it is claimed or leaves range. Stations show hold-position docking progress. The reference grid uses concentric distance rings and radial spokes from the nearest star in the current system.
+
+Jump gates are upright rings. Within interaction range, hold the mapped interact
+button (B / pad B) to guide the ship to the inner approach, align it and charge
+the jump. Keep holding while it flies through the opening. A charged ship parked
+near the gate does not travel; releasing cancels guided entry. Only that captain
+changes system.
+
+A fitted microwarp uses Left Shift / right shoulder: hold to aim, release to jump.
+The HUD displays the active mapped binding. Warp and torpedo aiming suppress
+broadside input and cancel an unfinished broadside wind-up. Optional loadout
+selectors offer Empty mount explicitly; checked fits survive frontend setup and
+replicated ship initialization. Torpedoes have a separate smaller red visual.

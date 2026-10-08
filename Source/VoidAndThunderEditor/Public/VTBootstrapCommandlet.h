@@ -47,3 +47,10 @@ public:
  UVTPIEAuthoringCommandlet();
  virtual int32 Main(const FString& Params) override;
 };
+UCLASS()
+class UVTFlightFixesCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTFlightFixesCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};
