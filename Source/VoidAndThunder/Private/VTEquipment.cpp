@@ -5,9 +5,7 @@
 
 AVTShip* UVTCombatComponent::FindTarget(FGuid Id) const {
  auto* S=CastChecked<AVTShip>(GetOwner()); auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();
- if(!Sim->SystemShips.IsValidIndex(S->SystemIndex)) return nullptr;
- for(AVTShip* Other:Sim->SystemShips[S->SystemIndex]) if(IsValid(Other)&&Other->PersistentId==Id&&!Other->Docked) return Other;
- return nullptr;
+ auto* Target=Sim->Queries.Find(S->SystemIndex,Id);return Target&&!Target->Docked?Target:nullptr;
 }
 bool UVTCombatComponent::Hostile(const AVTShip* Other) const {
  auto* S=CastChecked<AVTShip>(GetOwner());
@@ -50,7 +48,7 @@ void UVTCombatComponent::EquipmentWeapons() {
  FVector2D Forward(FMath::Cos(S->Movement->Motion.Heading),FMath::Sin(S->Movement->Motion.Heading));
  if(E.EMP) {
   AVTShip* Target=nullptr; double Best=DBL_MAX;
-  for(AVTShip* Other:Sim->SystemShips[S->SystemIndex]) if(Hostile(Other)) {
+  for(AVTShip* Other:Sim->Queries.Ordered(S->SystemIndex)) if(Hostile(Other)) {
    auto Offset=Other->Movement->Motion.Position-S->Movement->Motion.Position;
    if(Offset.SizeSquared()>E.EMPRange*E.EMPRange) continue;
    float Angle=FMath::UnwindRadians(FMath::Atan2(Offset.Y,Offset.X)-S->Movement->Motion.Heading);
@@ -77,7 +75,7 @@ void UVTCombatComponent::EquipmentWeapons() {
   int32 Cap=FMath::Min(FMath::Min(E.Tubes,FMath::FloorToInt(R.Loaded)),6-R.LaunchQueue.Num());
   if(R.LockElapsed<=0&&R.Locks.Num()<Cap) {
    TArray<AVTShip*> InRange,Near;
-   for(AVTShip* Other:Sim->SystemShips[S->SystemIndex]) if(Hostile(Other)) {
+   for(AVTShip* Other:Sim->Queries.Ordered(S->SystemIndex)) if(Hostile(Other)) {
     auto Offset=Other->Movement->Motion.Position-S->Movement->Motion.Position;
     if(Offset.SizeSquared()<=E.TorpedoRange*E.TorpedoRange) {InRange.Add(Other); if((Offset-S->Intent.CursorOffset).SizeSquared()<=E.LockRadius*E.LockRadius) Near.Add(Other);}
    }

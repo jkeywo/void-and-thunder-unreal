@@ -156,7 +156,7 @@ void AVTShip::InitializeShip(FName ShipId, int32 System, const FVTMotion& Initia
 void AVTShip::BeginPlay() {
  Super::BeginPlay();
  Abilities->AddAttributeSetSubobject(Attributes.Get()); Abilities->InitAbilityActorInfo(this, this);
- auto* Sim = GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Ships.AddUnique(this);
+ auto* Sim = GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Ships.AddUnique(this); Sim->Queries.Invalidate();
  if(Sim->Data)Sim->Data->ResolveFit(ClassId,Fit,Definition);
  UStaticMesh* HullMesh = Sim->Data&&Sim->Data->FactionMeshes.Contains(Faction) ? Sim->Data->FactionMeshes[Faction].Get() : Definition.Mesh.Get();
  if (!HullMesh) {
@@ -177,7 +177,7 @@ bool AVTShip::ApplyFit(const FVTLoadoutSelection& Selected,bool Refill) {
 void AVTShip::PossessedBy(AController* NewController) {Super::PossessedBy(NewController); Abilities->InitAbilityActorInfo(this,this);}
 void AVTShip::OnRep_Controller() {Super::OnRep_Controller(); Abilities->InitAbilityActorInfo(this,this);}
 void AVTShip::EndPlay(const EEndPlayReason::Type Reason) {
- if (GetWorld()) if (auto* Sim = GetWorld()->GetSubsystem<UVTSimulation>()) Sim->Ships.Remove(this);
+ if (GetWorld()) if (auto* Sim = GetWorld()->GetSubsystem<UVTSimulation>()) {Sim->Ships.Remove(this);Sim->Queries.Invalidate();}
  Super::EndPlay(Reason);
 }
 void AVTShip::ServerIntent_Implementation(FVTPilotIntent Value) {
@@ -348,6 +348,7 @@ void AVTController::VTSave() { if (HasAuthority()) GetGameInstance()->GetSubsyst
 void AVTController::VTLoad() { if (HasAuthority()) GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->Load(); }
 
 void UVTSimulation::Initialize(FSubsystemCollectionBase& Collection) {
+ Queries.Initialize(this);
  Super::Initialize(Collection);
  auto& Manager=UAssetManager::Get();
  auto Handle=Manager.LoadPrimaryAsset(FPrimaryAssetId(TEXT("VTGameData"),TEXT("DA_GameData")));
@@ -410,9 +411,7 @@ void UVTSimulation::FixedStep() {
  ScenarioStep();
  if(auto* State=GetWorld()->GetGameState<AVTGameState>()) if(!State->Outcome.IsEmpty()) return;
  SimulationTime += VT::Step;
- SystemShips.SetNum(Data->Systems.Num());
- for(auto& Bucket:SystemShips) Bucket.Reset();
- for(AVTShip* S:Ships) if(IsValid(S)&&SystemShips.IsValidIndex(S->SystemIndex)) SystemShips[S->SystemIndex].Add(S);
+ Queries.BeginStep();
  for (AVTShip* S : Ships) if (IsValid(S)) {
   if (auto* Brain = Cast<AVTShipAI>(S->Controller)) Brain->Decide(VT::Step);
   else if(S->Autopilot) {uint32 Ack=S->Movement->Authority.Ack;AVTShipAI::DecideShip(S,VT::Step);S->Intent.Sequence=Ack;}
@@ -681,7 +680,7 @@ void VTNotifyHUD(UWorld* World) {
  for(auto It=World->GetPlayerControllerIterator();It;++It) if(auto* PC=Cast<AVTController>(It->Get())) if(PC->IsLocalController()&&PC->UI) PC->UI->RequestRefresh();
 }
 void AVTShip::OnRep_ClassId() {OnRep_Fit();VTNotifyHUD(GetWorld());}
-void AVTShip::OnRep_UIState() {VTNotifyHUD(GetWorld());}
+void AVTShip::OnRep_UIState() {GetWorld()->GetSubsystem<UVTSimulation>()->Queries.Invalidate();VTNotifyHUD(GetWorld());}
 void AVTPlayerState::OnRep_UIState() {VTNotifyHUD(GetWorld());}
 void AVTGameState::OnRep_UIState() {VTNotifyHUD(GetWorld());}
 void AVTController::UpdateInputContexts() {

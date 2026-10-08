@@ -21,7 +21,7 @@ struct FAIFixture {
   FVTMotion M;M.Position=FVector2D(500,-500);
   Pilot=Sim->SpawnShip("corsair_cruiser",0,M,true,"Freebooters");M.Position+=FVector2D(0,250);
   Target=Sim->SpawnShip("house_patrol",0,M,true,"Guild");
-  Sim->SystemShips.SetNum(Sim->Data->Systems.Num());Sim->SystemShips[0]={Pilot,Target};
+  Sim->Queries.BeginStep();
   Controller=Cast<AVTShipAI>(Pilot->GetController());
   if(!Controller){Controller=World->SpawnActor<AVTShipAI>();Controller->Possess(Pilot);}
   Pilot->Fit.CrewedDevices.Reset();Pilot->Definition.AIAbilities=true;Pilot->Definition.AIEngageRange=400;
@@ -132,7 +132,7 @@ bool FVTTargetPriority::RunTest(const FString& Params) {
   FVTMotion M;M.Position=Origin+FVector2D(100,600);auto* Far=F.Sim->SpawnShip("house_patrol",0,M,true,"Guild");
   M.Position=Origin+FVector2D(0,25);auto* Friendly=F.Sim->SpawnShip("house_patrol",0,M,true,"Freebooters");
   for(bool Reverse:{false,true}) {
-   F.Sim->SystemShips[0]=Reverse?TArray<AVTShip*>{F.Target,Friendly,F.Pilot,Far}:TArray<AVTShip*>{Far,F.Pilot,Friendly,F.Target};F.Pilot->Brain=FVTBrainState();
+   F.Sim->Ships=Reverse?TArray<TObjectPtr<AVTShip>>{F.Target,Friendly,F.Pilot,Far}:TArray<TObjectPtr<AVTShip>>{Far,F.Pilot,Friendly,F.Target};F.Sim->Queries.BeginStep();F.Pilot->Brain=FVTBrainState();
    F.Controller->Decide(VT::Step);
    TestTrue(Utility?"Utility volley aims at the nearer valid interception":"Simple pilot aims at its nearest hostile",F.Pilot->Intent.Aim.Equals(FVector2D(20,150).GetSafeNormal(),0.0001));
    TestTrue("Nearest port target requests the port bank",bool(F.Pilot->Intent.Buttons&VTButtons::Port));

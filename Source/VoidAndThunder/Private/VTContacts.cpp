@@ -2,7 +2,7 @@
 #include "VTCombat.h"
 void UVTSimulation::ContactStep() {
  const auto& R=Data->Rules;
- for(auto& Bucket:SystemShips) for(int I=0;I<Bucket.Num();++I) for(int J=I+1;J<Bucket.Num();++J) {
+ for(int System=0;System<Queries.SystemCount();++System) if(const auto& Bucket=Queries.Ordered(System);true) for(int I=0;I<Bucket.Num();++I) for(int J=I+1;J<Bucket.Num();++J) {
   AVTShip* A=Bucket[I]; AVTShip* B=Bucket[J]; if(A->Docked||B->Docked) continue;
   auto& AM=A->Movement->Motion; auto& BM=B->Movement->Motion;
   FVector2D Delta=BM.Position-AM.Position; float Reach=A->Definition.Radius+B->Definition.Radius;
@@ -22,15 +22,13 @@ void UVTSimulation::ContactStep() {
 }
 void UVTSimulation::PiracyStep() {
  // Build after crippling/death. Recheck live claims/validity after each award.
- TArray<TArray<AVTShip*>,TInlineAllocator<16>> Prizes;Prizes.SetNum(SystemShips.Num());
- for(int System=0;System<SystemShips.Num();++System)for(AVTShip* Ship:SystemShips[System])
-  if(IsValid(Ship)&&Ship->Disabled&&!Ship->Invulnerable)Prizes[System].Add(Ship);
+ Queries.BuildBoarding();
  auto Current=Ships;
  for(AVTShip* S:Current) if(IsValid(S)&&!S->Docked&&!S->Disabled&&S->ShipRole!=1) {
   auto* Combat=S->Combat.Get();
   AVTShip* Target=nullptr; double Best=Data->Rules.BoardRange*Data->Rules.BoardRange;
-  for(AVTShip* Other:Prizes[S->SystemIndex]) if(IsValid(Other)&&Other->PersistentId==Combat->BoardingTarget&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed&&(Other->Movement->Motion.Position-S->Movement->Motion.Position).SizeSquared()<=Best) {Target=Other; break;}
-  if(!Target) for(AVTShip* Other:Prizes[S->SystemIndex]) if(IsValid(Other)&&Other!=S&&(!S->IsNPC||Other->Faction!=S->Faction)&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed) {
+  for(AVTShip* Other:Queries.Boarding(S->SystemIndex)) if(IsValid(Other)&&Other->PersistentId==Combat->BoardingTarget&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed&&(Other->Movement->Motion.Position-S->Movement->Motion.Position).SizeSquared()<=Best) {Target=Other; break;}
+  if(!Target) for(AVTShip* Other:Queries.Boarding(S->SystemIndex)) if(IsValid(Other)&&Other!=S&&(!S->IsNPC||Other->Faction!=S->Faction)&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed) {
    double Distance=(Other->Movement->Motion.Position-S->Movement->Motion.Position).SizeSquared();
    if(Distance<=Best) {Best=Distance; Target=Other;}
   }

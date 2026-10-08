@@ -114,7 +114,7 @@ bool FVTFlightPresentation::RunTest(const FString&) {
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTRepeatedBankIntent,"VT.Native.PersistentBroadsideIntent",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FVTRepeatedBankIntent::RunTest(const FString&) {
- FNativeFixture F;auto* S=F.Ship;F.Sim->SystemShips.SetNum(F.Sim->Data->Systems.Num());F.Sim->SystemShips[S->SystemIndex].Add(S);S->Definition.ChargeTime=VT::Step*2;S->Definition.Reload=VT::Step*3;S->Definition.Guns=1;S->Intent.Buttons=VTButtons::Port;
+ FNativeFixture F;auto* S=F.Ship;F.Sim->Queries.BeginStep();S->Definition.ChargeTime=VT::Step*2;S->Definition.Reload=VT::Step*3;S->Definition.Guns=1;S->Intent.Buttons=VTButtons::Port;
  int32 Initial=F.Sim->Projectiles.Num();S->Combat->WeaponsStep();S->Combat->WeaponsStep();
  TestEqual(TEXT("Repeated intent retains windup without duplicate shots"),F.Sim->Projectiles.Num(),Initial);
  S->Combat->WeaponsStep();TestEqual(TEXT("Windup fires exactly once"),F.Sim->Projectiles.Num(),Initial+1);
@@ -162,7 +162,7 @@ bool FVTBroadsideControls::RunTest(const FString&) {
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTInteractionHints,"VT.Native.ContextInteractionHints",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FVTInteractionHints::RunTest(const FString&) {
  FNativeFixture F;auto* S=F.Ship;S->IsNPC=false;FVTMotion M;M.Position=S->Movement->Motion.Position+FVector2D(30,0);auto* Prize=F.Sim->SpawnShip(TEXT("house_patrol"),S->SystemIndex,M,true,TEXT("Corsairs"));Prize->Disabled=true;Prize->Invulnerable=false;
- F.Sim->SystemShips.SetNum(F.Sim->Data->Systems.Num());F.Sim->SystemShips[S->SystemIndex].Reset();F.Sim->SystemShips[S->SystemIndex].Append({S,Prize});F.Sim->PiracyStep();
+ F.Sim->Queries.BeginStep();F.Sim->PiracyStep();
  TestTrue(TEXT("Authority-selected same-faction prize offers looting"),VTInteractionHint(S,F.Sim).Kind==EVTInteractionHint::Loot);
  S->Combat->BoardingProgress=F.Sim->Data->Rules.BoardDwell*0.5f;TestEqual(TEXT("Hint reflects actual boarding progress"),VTInteractionHint(S,F.Sim).Progress,0.5f);
  Prize->Combat->Claimed=true;TestTrue(TEXT("Claimed prize is not advertised"),VTInteractionHint(S,F.Sim).Kind==EVTInteractionHint::None);Prize->Combat->Claimed=false;
@@ -193,7 +193,7 @@ bool FVTGatePassage::RunTest(const FString& Hull) {
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTExclusiveAim,"VT.Native.ExclusiveSpecialAim",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FVTExclusiveAim::RunTest(const FString&) {
- FNativeFixture F;auto* S=F.Ship;F.Sim->SystemShips.SetNum(F.Sim->Data->Systems.Num());F.Sim->SystemShips[S->SystemIndex].Add(S);auto* PC=F.World->SpawnActor<AVTController>();PC->Possess(S);
+ FNativeFixture F;auto* S=F.Ship;F.Sim->Queries.BeginStep();auto* PC=F.World->SpawnActor<AVTController>();PC->Possess(S);
  for(uint16 Bit:{VTButtons::Warp,VTButtons::Torpedo}){PC->LocalIntent.Buttons=Bit|VTButtons::AimPort|VTButtons::Port;TestFalse(TEXT("Special aim suppresses broadside cursor"),PC->UpdateBroadsideAim(10,F.Sim->Data->Feel.controls,0,S->Definition.Arc));TestEqual(TEXT("Pending broadside inputs cleared"),PC->LocalIntent.Buttons,Bit);PC->ReadFlight(FInputActionValue(true),3);PC->ReadFlight(FInputActionValue(false),3);TestEqual(TEXT("Broadside press/release ignored while special held"),PC->LocalIntent.Buttons,Bit);S->Intent.Buttons=Bit|VTButtons::Port|VTButtons::Starboard;S->Combat->WeaponsStep();TestEqual(TEXT("Authoritative bank remains available"),S->PortReload,0.f);TestEqual(TEXT("No broadside windup accepted"),S->Combat->PortCharge,0.f);}
  return true;
 }
@@ -229,4 +229,7 @@ bool FVTGateSurge::RunTest(const FString&) {
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTSpawnLifecycle,"VT.Modules.ProjectileCreation",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FVTSpawnLifecycle::RunTest(const FString&){FNativeFixture F;for(auto Kind:{EVTProjectileKind::Cannon,EVTProjectileKind::EMP,EVTProjectileKind::Torpedo,EVTProjectileKind::Mine}){auto X=FVTProjectileSpawnSpec::Fired(F.Ship,Kind,FVector2D(700,700),FVector2D(12,3),5,8,4);X.TargetId=FGuid::NewGuid();X.Velocity3D=FVector(0,0,250);X.TurnRate=2;auto* P=VTProjectileSpawn::Create(F.World,X);TestTrue("Registered at BeginPlay",F.Sim->Projectiles.Contains(P));TestTrue("Full pose history",P->Position==X.Position&&P->Previous==X.Position);TestTrue("Kind and motion initialized",P->Kind==Kind&&P->TargetId==X.TargetId&&P->Velocity3D==X.Velocity3D);P->Destroy();}
  FVTSavedProjectile R;R.Id=FGuid::NewGuid();R.Source=F.Ship->PersistentId;R.AttackerProfile=FGuid::NewGuid();R.SourceFaction=FName("Corsairs");R.Kind=EVTProjectileKind::Torpedo;R.Remaining=4;R.Velocity3D=FVector(0,0,30);TMap<FGuid,AVTShip*> Entities;auto* P=VTProjectileSpawn::Create(F.World,FVTProjectileSpawnSpec::Restored(R,Entities));TestTrue("Absent source preserves durable attribution",!P->Source&&P->SourceId==R.Source&&P->AttackerProfile==R.AttackerProfile&&P->SourceFaction==R.SourceFaction);return true;}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTQueriesTest,"VT.Modules.PhaseScopedShipQueries",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTQueriesTest::RunTest(const FString&){FNativeFixture F;FVTMotion M;M.Position=FVector2D(-128,-128);auto* A=F.Sim->SpawnShip("corsair_frigate",0,M,true,"Corsairs");A->Definition.Radius=180;A->Disabled=true;F.Sim->Queries.BeginStep();TestTrue("Durable lookup",F.Sim->Queries.Find(0,A->PersistentId)==A);F.Sim->Queries.BuildSpatial();TArray<AVTShip*> Out;F.Sim->Queries.SweptCandidates(0,FVector2D(-400,-128),FVector2D(100,-128),5,Out);TestTrue("Large hull at negative cell edge included",Out.Contains(A));F.Sim->Queries.BuildBoarding();TestTrue("Disabled candidate",F.Sim->Queries.Boarding(0).Contains(A));A->Docked=true;F.Sim->Queries.BuildSpatial();F.Sim->Queries.SweptCandidates(0,M.Position,M.Position,5,Out);TestFalse("Docked hull omitted",Out.Contains(A));const auto Id=A->PersistentId;A->Destroy();TestNull("Destroyed ID removed",F.Sim->Queries.Find(0,Id));return true;}
 #endif
+

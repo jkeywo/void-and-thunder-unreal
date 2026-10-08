@@ -10,7 +10,7 @@ FVector2D UVTSimulation::JumpPosition(int32 System,FName Destination) const {
 }
 void UVTSimulation::TravelShip(AVTShip* Ship,int32 Destination) {
  if(!Data->Systems.IsValidIndex(Destination)) return;
- FName Previous=Data->Systems[Ship->SystemIndex].Id; Ship->SystemIndex=Destination;
+ FName Previous=Data->Systems[Ship->SystemIndex].Id; Ship->SystemIndex=Destination;Queries.Invalidate();
  auto& M=Ship->Movement->Motion; M.Position=JumpPosition(Destination,Previous);Ship->JumpArrivalTarget=M.Position*0.85;Ship->JumpArrivalStarted=SimulationTime;Ship->JumpArriving=true;VTGate::Arrive(M,M.Position,Ship->JumpArrivalTarget,0,Data->GateArrivalDuration);
  Ship->Movement->Previous=M; Ship->Movement->Authority=M; Ship->Movement->Pending.Reset(); Ship->Combat->EquipmentState.Locks.Reset(); Ship->Combat->EquipmentState.LockElapsed=0; Ship->Combat->BoardingTarget.Invalidate(); Ship->Combat->BoardingProgress=0;
  Ship->JumpDestination=NAME_None; Ship->JumpProgress=0; Ship->JumpEntering=false; Ship->DockProgress=0; Ship->Intent=FVTPilotIntent(); Ship->ForceNetUpdate();
@@ -52,7 +52,7 @@ void UVTSimulation::WorldStep() {
  }
  for(AVTShip* Ship:Ships) if(IsValid(Ship)) {
   Ship->Brain.AlertTTL=FMath::Max(0.f,Ship->Brain.AlertTTL-VT::Step);
-  if(Ship->Brain.DistressTimer>=0&&!Ship->Disabled) {Ship->Brain.DistressTimer-=VT::Step; if(Ship->Brain.DistressTimer<=0) {Ship->Brain.DistressSent=true; Ship->Brain.DistressTimer=-1; for(auto* Patrol:SystemShips[Ship->SystemIndex]) if(Patrol->ShipRole==2&&(Patrol->Faction==Ship->Faction||Data->StandingBetween(Patrol->Faction,Ship->Faction)>=0)) {Patrol->Brain.Alert=Ship->Movement->Motion.Position; Patrol->Brain.AlertTTL=Data->World.alert_ttl;}}}
+  if(Ship->Brain.DistressTimer>=0&&!Ship->Disabled) {Ship->Brain.DistressTimer-=VT::Step; if(Ship->Brain.DistressTimer<=0) {Ship->Brain.DistressSent=true; Ship->Brain.DistressTimer=-1; for(auto* Patrol:Queries.Ordered(Ship->SystemIndex)) if(Patrol->ShipRole==2&&(Patrol->Faction==Ship->Faction||Data->StandingBetween(Patrol->Faction,Ship->Faction)>=0)) {Patrol->Brain.Alert=Ship->Movement->Motion.Position; Patrol->Brain.AlertTTL=Data->World.alert_ttl;}}}
   if(Ship->IsNPC||Ship->Docked||Ship->Disabled||Ship->JumpArriving) continue;
   const auto& System=Data->Systems[Ship->SystemIndex]; auto* PS=Ship->GetPlayerState<AVTPlayerState>(); int Owner=Data->FactionIndex(System.Owner);
   bool Allowed=!PS||!PS->Reputation.IsValidIndex(Owner)||PS->Reputation[Owner]>=Data->World.dock_refusal_threshold;

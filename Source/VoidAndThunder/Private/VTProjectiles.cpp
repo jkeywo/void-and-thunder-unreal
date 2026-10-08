@@ -1,22 +1,8 @@
 #include "VTCombat.h"
 #include "VTGameplay.h"
 
-void UVTSimulation::RebuildShipCells() {
- ShipCells.SetNum(SystemShips.Num()); LargestShipRadius=0;
- for(auto& Cells:ShipCells) for(auto& Cell:Cells) Cell.Value.Reset();
- for(AVTShip* Ship:Ships) if(IsValid(Ship)&&!Ship->Docked&&ShipCells.IsValidIndex(Ship->SystemIndex)) {
-  auto P=Ship->Movement->Motion.Position;
-  ShipCells[Ship->SystemIndex].FindOrAdd(FIntPoint(FMath::FloorToInt(P.X/128),FMath::FloorToInt(P.Y/128))).Add(Ship);
-  LargestShipRadius=FMath::Max(LargestShipRadius,Ship->Definition.Radius);
- }
-}
-void UVTSimulation::QueryShips(int32 System,const FVector2D& Min,const FVector2D& Max,TArray<AVTShip*>& Result) const {
- Result.Reset(); if(!ShipCells.IsValidIndex(System)) return;
- FIntPoint A(FMath::FloorToInt(Min.X/128),FMath::FloorToInt(Min.Y/128)),B(FMath::FloorToInt(Max.X/128),FMath::FloorToInt(Max.Y/128));
- for(int Y=A.Y;Y<=B.Y;++Y) for(int X=A.X;X<=B.X;++X) if(const auto* Cell=ShipCells[System].Find(FIntPoint(X,Y))) Result.Append(*Cell);
-}
 void UVTSimulation::ProjectileStep() {
- RebuildShipCells();
+ Queries.BuildSpatial();
  TArray<AVTShip*> Candidates; Candidates.Reserve(32);
  auto Shots=Projectiles;
  // Integrate planar shots before the point-defence sweep.
@@ -26,10 +12,9 @@ void UVTSimulation::ProjectileStep() {
  }
  for(AVTShip* S:Ships) if(IsValid(S)) S->Combat->PointDefenseStep();
  for(AVTProjectile* Shot:Shots) if(IsValid(Shot)) {
-  if(!SystemShips.IsValidIndex(Shot->SystemIndex)) {Shot->Destroy(); continue;}
+  if(Shot->SystemIndex<0||Shot->SystemIndex>=Queries.SystemCount()) {Shot->Destroy(); continue;}
   if(Shot->Kind==EVTProjectileKind::Torpedo) {
-   AVTShip* Target=nullptr;
-   for(AVTShip* S:SystemShips[Shot->SystemIndex]) if(IsValid(S)&&S->PersistentId==Shot->TargetId&&!S->Docked) {Target=S; break;}
+   AVTShip* Target=Queries.Find(Shot->SystemIndex,Shot->TargetId);if(Target&&Target->Docked)Target=nullptr;
    if(!Target) {Shot->Destroy(); continue;}
    FVector Current(Shot->Position.X,Shot->Position.Y,Shot->Height), Goal(Target->Movement->Motion.Position.X,Target->Movement->Motion.Position.Y,0);
    FVector Direction=(Goal-Current).GetSafeNormal(), V=Shot->Velocity3D.GetSafeNormal(); float Speed=float(Shot->Velocity3D.Size());
@@ -42,10 +27,7 @@ void UVTSimulation::ProjectileStep() {
   }
   if(Occluded(Shot->SystemIndex,Shot->Previous,Shot->Position,Shot->Height)) {Shot->Destroy(); continue;}
   AVTShip* Hit=nullptr; double Best=DBL_MAX;
-  double Margin=LargestShipRadius+Shot->Radius;
-  FVector2D Min(FMath::Min(Shot->Previous.X,Shot->Position.X)-Margin,FMath::Min(Shot->Previous.Y,Shot->Position.Y)-Margin);
-  FVector2D Max(FMath::Max(Shot->Previous.X,Shot->Position.X)+Margin,FMath::Max(Shot->Previous.Y,Shot->Position.Y)+Margin);
-  QueryShips(Shot->SystemIndex,Min,Max,Candidates);
+  Queries.SweptCandidates(Shot->SystemIndex,Shot->Previous,Shot->Position,Shot->Radius,Candidates);
   for(AVTShip* S:Candidates) if(IsValid(S)&&S->PersistentId!=Shot->SourceId&&!S->Docked) {
    if(Shot->SourceNPC&&S->IsNPC&&S->Faction==Shot->SourceFaction) continue;
    float R=S->Definition.Radius+Shot->Radius;

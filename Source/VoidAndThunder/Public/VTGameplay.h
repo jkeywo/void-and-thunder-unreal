@@ -1,4 +1,5 @@
 #pragma once
+#include "VTShipQueries.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/GameModeBase.h"
@@ -248,12 +249,7 @@ public:
  UPROPERTY() TObjectPtr<UVTGameData> Data;
  UPROPERTY() TArray<TObjectPtr<AVTShip>> Ships;
  UPROPERTY() TArray<TObjectPtr<AVTProjectile>> Projectiles;
- TArray<TArray<AVTShip*>> SystemShips;
- // Broad phase only: Actors and their components remain the gameplay owners.
- TArray<TMap<FIntPoint,TArray<AVTShip*>>> ShipCells;
- float LargestShipRadius=0;
- void RebuildShipCells();
- void QueryShips(int32 System,const FVector2D& Min,const FVector2D& Max,TArray<AVTShip*>& Result) const;
+ FVTShipQueries Queries;
  FVector2D JumpPosition(int32 System,FName Destination) const;
  void TravelShip(AVTShip* Ship,int32 Destination);
  void RecordHit(AVTShip* Victim,AVTShip* Attacker,float Amount,FGuid Profile=FGuid(),FName AttackerFaction=NAME_None);
