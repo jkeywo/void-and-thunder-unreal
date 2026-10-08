@@ -26,3 +26,11 @@ bool VTGate::Crossed(const FVTMotion& Before,const FVTMotion& After,const FVecto
  if(A>0||B<=0||B-A<=0||FVector2D::DotProduct(FVector2D(FMath::Cos(After.Heading),FMath::Sin(After.Heading)),Normal)<FMath::Cos(Tolerance))return false;
  const auto Crossing=FMath::Lerp(Before.Position,After.Position,double(-A/(B-A)));return FMath::Abs(FVector2D::DotProduct(Crossing-Centre,Side))<=Clearance;
 }
+
+bool VTGate::Preview(FVTMotion& Motion,const FVector2D& Centre,float Approach,float ArrivalFraction,float Acceleration,float ArrivalDuration,float FlashDuration,float Pause,double Time) {
+ const double Departure=FMath::Sqrt(2*Approach/Acceleration),Cycle=2*Pause+Departure+FlashDuration+ArrivalDuration;
+ const double Phase=FMath::Fmod(FMath::Max(0.,Time),Cycle);const auto Axis=Centre.GetSafeNormal();
+ if(Phase<Pause+Departure){const double T=FMath::Max(0.,Phase-Pause);Motion.Position=Centre-Axis*(Approach-0.5*Acceleration*T*T);Motion.Heading=FMath::Atan2(Axis.Y,Axis.X);return true;}
+ if(Phase<Pause+Departure+FlashDuration)return false;
+ Arrive(Motion,Centre,Centre*(1-ArrivalFraction),Phase-Pause-Departure-FlashDuration,ArrivalDuration);return true;
+}

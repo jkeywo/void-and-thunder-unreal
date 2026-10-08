@@ -22,6 +22,12 @@ public:
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(AssetBundles="Presentation")) TSoftObjectPtr<class UMaterialInterface> ProjectileMaterial= TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Environment/M_Projectile.M_Projectile")));
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="50")) float GateOpeningRadius=80;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateApproachDistance=80;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1",ClampMax="4")) float GateDistanceScale=2;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(ClampMin="1")) float GateMarkerSize=30;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(ClampMin="0.1")) float GateMarkerPause=0.6f;
+ float GateStartDistance() const{return GateApproachDistance*GateDistanceScale;}
+ float GateInteractionRange() const{return Rules.JumpRange*GateDistanceScale;}
+ float GateArrivalFraction() const{return 0.15f*GateDistanceScale;}
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateCruiseSpeed=45;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GatePassageAcceleration=1200;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.05")) float GateArrivalDuration=0.35f;

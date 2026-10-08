@@ -276,6 +276,7 @@ public:
  TArray<double> RenderFrameMilliseconds;
  double LastRenderFrame=0;
  bool ScreenshotRequested=false;
+ bool GateMarkerSeen=false,GateMarkerAnimated=false;
  bool GateFlashSeen=false,GateBrakingSeen=false,GateArrivalPassed=false;
  bool UIProbeStarted=false,UIProbeFinished=false,UIInitialFocus=false,UINavigationPassed=false;
  double Accumulator = 0;

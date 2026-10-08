@@ -1,0 +1,11 @@
+# Doubled gate distances and looping arrows — 2026-10-08
+
+GateDistanceScale defaults to 2 in the native data asset: staging increases from 80 to 160 source units, and braking travels 30% rather than 15% of the destination ring's distance from the system centre. Interaction eligibility expands from 120 to 240 so the starting point stays reachable. Acceleration remains 1200, braking duration 0.35 seconds and white flash 0.3 seconds.
+
+Nearby captains see a flat, two-sided native mesh arrow at the starting point, facing the gate. A smaller arrow demonstrates acceleration, disappears for teleport, then brakes inward and loops. The cosmetic Actor components use no replicated gameplay state and do not tick in headless worlds. Marker visibility is scoped to the local captain's system and within interaction range plus staging distance. Size and pause are authored native tuning.
+
+Arrival origin is now explicit in replicated passage state and an optional schema-6 saved field. Records without it infer their original ring position from the saved 0.85 endpoint, preserving old in-progress arrivals and their saved endpoint. New arrivals save their complete curve independently of current tuning.
+
+Validation: Editor build, default Bootstrap, native asset validation and lightweight checks passed. All 52 automation cases passed (28 with fixture warnings), covering gate staging, crossing, save/load, legacy arrival origins and preview phases. Rendered Editor and packaged Development fixtures verified arrow position and animation. Screenshot inspection caught back-face culling in the first flat mesh; authored opposite faces corrected it, followed by successful render checks. Packaged physical travel verified the white flash, braking and arrival endpoint. Four packaged players passed gameplay/travel acceptance at 150 ms RTT and 2% loss. Development and Shipping packages built successfully. Busy armed 500-NPC p95: 2.832003 ms against the 8 ms gate; this single run is a budget check, not a comparative performance claim. No new Shipping runtime smoke was run.
+
+results.json records outcomes; RenderGateMarker.png shows the final packaged marker. Complete logs are under Saved/Validation/gate-marker-*. The only new content package is SM_GateArrow; existing authored packages and the original Rust repository remain unchanged.

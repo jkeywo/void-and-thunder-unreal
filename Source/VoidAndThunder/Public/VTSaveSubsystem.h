@@ -27,6 +27,7 @@ struct FVTSavedShip {
  UPROPERTY() FName JumpDestination;
  UPROPERTY() bool JumpArriving=false;
  UPROPERTY() double JumpArrivalStarted=0;
+ UPROPERTY() FVector2D JumpArrivalOrigin=FVector2D::ZeroVector;
  UPROPERTY() FVector2D JumpArrivalTarget=FVector2D::ZeroVector;
  UPROPERTY() FGuid BoardingTarget;
  UPROPERTY() float BoardingProgress = 0;

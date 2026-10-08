@@ -9,6 +9,9 @@ class VOIDANDTHUNDER_API AVTWorldAnchor : public AActor {
 public:
  AVTWorldAnchor();
  UPROPERTY(VisibleAnywhere) TObjectPtr<class UStaticMeshComponent> Mesh;
+ UPROPERTY(VisibleAnywhere) TObjectPtr<class UStaticMeshComponent> GateStartArrow;
+ UPROPERTY(VisibleAnywhere) TObjectPtr<class UStaticMeshComponent> GatePreviewArrow;
+ virtual void Tick(float DeltaTime) override;
  UPROPERTY(Replicated,BlueprintReadOnly) int32 System=0;
  UPROPERTY(Replicated,BlueprintReadOnly) FName Destination;
  UPROPERTY(Replicated,BlueprintReadOnly) int32 Kind=0;

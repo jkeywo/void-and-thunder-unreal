@@ -10,6 +10,7 @@ USTRUCT(BlueprintType) struct FVTGateState {
  UPROPERTY(BlueprintReadOnly) FName Destination;
  UPROPERTY(BlueprintReadOnly) float Charge=0;
  UPROPERTY(BlueprintReadOnly) double ArrivalStarted=0;
+ UPROPERTY(BlueprintReadOnly) FVector2D ArrivalOrigin=FVector2D::ZeroVector;
  UPROPERTY(BlueprintReadOnly) FVector2D ArrivalTarget=FVector2D::ZeroVector;
 };
 UCLASS(ClassGroup=(VoidThunder),meta=(BlueprintSpawnableComponent))

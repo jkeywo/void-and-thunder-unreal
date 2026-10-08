@@ -73,7 +73,7 @@ bool UVTSaveSubsystem::Validate(const UVTWorldSave* S) const {
   if(!FMath::IsFinite(R.BoardingProgress)||R.BoardingProgress<0||R.BoardingProgress>Sim->Data->Rules.BoardDwell) return false;
   if(!FMath::IsFinite(R.PortReload)||R.PortReload<0||!FMath::IsFinite(R.StarboardReload)||R.StarboardReload<0) return false;
   if(R.ShipRole<0||R.ShipRole>2||!FMath::IsFinite(R.DockProgress)||R.DockProgress<0||R.DockProgress>Sim->Data->Rules.BoardDwell+VT::Step+0.001f||!FMath::IsFinite(R.JumpProgress)||R.JumpProgress<0||R.JumpProgress>Sim->Data->Rules.JumpDwell+VT::Step+0.001f||(!R.JumpDestination.IsNone()&&!Sim->Data->Systems[R.System].Links.Contains(R.JumpDestination))) return false;
-  if(!FMath::IsFinite(R.JumpArrivalStarted)||R.JumpArrivalStarted<0||R.JumpArrivalTarget.ContainsNaN()||(R.JumpArriving&&(R.NPC||R.JumpArrivalStarted>S->SimulationTime+VT::Step||R.JumpArrivalTarget.Size()>Sim->Data->Systems[R.System].Radius)))return false;
+  if(!FMath::IsFinite(R.JumpArrivalStarted)||R.JumpArrivalStarted<0||R.JumpArrivalOrigin.ContainsNaN()||R.JumpArrivalOrigin.Size()>Sim->Data->Systems[R.System].Radius||R.JumpArrivalTarget.ContainsNaN()||(R.JumpArriving&&(R.NPC||R.JumpArrivalStarted>S->SimulationTime+VT::Step||R.JumpArrivalTarget.Size()>Sim->Data->Systems[R.System].Radius)))return false;
   const auto& Brain=R.Brain; if(Brain.Alert.ContainsNaN()||!FMath::IsFinite(Brain.ScanProgress)||Brain.ScanProgress<0||Brain.ScanProgress>1||!FMath::IsFinite(Brain.AttackTime)||!FMath::IsFinite(Brain.DistressTimer)) return false;
   for(float Clock:{Brain.AimLock,Brain.ThumbTravel,Brain.WarpPrime,Brain.AlertTTL}) if(!FMath::IsFinite(Clock)||Clock<0) return false;
   const auto& E=R.Equipment; const auto& D=Def->Equipment;

@@ -1,8 +1,8 @@
-param([string]$EngineRoot='C:\Program Files\Epic Games\UE_5.8',[switch]$Throttle,[switch]$Gate,[switch]$Flight,[switch]$Interaction,[switch]$Broadside,[switch]$Menu,[switch]$Environment,[switch]$Packaged,[switch]$Busy,[switch]$Armed,[ValidateRange(640,7680)][int]$Width=1920,[ValidateRange(480,4320)][int]$Height=1080,[ValidateRange(0,3)][int]$Quality=2)
+param([string]$EngineRoot='C:\Program Files\Epic Games\UE_5.8',[switch]$GateMarker,[switch]$Throttle,[switch]$Gate,[switch]$Flight,[switch]$Interaction,[switch]$Broadside,[switch]$Menu,[switch]$Environment,[switch]$Packaged,[switch]$Busy,[switch]$Armed,[ValidateRange(640,7680)][int]$Width=1920,[ValidateRange(480,4320)][int]$Height=1080,[ValidateRange(0,3)][int]$Quality=2)
 $ErrorActionPreference='Stop'
 $ProjectRoot=Split-Path $PSScriptRoot -Parent
 $Map=if($Menu){'/Game/Maps/Menu'}else{'/Game/Maps/Sandbox?listen'}
-$Role=if($Gate){'RenderGate'}elseif($Menu){'RenderMenu'}elseif($Environment){'RenderEnvironment'}else{'Render'}
+$Role=if($GateMarker){'RenderGateMarker'}elseif($Gate){'RenderGate'}elseif($Menu){'RenderMenu'}elseif($Environment){'RenderEnvironment'}else{'Render'}
 $Exe=if($Packaged){"$ProjectRoot\Artifacts\Development\Windows\VoidAndThunder\Binaries\Win64\VoidAndThunder.exe"}else{"$EngineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"}
 $Args=@(); if(!$Packaged){$Args+='"'+$ProjectRoot+'\VoidAndThunder.uproject"'}
 $Extra=@();if($Throttle){$Extra+="-VTThrottleProbe"};if($Flight){$Extra+="-VTFlightProbe"};if($Interaction){$Extra+="-VTInteractionProbe"};if($Broadside){$Extra+="-VTBroadsideProbe"};if($Busy){$Extra+="-Busy"};if($Armed){$Extra+="-Armed"};$Args+=$Extra
