@@ -86,3 +86,24 @@ claim, validity, faction and range checks remain live for every captain. These
 lists contain Actor pointers, not independent state, and are rebuilt at the phase
 where they are consumed. EMP rejects out-of-range contacts before angular tests.
 All systems and movement/combat still advance at 64 Hz.
+
+## Native integration revision
+
+Migration is an explicit editor operation, never a validation step. Seed mode preserves
+existing authored packages; replacement requires an explicit regeneration switch.
+C++ ship rules are assembled by configurable Blueprint pawn/UI classes. Primary
+asset catalogues expose ship, equipment, system and scenario definitions, with
+presentation bundles preloaded through Asset Manager before population spawning.
+
+Autosaves capture and serialize consistent snapshots on the game thread, then use
+a single immutable-byte background writer. Completion is observed on the game
+thread; load, manual save and orderly teardown flush pending writes. CRC, atomic
+replacement and last-good backups remain intact.
+
+HUD changes originate from GAS delegates, replicated state notifications, session
+events and authoritative simulation boundaries; updates are coalesced at 10 Hz.
+Widgets cache typed bindings and selections retain stable IDs independent of labels.
+Enhanced Input uses common/menu/flight/docked contexts. Ability tags gate activation,
+and fixed-step Ability Tasks own deterministic cooldown clocks; continuous battery
+costs retain their existing GAS attribute path. Audio attenuation/concurrency and
+Niagara Effect Types provide native presentation budgets without changing gameplay.

@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/DataAsset.h"
 #include "VTTypes.h"
+#include "VTDefinitionAssets.h"
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
@@ -9,6 +10,16 @@ UCLASS(BlueprintType)
 class VOIDANDTHUNDER_API UVTGameData : public UPrimaryDataAsset {
  GENERATED_BODY()
 public:
+ virtual FPrimaryAssetId GetPrimaryAssetId() const override {return FPrimaryAssetId(TEXT("VTGameData"),GetFName());}
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTShipAsset>> ShipAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTEquipmentAsset>> EquipmentAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTSystemAsset>> SystemAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTScenarioAsset>> ScenarioAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay,Presentation")) TSoftClassPtr<class AVTShip> ShipClass;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Presentation")) TSoftClassPtr<class UVTUI> UIClass;
+ void LoadCatalog();
+ TSharedPtr<struct FStreamableHandle> CatalogHandle,PresentationHandle;
+ bool CatalogLoaded=false;
  UPROPERTY(EditAnywhere,BlueprintReadOnly) TMap<FName,int32> PopulationProfiles={{FName("Authored"),-1},{FName("Shared sandbox"),500}};
  UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FVTShipDefinition> Ships;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FVTSystemDefinition> Systems;

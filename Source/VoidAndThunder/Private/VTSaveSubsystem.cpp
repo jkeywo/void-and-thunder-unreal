@@ -1,4 +1,6 @@
 #include "VTSaveSubsystem.h"
+#include "Async/Async.h"
+#include "VTSessionSubsystem.h"
 #include "VTGameplay.h"
 #include "VTCombat.h"
 #include "Kismet/GameplayStatics.h"
@@ -93,8 +95,22 @@ bool UVTSaveSubsystem::Validate(const UVTWorldSave* S) const {
  }
  return true;
 }
-void UVTSaveSubsystem::Advance(float Dt) {SinceSave+=Dt; auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); if(Sim->Data&&SinceSave>=Sim->Data->Rules.AutosaveSeconds) {SinceSave=0; Save();}}
-bool UVTSaveSubsystem::Save() {
+bool UVTSaveSubsystem::FlushPendingSave(bool Wait) {
+ if(!PendingWrite.IsValid()) return LastWriteSucceeded;
+ if(!Wait&&!PendingWrite.IsReady()) return false;
+ LastWriteSucceeded=PendingWrite.Get(); PendingWrite=TFuture<bool>();
+ if(LastWriteSucceeded) LastGoodBytes.Add(PendingPath,MoveTemp(PendingBytes));
+ else {PendingBytes.Reset(); UE_LOG(LogTemp,Error,TEXT("Background save failed; previous snapshot retained: %s"),*PendingPath); if(auto* Session=GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()) Session->SetStatus(TEXT("Autosave failed; previous snapshot retained."));}
+ PendingPath.Reset(); return LastWriteSucceeded;
+}
+void UVTSaveSubsystem::Advance(float Dt) {
+ FlushPendingSave(false); SinceSave+=Dt;
+ auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();
+ if(Sim->Data&&SinceSave>=Sim->Data->Rules.AutosaveSeconds&&!PendingWrite.IsValid()) if(Save(true)) SinceSave=0;
+}
+bool UVTSaveSubsystem::Save(bool Background) {
+ if(Background&&PendingWrite.IsValid()&&!PendingWrite.IsReady()) return false;
+ FlushPendingSave();
  UWorld* World=GetWorld(); if(!World||World->GetNetMode()==NM_Client) return false;
  auto* Sim=World->GetSubsystem<UVTSimulation>(); if(!Sim||!Sim->Bootstrapped||!Sim->Data||World->GetMapName().Contains(TEXT("Menu"))||CastChecked<UVTGameInstance>(GetGameInstance())->PlayMode!=TEXT("sandbox")) return false;
  for(auto It=World->GetPlayerControllerIterator();It;++It) CapturePlayer(Cast<AVTController>(It->Get()));
@@ -106,17 +122,28 @@ bool UVTSaveSubsystem::Save() {
  }
  if(!Validate(Snapshot)) return false;
  TArray<uint8> Bytes; if(!Encode(Snapshot,Bytes)) return false;
- const FString Path=SavePath(Slot); TArray<uint8> Old;
- if(FFileHelper::LoadFileToArray(Old,*Path)) if(auto* Good=Decode(Old)) if(Migrate(Good)&&Validate(Good)) if(!AtomicWrite(Path+TEXT(".backup"),Old)) return false;
- if(!AtomicWrite(Path,Bytes)) return false; SinceSave=0; return true;
+ const FString Path=SavePath(Slot); // Validate the previous snapshot once per slot on the game thread; workers only own bytes.
+ if(!LastGoodBytes.Contains(Path)) {
+  TArray<uint8> Old;
+  if(FFileHelper::LoadFileToArray(Old,*Path)) if(auto* Good=Decode(Old)) if(Migrate(Good)&&Validate(Good)) LastGoodBytes.Add(Path,MoveTemp(Old));
+ }
+ TArray<uint8> Previous=LastGoodBytes.FindRef(Path);
+ auto Write=[Path,Previous=MoveTemp(Previous),Bytes]() {
+  if(!Previous.IsEmpty()&&!AtomicWrite(Path+TEXT(".backup"),Previous)) return false;
+  return AtomicWrite(Path,Bytes);
+ };
+ if(Background) {PendingPath=Path; PendingBytes=Bytes; PendingWrite=Async(EAsyncExecution::ThreadPool,MoveTemp(Write)); SinceSave=0; return true;}
+ LastWriteSucceeded=Write(); if(LastWriteSucceeded) {LastGoodBytes.Add(Path,MoveTemp(Bytes)); SinceSave=0;} return LastWriteSucceeded;
 }
 bool UVTSaveSubsystem::Load() {
+ FlushPendingSave();
  UWorld* World=GetWorld(); if(!World||World->GetNetMode()==NM_Client) return false;
  const FString Path=SavePath(Slot); TArray<uint8> Bytes; UVTWorldSave* Snapshot=nullptr;
  if(FFileHelper::LoadFileToArray(Bytes,*Path)) Snapshot=Decode(Bytes);
  if(Snapshot&&!Migrate(Snapshot)) Snapshot=nullptr;
  if(!Validate(Snapshot)) {Bytes.Reset(); if(FFileHelper::LoadFileToArray(Bytes,*(Path+TEXT(".backup")))) Snapshot=Decode(Bytes); if(Snapshot&&!Migrate(Snapshot)) Snapshot=nullptr;}
  if(!Validate(Snapshot)) return false;
+ LastGoodBytes.Add(SavePath(Slot),Bytes);
  auto* Sim=World->GetSubsystem<UVTSimulation>();
  auto Current=Sim->Ships; auto Shots=Sim->Projectiles;
  for(AVTProjectile* P:Shots) if(IsValid(P)) P->Destroy();
@@ -152,7 +179,7 @@ void UVTSaveSubsystem::Initialize(FSubsystemCollectionBase& Collection) {
  if(auto* GI=Cast<UVTGameInstance>(GetGameInstance())) {GI->SelectedHull=Personal->PreferredHull; GI->SelectedFit=Personal->PreferredFit;}
  if(!Personal->Profile.IsValid()) {Personal->Profile=FGuid::NewGuid(); UGameplayStatics::SaveGameToSlot(Personal,PersonalSlot,0);}
 }
-void UVTSaveSubsystem::ResetWorldIdentity() {WorldId=FGuid::NewGuid(); PlayerRecords.Reset();}
+void UVTSaveSubsystem::ResetWorldIdentity() {FlushPendingSave(); WorldId=FGuid::NewGuid(); PlayerRecords.Reset();}
 void UVTSaveSubsystem::StoreToken(FGuid World,FGuid Token) {
  auto* Existing=Personal->Tokens.FindByPredicate([World](const FVTReconnectToken& R){return R.World==World;});
  if(Existing) Existing->Token=Token; else {FVTReconnectToken R; R.World=World; R.Token=Token; Personal->Tokens.Add(R);}
@@ -167,7 +194,7 @@ void UVTSaveSubsystem::WorldTearDown(UWorld* World) {
   if(auto* Sim=World->GetSubsystem<UVTSimulation>()) Sim->Bootstrapped=false;
  }
 }
-void UVTSaveSubsystem::Deinitialize() {FWorldDelegates::OnWorldBeginTearDown.Remove(TearDownHandle); Super::Deinitialize();}
+void UVTSaveSubsystem::Deinitialize() {FlushPendingSave(); FWorldDelegates::OnWorldBeginTearDown.Remove(TearDownHandle); Super::Deinitialize();}
 
 bool UVTSaveSubsystem::Migrate(UVTWorldSave* Snapshot) const {
  if(!Snapshot) return false;

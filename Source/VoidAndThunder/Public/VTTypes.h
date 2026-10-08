@@ -377,7 +377,7 @@ struct FVTShipDefinition {
  UPROPERTY(EditAnywhere, BlueprintReadOnly) FVTShieldBanks ShieldMax = FVTShieldBanks(0,0,0,0);
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float ShieldRegen = 7;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float ShieldDelay = 2.5f;
- UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftObjectPtr<UStaticMesh> Mesh;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly,meta=(AssetBundles="Presentation")) TSoftObjectPtr<UStaticMesh> Mesh;
 };
 UENUM(BlueprintType)
 enum class EVTLoadoutSlot : uint8 { Broadside, Battery, Special };

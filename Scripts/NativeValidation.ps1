@@ -6,7 +6,7 @@ New-Item -ItemType Directory -Path $ReportDir -Force|Out-Null
 $Steps=@(
  @{name='source';script='SourceChecks';args=@{}},
  @{name='editor';script='Build';args=@{EngineRoot=$EngineRoot}},
- @{name='bootstrap';script='Bootstrap';args=@{EngineRoot=$EngineRoot}},
+ @{name='authoring-protection';script='AuthoringProtection';args=@{EngineRoot=$EngineRoot}},
  @{name='assets';script='ValidateAssets';args=@{EngineRoot=$EngineRoot}},
  @{name='automation';script='Test';args=@{EngineRoot=$EngineRoot}},
  @{name='scale-500';script='Benchmark';args=@{EngineRoot=$EngineRoot;Population=500;Busy=$true;Armed=$true}},

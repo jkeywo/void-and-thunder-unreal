@@ -1,10 +1,11 @@
 #include "VTUI.h"
+#include "Blueprint/WidgetTree.h"
+#include "TimerManager.h"
 #include "Engine/Engine.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Rendering/DrawElements.h"
 #include "Styling/CoreStyle.h"
 #include "VTGameplay.h"
-#include "VTCombat.h"
 #include "VTCombat.h"
 #include "VTSessionSubsystem.h"
 #include "VTSaveSubsystem.h"
@@ -16,51 +17,48 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-namespace {
-FString DisplayId(FName Id) {
- FString Key=Id.ToString(); if(Key.StartsWith(TEXT("corsair"))||Key.StartsWith(TEXT("house"))) Key=TEXT("class.")+Key; Key+=TEXT(".name");
- FString Label=FText::FromStringTable(FName(TEXT("/Game/UI/ST_UI.ST_UI")),Key,EStringTableLoadingPolicy::FindOrFullyLoad).ToString(); return Label.Contains(TEXT("MISSING")) ? Id.ToString() : Label;
-}
-FName SelectedId(UComboBoxString* Box,UVTGameData* Data) {
- if(!Box) return NAME_None; FString Name=Box->GetSelectedOption();
- for(const auto& D:Data->Ships) if(DisplayId(D.Id)==Name) return D.Id;
- for(const auto& O:Data->Loadouts) if(DisplayId(O.Id)==Name) return O.Id;
- return NAME_None;
-}
-}
 void UVTUI::NativeConstruct() {
  Super::NativeConstruct();
- StatusText=Cast<UTextBlock>(GetWidgetFromName(TEXT("Status"))); FlightText=Cast<UTextBlock>(GetWidgetFromName(TEXT("Flight"))); MenuPanel=Cast<UPanelWidget>(GetWidgetFromName(TEXT("MenuPanel"))); HUDPanel=Cast<UPanelWidget>(GetWidgetFromName(TEXT("HUDPanel")));
- BatterySecond=Cast<UComboBoxString>(GetWidgetFromName(TEXT("BatterySecond"))); BatteryThird=Cast<UComboBoxString>(GetWidgetFromName(TEXT("BatteryThird"))); SpecialSecond=Cast<UComboBoxString>(GetWidgetFromName(TEXT("SpecialSecond"))); SpecialThird=Cast<UComboBoxString>(GetWidgetFromName(TEXT("SpecialThird")));
- HullChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("HullChoice"))); BatteryChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("BatteryChoice"))); GunChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("GunChoice"))); SpecialChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("SpecialChoice"))); LANChoice=Cast<UComboBoxString>(GetWidgetFromName(TEXT("LANChoice"))); Address=Cast<UEditableTextBox>(GetWidgetFromName(TEXT("Address"))); WorldName=Cast<UEditableTextBox>(GetWidgetFromName(TEXT("WorldName")));
-#define BIND(Name,Method) if(auto* B=Cast<UButton>(GetWidgetFromName(TEXT(Name)))) B->OnClicked.AddDynamic(this,&UVTUI::Method)
+ WidgetCache.Reset(); ChoiceItems.Reset();
+ TArray<UWidget*> Widgets; WidgetTree->GetAllWidgets(Widgets);
+ for(auto* Widget:Widgets) WidgetCache.Add(Widget->GetFName(),Widget);
+ GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->OnChanged.RemoveAll(this);
+ GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->OnChanged.AddUObject(this,&UVTUI::RequestRefresh);
+ StatusText=Cast<UTextBlock>(CachedWidget(TEXT("StatusText")) ? CachedWidget(TEXT("StatusText")) : CachedWidget(TEXT("Status"))); Flight=Cast<UTextBlock>(CachedWidget(TEXT("Flight"))); MenuPanel=Cast<UPanelWidget>(CachedWidget(TEXT("MenuPanel"))); HUDPanel=Cast<UPanelWidget>(CachedWidget(TEXT("HUDPanel")));
+ BatterySecond=Cast<UComboBoxString>(CachedWidget(TEXT("BatterySecond"))); BatteryThird=Cast<UComboBoxString>(CachedWidget(TEXT("BatteryThird"))); SpecialSecond=Cast<UComboBoxString>(CachedWidget(TEXT("SpecialSecond"))); SpecialThird=Cast<UComboBoxString>(CachedWidget(TEXT("SpecialThird")));
+ HullChoice=Cast<UComboBoxString>(CachedWidget(TEXT("HullChoice"))); BatteryChoice=Cast<UComboBoxString>(CachedWidget(TEXT("BatteryChoice"))); GunChoice=Cast<UComboBoxString>(CachedWidget(TEXT("GunChoice"))); SpecialChoice=Cast<UComboBoxString>(CachedWidget(TEXT("SpecialChoice"))); LANChoice=Cast<UComboBoxString>(CachedWidget(TEXT("LANChoice"))); Address=Cast<UEditableTextBox>(CachedWidget(TEXT("Address"))); WorldName=Cast<UEditableTextBox>(CachedWidget(TEXT("WorldName")));
+#define BIND(Name,Method) if(auto* B=Cast<UButton>(CachedWidget(TEXT(Name)))) B->OnClicked.AddDynamic(this,&UVTUI::Method)
  BIND("Autopilot",ToggleAutopilot);BIND("GraphicsLow",PerformanceGraphics);BIND("GraphicsBalanced",BalancedGraphics);BIND("GraphicsHigh",HighGraphics);BIND("Create",CreateWorld); BIND("Continue",ContinueWorld); BIND("Join",JoinAddress); BIND("Discover",FindLAN); BIND("JoinLAN",JoinLAN); BIND("Skirmish",Skirmish); BIND("Range",TestRange); BIND("Resume",Resume); BIND("Leave",Leave); BIND("Quit",Quit); BIND("Save",Save); BIND("Repair",Repair); BIND("Undock",Undock); BIND("PayHeat",PayHeat); BIND("Refit",Refit); BIND("Recover",Recover);
 #undef BIND
+ for(auto* Box:{HullChoice.Get(),BatteryChoice.Get(),GunChoice.Get(),SpecialChoice.Get(),BatterySecond.Get(),BatteryThird.Get(),SpecialSecond.Get(),SpecialThird.Get()})if(Box)Box->ClearOptions();
  auto* GI=CastChecked<UVTGameInstance>(GetGameInstance()); auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();
- if(HullChoice) {for(const auto& D:Data->Ships) if(D.Id.ToString().StartsWith(TEXT("corsair"))) HullChoice->AddOption(DisplayId(D.Id)); HullChoice->SetSelectedOption(DisplayId(GI->SelectedHull));}
- if(GunChoice&&BatteryChoice&&SpecialChoice) {GunChoice->AddOption(TEXT("Hull default")); BatteryChoice->AddOption(TEXT("Hull default")); SpecialChoice->AddOption(TEXT("Hull default"));
-  for(const auto& O:Data->Loadouts) (O.Slot==EVTLoadoutSlot::Broadside ? GunChoice : O.Slot==EVTLoadoutSlot::Battery ? BatteryChoice : SpecialChoice)->AddOption(DisplayId(O.Id));
-  GunChoice->SetSelectedOption(GI->SelectedFit.Broadside.IsNone() ? TEXT("Hull default") : DisplayId(GI->SelectedFit.Broadside)); BatteryChoice->SetSelectedOption(GI->SelectedFit.Battery.IsNone() ? TEXT("Hull default") : DisplayId(GI->SelectedFit.Battery)); SpecialChoice->SetSelectedOption(GI->SelectedFit.Special.IsNone() ? TEXT("Hull default") : DisplayId(GI->SelectedFit.Special));}
- for(auto* Box:{BatterySecond.Get(),BatteryThird.Get(),SpecialSecond.Get(),SpecialThird.Get()}) if(Box) {Box->AddOption(TEXT("Empty mount")); Box->SetSelectedOption(TEXT("Empty mount"));}
- for(const auto& O:Data->Loadouts) {if(O.Slot==EVTLoadoutSlot::Battery) {if(BatterySecond) BatterySecond->AddOption(DisplayId(O.Id)); if(BatteryThird) BatteryThird->AddOption(DisplayId(O.Id));} if(O.Slot==EVTLoadoutSlot::Special) {if(SpecialSecond) SpecialSecond->AddOption(DisplayId(O.Id)); if(SpecialThird) SpecialThird->AddOption(DisplayId(O.Id));}}
- if(auto* Box=Cast<UComboBoxString>(GetWidgetFromName(TEXT("PopulationChoice")))) {Box->AddOption(TEXT("Authored")); Box->AddOption(TEXT("Shared sandbox")); Box->SetSelectedOption(GI->PopulationProfile.ToString());}
- for(auto Pair:{TPair<UComboBoxString*,FName>(BatterySecond,GI->SelectedFit.Batteries.IsValidIndex(1) ? GI->SelectedFit.Batteries[1] : NAME_None),TPair<UComboBoxString*,FName>(BatteryThird,GI->SelectedFit.Batteries.IsValidIndex(2) ? GI->SelectedFit.Batteries[2] : NAME_None),TPair<UComboBoxString*,FName>(SpecialSecond,GI->SelectedFit.Specials.IsValidIndex(1) ? GI->SelectedFit.Specials[1] : NAME_None),TPair<UComboBoxString*,FName>(SpecialThird,GI->SelectedFit.Specials.IsValidIndex(2) ? GI->SelectedFit.Specials[2] : NAME_None)}) if(Pair.Key&&!Pair.Value.IsNone()) Pair.Key->SetSelectedOption(DisplayId(Pair.Value));
+ if(HullChoice) {for(const auto& D:Data->Ships) if(D.Id.ToString().StartsWith(TEXT("corsair"))) AddChoice(HullChoice,D.Id,FText::FromStringTable(FName(TEXT("/Game/UI/ST_UI.ST_UI")),FString(TEXT("class."))+D.Id.ToString()+TEXT(".name"))); HullChoice->SetSelectedOption(GI->SelectedHull.ToString());}
+ if(GunChoice&&BatteryChoice&&SpecialChoice) {for(auto* Box:{GunChoice.Get(),BatteryChoice.Get(),SpecialChoice.Get()}) AddChoice(Box,NAME_None,NSLOCTEXT("VTUI","Default","Hull default"));
+  for(const auto& O:Data->Loadouts) AddChoice(O.Slot==EVTLoadoutSlot::Broadside ? GunChoice.Get() : O.Slot==EVTLoadoutSlot::Battery ? BatteryChoice.Get() : SpecialChoice.Get(),O.Id,FText::FromStringTable(FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));
+  GunChoice->SetSelectedOption(GI->SelectedFit.Broadside.ToString()); BatteryChoice->SetSelectedOption(GI->SelectedFit.Battery.ToString()); SpecialChoice->SetSelectedOption(GI->SelectedFit.Special.ToString());}
+ for(auto* Box:{BatterySecond.Get(),BatteryThird.Get(),SpecialSecond.Get(),SpecialThird.Get()}) if(Box) {AddChoice(Box,FName("__empty"),NSLOCTEXT("VTUI","EmptyMount","Empty mount")); Box->SetSelectedOption(TEXT("__empty"));}
+ for(const auto& O:Data->Loadouts) {if(O.Slot==EVTLoadoutSlot::Battery) {if(BatterySecond) AddChoice(BatterySecond,O.Id,FText::FromStringTable(FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name"))); if(BatteryThird) AddChoice(BatteryThird,O.Id,FText::FromStringTable(FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));} if(O.Slot==EVTLoadoutSlot::Special) {if(SpecialSecond) AddChoice(SpecialSecond,O.Id,FText::FromStringTable(FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name"))); if(SpecialThird) AddChoice(SpecialThird,O.Id,FText::FromStringTable(FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));}}
+ if(auto* Box=Cast<UComboBoxString>(CachedWidget(TEXT("PopulationChoice")))) {Box->AddOption(TEXT("Authored")); Box->AddOption(TEXT("Shared sandbox")); Box->SetSelectedOption(GI->PopulationProfile.ToString());}
+ for(auto Pair:{TPair<UComboBoxString*,FName>(BatterySecond,GI->SelectedFit.Batteries.IsValidIndex(1) ? GI->SelectedFit.Batteries[1] : NAME_None),TPair<UComboBoxString*,FName>(BatteryThird,GI->SelectedFit.Batteries.IsValidIndex(2) ? GI->SelectedFit.Batteries[2] : NAME_None),TPair<UComboBoxString*,FName>(SpecialSecond,GI->SelectedFit.Specials.IsValidIndex(1) ? GI->SelectedFit.Specials[1] : NAME_None),TPair<UComboBoxString*,FName>(SpecialThird,GI->SelectedFit.Specials.IsValidIndex(2) ? GI->SelectedFit.Specials[2] : NAME_None)}) if(Pair.Key&&!Pair.Value.IsNone()) Pair.Key->SetSelectedOption(Pair.Value.ToString());
  SetMenu(GetWorld()->GetMapName().Contains(TEXT("Menu")));
+ RefreshView();
 }
 void UVTUI::SetMenu(bool Open) {
- MenuOpen=Open;FocusPending=Open; if(MenuPanel&&MenuPanel->GetParent()) MenuPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(MenuPanel) MenuPanel->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(HUDPanel) HUDPanel->SetVisibility(Open ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);if(HUDPanel&&HUDPanel->GetParent())HUDPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
- if(auto* PC=GetOwningPlayer()) {if(Open) {FInputModeGameAndUI Mode; auto* Focus=GetWidgetFromName(GetWorld()->GetMapName().Contains(TEXT("Menu"))?TEXT("Create"):TEXT("Resume"));Mode.SetWidgetToFocus(Focus ? Focus->TakeWidget() : TakeWidget()); Mode.SetHideCursorDuringCapture(false); PC->SetInputMode(Mode);} else PC->SetInputMode(FInputModeGameOnly()); PC->bShowMouseCursor=true;
+ MenuOpen=Open;FocusPending=Open;
+ if(auto* Captain=Cast<AVTController>(GetOwningPlayer())) Captain->UpdateInputContexts();
+ RequestRefresh(); if(MenuPanel&&MenuPanel->GetParent()) MenuPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(MenuPanel) MenuPanel->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(HUDPanel) HUDPanel->SetVisibility(Open ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);if(HUDPanel&&HUDPanel->GetParent())HUDPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+ if(auto* PC=GetOwningPlayer()) {if(Open) {FInputModeGameAndUI Mode; auto* Focus=CachedWidget(GetWorld()->GetMapName().Contains(TEXT("Menu"))?TEXT("Create"):TEXT("Resume"));Mode.SetWidgetToFocus(Focus ? Focus->TakeWidget() : TakeWidget()); Mode.SetHideCursorDuringCapture(false); PC->SetInputMode(Mode);} else PC->SetInputMode(FInputModeGameOnly()); PC->bShowMouseCursor=true;
   if(GetWorld()->GetNetMode()==NM_Standalone&&!GetWorld()->GetMapName().Contains(TEXT("Menu"))) PC->SetPause(Open);}
 }
 bool UVTUI::StoreFit() {
  auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();
- auto* GI=CastChecked<UVTGameInstance>(GetGameInstance()); if(auto* Box=Cast<UComboBoxString>(GetWidgetFromName(TEXT("PopulationChoice")))) GI->PopulationProfile=FName(Box->GetSelectedOption()); if(HullChoice) GI->SelectedHull=SelectedId(HullChoice,Data);
- auto Choice=[&](UComboBoxString* Box){return SelectedId(Box,Data);};
+ auto* GI=CastChecked<UVTGameInstance>(GetGameInstance()); if(auto* Box=Cast<UComboBoxString>(CachedWidget(TEXT("PopulationChoice")))) GI->PopulationProfile=FName(Box->GetSelectedOption()); if(HullChoice) GI->SelectedHull=SelectedId(HullChoice);
+ auto Choice=[&](UComboBoxString* Box){return SelectedId(Box);};
  GI->SelectedFit.Batteries.Reset(); GI->SelectedFit.Specials.Reset();
- auto Add=[&](TArray<FName>& Names,UComboBoxString* Box) {if(Box&&Box->GetSelectedOption()!=TEXT("Empty mount")&&Box->GetSelectedOption()!=TEXT("Hull default")) Names.AddUnique(SelectedId(Box,Data));};
+ auto Add=[&](TArray<FName>& Names,UComboBoxString* Box) {if(Box&&!SelectedId(Box).IsNone()) Names.AddUnique(SelectedId(Box));};
  Add(GI->SelectedFit.Batteries,BatteryChoice); Add(GI->SelectedFit.Batteries,BatterySecond); Add(GI->SelectedFit.Batteries,BatteryThird); Add(GI->SelectedFit.Specials,SpecialChoice); Add(GI->SelectedFit.Specials,SpecialSecond); Add(GI->SelectedFit.Specials,SpecialThird);
  GI->SelectedFit.Broadside=Choice(GunChoice); GI->SelectedFit.Battery=Choice(BatteryChoice); GI->SelectedFit.Special=Choice(SpecialChoice);
- FVTShipDefinition Resolved; if(!Data->ResolveFit(GI->SelectedHull,GI->SelectedFit,Resolved)) {GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->Status=TEXT("This fit exceeds the selected hull mounts. Remove extra modules and try again."); return false;}
+ FVTShipDefinition Resolved; if(!Data->ResolveFit(GI->SelectedHull,GI->SelectedFit,Resolved)) {GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->SetStatus(TEXT("This fit exceeds the selected hull mounts. Remove extra modules and try again.")); return false;}
  GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->RememberFit(); return true;
 }
 void UVTUI::CreateWorld() {if(!StoreFit()) return; GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->CreateWorld(false,WorldName ? WorldName->GetText().ToString() : TEXT("Campaign"));}
@@ -73,37 +71,46 @@ void UVTUI::TestRange() {if(!StoreFit()) return; CastChecked<UVTGameInstance>(Ge
 void UVTUI::Resume() {SetMenu(false);}
 void UVTUI::Leave() {CastChecked<UVTGameInstance>(GetGameInstance())->ReturnToMenu();}
 void UVTUI::Quit() {GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->Save(); UKismetSystemLibrary::QuitGame(this,GetOwningPlayer(),EQuitPreference::Quit,false);}
-void UVTUI::Save() {GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->Status=GetWorld()->GetNetMode()==NM_Client ? TEXT("The host saves this world.") : GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->Save() ? TEXT("World saved.") : TEXT("World could not be saved; previous snapshot retained.");}
+void UVTUI::Save() {GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->SetStatus(GetWorld()->GetNetMode()==NM_Client ? TEXT("The host saves this world.") : GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->Save() ? TEXT("World saved.") : TEXT("World could not be saved; previous snapshot retained."));}
 void UVTUI::Recover() {if(auto* PC=Cast<AVTController>(GetOwningPlayer())) PC->ServerRecover(); SetMenu(false);}
 void UVTUI::Repair() {if(auto* PC=Cast<AVTController>(GetOwningPlayer())) PC->ServerStationAction(TEXT("repair"));}
 void UVTUI::Undock() {if(auto* PC=Cast<AVTController>(GetOwningPlayer())) PC->ServerStationAction(TEXT("undock")); SetMenu(false);}
 void UVTUI::PayHeat() {if(auto* PC=Cast<AVTController>(GetOwningPlayer())) PC->ServerStationAction(TEXT("pay_heat"));}
 void UVTUI::Refit() {if(!StoreFit()) return; auto* GI=CastChecked<UVTGameInstance>(GetGameInstance()); if(auto* PC=Cast<AVTController>(GetOwningPlayer())) PC->ServerRefit(GI->SelectedHull,GI->SelectedFit);}
-void UVTUI::NativeTick(const FGeometry& Geometry,float Dt) {
- Super::NativeTick(Geometry,Dt); if(auto* Button=Cast<UButton>(GetWidgetFromName(TEXT("Recover")))) {auto* Ship=Cast<AVTShip>(GetOwningPlayerPawn()); Button->SetIsEnabled(Ship&&Ship->Disabled&&!GetWorld()->GetSubsystem<UVTSimulation>()->ActiveScenario());}
+void UVTUI::RefreshView() {
+ RefreshQueued=false;
+ auto* CurrentShip=Cast<AVTShip>(GetOwningPlayerPawn()); auto* CurrentASC=CurrentShip ? CurrentShip->Abilities.Get() : nullptr;
+ if(ObservedAbilities.Get()!=CurrentASC) {
+  const FGameplayAttribute Attributes[]={UVTAttributes::HullAttribute(),UVTAttributes::BatteryAttribute(),UVTAttributes::GetEMPStressAttribute()};
+  if(auto* Old=ObservedAbilities.Get()) for(int I=0;I<AttributeHandles.Num();++I) Old->GetGameplayAttributeValueChangeDelegate(Attributes[I]).Remove(AttributeHandles[I]);
+  ObservedAbilities=CurrentASC; AttributeHandles.Reset();
+  if(CurrentASC) for(const auto& Attribute:Attributes) AttributeHandles.Add(CurrentASC->GetGameplayAttributeValueChangeDelegate(Attribute).AddUObject(this,&UVTUI::AttributeChanged));
+ }
+ if(auto* Captain=Cast<AVTController>(GetOwningPlayer())) Captain->UpdateInputContexts();
+ if(auto* Button=Cast<UButton>(CachedWidget(TEXT("Recover")))) {auto* Ship=Cast<AVTShip>(GetOwningPlayerPawn()); Button->SetIsEnabled(Ship&&Ship->Disabled&&!GetWorld()->GetSubsystem<UVTSimulation>()->ActiveScenario());}
  auto* Session=GetGameInstance()->GetSubsystem<UVTSessionSubsystem>();
  const bool Frontend=GetWorld()->GetMapName().Contains(TEXT("Menu"));auto* Vessel=Cast<AVTShip>(GetOwningPlayerPawn());
- auto Visible=[&](const TCHAR* Name,bool Show){if(auto* W=GetWidgetFromName(Name))W->SetVisibility(Show?ESlateVisibility::Visible:ESlateVisibility::Collapsed);};
+ auto Visible=[&](const TCHAR* Name,bool Show){if(auto* W=CachedWidget(Name))W->SetVisibility(Show?ESlateVisibility::Visible:ESlateVisibility::Collapsed);};
  for(const TCHAR* Name:{TEXT("WorldHeading"),TEXT("SoloHeading"),TEXT("WorldName"),TEXT("PopulationChoice"),TEXT("Create"),TEXT("Continue"),TEXT("Address"),TEXT("Join"),TEXT("Discover"),TEXT("LANChoice"),TEXT("JoinLAN"),TEXT("Skirmish"),TEXT("Range")})Visible(Name,Frontend);
  for(const TCHAR* Name:{TEXT("StationHeading"),TEXT("Repair"),TEXT("PayHeat"),TEXT("Refit"),TEXT("Undock")})Visible(Name,!Frontend&&Vessel&&Vessel->Docked);
  for(const TCHAR* Name:{TEXT("Recover"),TEXT("Resume"),TEXT("Leave")})Visible(Name,!Frontend);
  Visible(TEXT("Autopilot"),!Frontend&&Vessel&&!Vessel->Docked&&!Vessel->Disabled);
- if(auto* Label=Cast<UTextBlock>(GetWidgetFromName(TEXT("AutopilotLabel"))))Label->SetText(FText::FromString(Vessel&&Vessel->Autopilot?TEXT("AI pilot: on"):TEXT("AI pilot: off")));
+ if(auto* Label=Cast<UTextBlock>(CachedWidget(TEXT("AutopilotLabel"))))Label->SetText(FText::FromString(Vessel&&Vessel->Autopilot?TEXT("AI pilot: on"):TEXT("AI pilot: off")));
  Visible(TEXT("Save"),!Frontend&&GetWorld()->GetNetMode()!=NM_Client&&!GetWorld()->GetSubsystem<UVTSimulation>()->ActiveScenario());
  Visible(TEXT("FitRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("FitHeading"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountHeading"),Frontend||(Vessel&&Vessel->Docked));
- if(FocusPending&&MenuOpen){if(auto* Focus=GetWidgetFromName(Frontend?TEXT("Create"):TEXT("Resume")))Focus->SetUserFocus(GetOwningPlayer());FocusPending=false;}
+ if(FocusPending&&MenuOpen){if(auto* Focus=CachedWidget(Frontend?TEXT("Create"):TEXT("Resume")))Focus->SetUserFocus(GetOwningPlayer());FocusPending=false;}
  for(const TCHAR* Name:{TEXT("HullChoice"),TEXT("GunChoice"),TEXT("BatteryChoice"),TEXT("SpecialChoice"),TEXT("BatterySecond"),TEXT("BatteryThird"),TEXT("SpecialSecond"),TEXT("SpecialThird")})Visible(Name,Frontend||(Vessel&&Vessel->Docked));
- if(auto* Graphics=Cast<UTextBlock>(GetWidgetFromName(TEXT("GraphicsStatus"))))if(GEngine)if(auto* Settings=GEngine->GetGameUserSettings()){int Level=Settings->GetOverallScalabilityLevel();Graphics->SetText(FText::FromString(FString::Printf(TEXT("Graphics: %s"),Level==1?TEXT("Performance"):Level==2?TEXT("Balanced"):Level==3?TEXT("High"):TEXT("Custom"))));}
+ if(auto* Graphics=Cast<UTextBlock>(CachedWidget(TEXT("GraphicsStatus"))))if(GEngine)if(auto* Settings=GEngine->GetGameUserSettings()){int Level=Settings->GetOverallScalabilityLevel();Graphics->SetText(FText::FromString(FString::Printf(TEXT("Graphics: %s"),Level==1?TEXT("Performance"):Level==2?TEXT("Balanced"):Level==3?TEXT("High"):TEXT("Custom"))));}
  if(StatusText) {FString Status=Session->Status; if(GetWorld()->GetMapName().Contains(TEXT("Menu"))) if(auto* Career=GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->Career.Get()) Status+=FString::Printf(TEXT("\nCareer: %d completed runs, %d victories, wave %d, %d prizes"),Career->Runs,Career->Victories,Career->DeepestWave,Career->ShipsBoarded); if(MenuOpen&&!GetWorld()->GetMapName().Contains(TEXT("Menu"))) if(auto* Player=GetOwningPlayerState<AVTPlayerState>()) {auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get(); for(int I=0;I<Data->TrackedFactions.Num();++I) if(Player->Reputation.IsValidIndex(I)&&Player->Heat.IsValidIndex(I)) Status+=FString::Printf(TEXT("%s%s: standing %.0f / heat %.0f  "),I%2==0 ? TEXT("\n") : TEXT(" | "),*Data->TrackedFactions[I].ToString(),Player->Reputation[I],Player->Heat[I]);} StatusText->SetText(FText::FromString(Status));}
  if(LANChoice&&LastWorlds!=Session->Worlds.Num()) {LastWorlds=Session->Worlds.Num(); LANChoice->ClearOptions(); for(const auto& Name:Session->Worlds) LANChoice->AddOption(Name); if(LastWorlds>0) LANChoice->SetSelectedIndex(0);}
- auto* PC=Cast<AVTController>(GetOwningPlayer()); auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; if(!Ship||!FlightText) return;
+ auto* PC=Cast<AVTController>(GetOwningPlayer()); auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; if(!Ship||!Flight) return;
  auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); auto* PS=PC->GetPlayerState<AVTPlayerState>(); auto* State=GetWorld()->GetGameState<AVTGameState>();
  FString Text=FString::Printf(TEXT("VOID & THUNDER  |  %s\nHull %.0f / %.0f   Battery %.1f / %.1f   EMP %.0f%%\nShields  Bow %.0f  Stern %.0f  Port %.0f  Starboard %.0f\nPort %.1fs  Starboard %.1fs   Torpedoes %.0f + %d   Locks %d   Mines %d\nCredits %d   Prizes %d   Captains %d\n%s %.1fs   Dock %.1fs   Boarding %.1fs\nW/S thrust   A/D turn   Mouse aim   LMB/RMB broadsides\nQ disruptor   Ctrl torpedoes (hold/release)   Shift warp (hold/release)\nSpace boost   C brace   B interact   M mines   X point defence   Esc menu"),*Sim->Data->Systems[Ship->SystemIndex].DisplayName.ToString(),Ship->Attributes->Hull.GetCurrentValue(),Ship->Definition.Hull,Ship->Attributes->Battery.GetCurrentValue(),Ship->Definition.BatteryMax,Ship->Attributes->EMPStress.GetCurrentValue()/Ship->Definition.EMPResist*100,Ship->Combat->Shields.X,Ship->Combat->Shields.Y,Ship->Combat->Shields.Z,Ship->Combat->Shields.W,Ship->PortReload,Ship->StarboardReload,Ship->Combat->EquipmentState.Loaded,Ship->Combat->EquipmentState.TorpedoMagazine,Ship->Combat->EquipmentState.Locks.Num(),Ship->Combat->EquipmentState.MineMagazine,PS ? PS->Credits : 0,PS ? PS->Boarded : 0,State ? State->PlayerArray.Num() : 0,*Ship->JumpDestination.ToString(),Ship->JumpProgress,Ship->DockProgress,Ship->Combat->BoardingProgress);
  if(State&&Sim->ActiveScenario()) {Text+=FString::Printf(TEXT("\nWave %d   Enemies %d   Focus %.1f / %.1f"),State->Wave,State->EnemiesRemaining,PC->AimBattery,Sim->Data->Feel.time.battery_max);}
  else if(PS) {int Owner=Sim->Data->FactionIndex(Sim->Data->Systems[Ship->SystemIndex].Owner); if(PS->Reputation.IsValidIndex(Owner)&&PS->Heat.IsValidIndex(Owner)) Text+=FString::Printf(TEXT("\nLocal standing %.0f   Heat %.0f   Clearance %d credits"),PS->Reputation[Owner],PS->Heat[Owner],FMath::CeilToInt(PS->Heat[Owner]*Sim->Data->Rules.CreditsPerHeat));}
  if(Ship->Disabled) Text+=TEXT("\nSHIP DISABLED — R / D-pad down to recover at a station (sandbox).");
  if(State&&!State->Outcome.IsEmpty()) Text+=TEXT("\n")+State->Outcome;
- FlightText->SetText(FText::FromString(Text)); if(Ship->Docked&&!MenuOpen) SetMenu(true);
+ Flight->SetText(FText::FromString(Text)); if(Ship->Docked&&!MenuOpen) SetMenu(true);
 }
 void AVTController::ToggleMenu() {if(UI) UI->SetMenu(!UI->MenuOpen); LocalIntent=FVTPilotIntent();}
 
@@ -142,3 +149,36 @@ void UVTUI::BalancedGraphics(){ApplyGraphics(2);}
 void UVTUI::HighGraphics(){ApplyGraphics(3);}
 
 void UVTUI::ToggleAutopilot(){if(auto* PC=Cast<AVTController>(GetOwningPlayer()))PC->ToggleAutopilot();}
+
+UWidget* UVTUI::CachedWidget(FName Name) const {const auto* Widget=WidgetCache.Find(Name); return Widget ? Widget->Get() : nullptr;}
+void UVTUI::AddChoice(UComboBoxString* Box,FName Id,const FText& Label) {
+ if(!Box) return;
+ auto* Item=NewObject<UVTUIOption>(this); Item->Id=Id==FName("__empty") ? NAME_None : Id; Item->Label=Label; Item->Font=Box->GetFont(); Item->Foreground=Box->GetForegroundColor(); ChoiceItems.Add(Id,Item);
+ Box->OnGenerateWidgetEvent.BindDynamic(this,&UVTUI::GenerateChoice); Box->AddOption(Id.ToString());
+}
+FName UVTUI::SelectedId(UComboBoxString* Box) const {
+ if(!Box) return NAME_None;
+ auto* Item=ChoiceItems.Find(FName(Box->GetSelectedOption())); return Item ? (*Item)->Id : NAME_None;
+}
+UWidget* UVTUI::GenerateChoice(FString Key) {return GenerateChoiceWidget(FName(Key));}
+UWidget* UVTUI::GenerateChoiceWidget_Implementation(FName Key) {
+ auto* Text=WidgetTree->ConstructWidget<UTextBlock>(); auto* Item=ChoiceItems.Find(Key);
+ Text->SetText(Item ? (*Item)->Label : FText::FromName(Key)); if(Item){Text->SetFont((*Item)->Font);Text->SetColorAndOpacity((*Item)->Foreground);} return Text;
+}
+void UVTUI::AttributeChanged(const FOnAttributeChangeData&) {RequestRefresh();}
+void UVTUI::RequestRefresh() {
+ if(RefreshQueued||!GetWorld()) return;
+ RefreshQueued=true; GetWorld()->GetTimerManager().SetTimer(RefreshTimer,this,&UVTUI::RefreshView,0.1f,false);
+}
+void UVTUI::NativeTick(const FGeometry& Geometry,float Dt) {
+ Super::NativeTick(Geometry,Dt);
+ // Focus must be applied after the newly shown Slate subtree has laid out.
+ if(FocusPending&&MenuOpen) {if(auto* Focus=CachedWidget(GetWorld()->GetMapName().Contains(TEXT("Menu")) ? TEXT("Create") : TEXT("Resume"))) Focus->SetUserFocus(GetOwningPlayer()); FocusPending=false;}
+}
+void UVTUI::NativeDestruct() {
+ if(GetWorld()) GetWorld()->GetTimerManager().ClearTimer(RefreshTimer);
+ if(auto* GI=GetGameInstance()) GI->GetSubsystem<UVTSessionSubsystem>()->OnChanged.RemoveAll(this);
+ if(auto* ASC=ObservedAbilities.Get()) {const FGameplayAttribute Attributes[]={UVTAttributes::HullAttribute(),UVTAttributes::BatteryAttribute(),UVTAttributes::GetEMPStressAttribute()}; for(int I=0;I<AttributeHandles.Num();++I) ASC->GetGameplayAttributeValueChangeDelegate(Attributes[I]).Remove(AttributeHandles[I]);}
+ RefreshQueued=false; AttributeHandles.Reset(); ObservedAbilities.Reset();
+ Super::NativeDestruct();
+}

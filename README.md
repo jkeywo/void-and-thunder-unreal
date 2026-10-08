@@ -68,3 +68,38 @@ Windows packages go to `Artifacts/<configuration>/Windows/`. Start
 outputs; source and compact validation evidence are published in this repository.
 GitHub checks validate project metadata; licensed Unreal build and gameplay gates
 run locally and are reported separately.
+
+### Native asset authoring
+
+Normal validation never rebuilds authored content. `Scripts/Bootstrap.ps1` seeds a
+fresh checkout and preserves existing packages. `-UpgradeNative` adds missing
+primary definitions, class references, input contexts/remapping metadata and
+presentation budgets without replacing layouts or existing definition/budget assets.
+`-Regenerate` explicitly replaces the pinned migration baseline: commit authored
+work before using it. `VTContent` also requires `-Regenerate` to replace an existing
+presentation import.
+
+Edit ship/equipment/system/scenario Primary Data Assets under `Content/Data/` for
+gameplay definitions. The aggregate arrays retain the migration fallback; primary
+definitions override matching IDs when a world loads. Configure the ship and UI
+Blueprint classes on `DA_GameData`. Meshes are preloaded at the world-loading boundary
+through Asset Manager, rather than synchronously loaded for every spawn.
+
+Input Actions cover menu/autopilot/recovery as well as flight. Mapping contexts
+remove flight controls while menus or docking are active and cancel held inputs.
+Blueprint UI can call `RemapControl` with the mapping's stable name (for example
+`Throttle_W`) and a new key; Enhanced Input User Settings persist the change.
+CommonUI remains an optional later integration, not a required dependency.
+
+World autosaves queue a background byte write; manual save, load and host teardown
+flush pending writes. The game thread still captures/serializes the boundary
+snapshot. Failures retain the previous committed file and report an error.
+Native sound attenuation/concurrency and Niagara Effect Types under `Content/Audio`
+and `Content/Effects` are editable presentation budgets, separate from gameplay.
+
+Widget Blueprints can override `GenerateChoiceWidget` and read `GetChoiceItem` for the
+stable definition ID, localized text and authored style. Presentation overrides
+do not alter selection identity or authoritative gameplay.
+
+Validation of audit items 1–7 is recorded in
+[the native integration report](docs/validation/native-integration-2026-10-08/README.md).

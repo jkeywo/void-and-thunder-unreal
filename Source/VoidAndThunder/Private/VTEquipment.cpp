@@ -20,6 +20,10 @@ AVTProjectile* UVTCombatComponent::SpawnDeviceProjectile(EVTProjectileKind Kind,
 void UVTCombatComponent::EquipmentSystems() {
  auto* S=CastChecked<AVTShip>(GetOwner()); const auto& D=S->Definition; const auto& E=D.Equipment; auto& R=EquipmentState;
  if(S->Attributes->EMPStress.GetCurrentValue()>0) ApplyDelta(UVTEMPStressEffect::StaticClass(),-FMath::Min(S->Attributes->EMPStress.GetCurrentValue(),D.EMPRecovery*VT::Step));
+ static const FGameplayTag DockedTag=FGameplayTag::RequestGameplayTag(TEXT("State.Ship.Docked"));
+ static const FGameplayTag DisabledTag=FGameplayTag::RequestGameplayTag(TEXT("State.Ship.Disabled"));
+ if(TaggedDocked!=S->Docked) {TaggedDocked=S->Docked;S->Abilities->SetLooseGameplayTagCount(DockedTag,S->Docked ? 1 : 0,EGameplayTagReplicationState::TagAndCountToAll);}
+ if(TaggedDisabled!=S->Disabled) {TaggedDisabled=S->Disabled;S->Abilities->SetLooseGameplayTagCount(DisabledTag,S->Disabled ? 1 : 0,EGameplayTagReplicationState::TagAndCountToAll);}
  bool Drawn=false; float Charge=S->Attributes->Battery.GetCurrentValue(); bool Operable=!S->Disabled&&!S->Docked;
  auto Draw=[&](bool Requested,float Rate) {if(!Operable||!Requested||Charge<=0) return false; Charge=FMath::Max(0.f,Charge-Rate*VT::Step); Drawn=true; return true;};
  BoostPowered=Draw(E.Boost&&(S->Intent.Buttons&VTButtons::Boost),E.BoostDrain);
@@ -106,7 +110,18 @@ void UVTCombatComponent::ExecuteDevice(EVTDevice Device) {
   if(Target) Target->Destroy();
  }
 }
-UVTDeviceAbility::UVTDeviceAbility() {InstancingPolicy=EGameplayAbilityInstancingPolicy::InstancedPerActor; NetExecutionPolicy=EGameplayAbilityNetExecutionPolicy::ServerOnly;}
+UVTDeviceAbility::UVTDeviceAbility() {
+ InstancingPolicy=EGameplayAbilityInstancingPolicy::InstancedPerActor; NetExecutionPolicy=EGameplayAbilityNetExecutionPolicy::ServerOnly; NetSecurityPolicy=EGameplayAbilityNetSecurityPolicy::ServerOnly;
+ CooldownGameplayEffectClass=UVTFixedCooldownEffect::StaticClass();
+ ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("State.Ship.Docked")));
+ ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("State.Ship.Disabled")));
+}
+void UVTDeviceAbility::ConfigureDevice(EVTDevice Kind) {
+ Device=Kind; const TCHAR* Names[]={TEXT("EMP"),TEXT("Mine"),TEXT("Warp"),TEXT("PointDefense")};
+ int Index=Kind==EVTDevice::EMP ? 0 : Kind==EVTDevice::Mine ? 1 : Kind==EVTDevice::Microwarp ? 2 : 3;
+ CooldownTags.Reset(); CooldownTags.AddTag(FGameplayTag::RequestGameplayTag(FName(FString(TEXT("Cooldown.Ship."))+Names[Index])));
+
+}
 float& UVTDeviceAbility::Snapshot() {
  auto* S=CastChecked<AVTShip>(GetAvatarActorFromActorInfo()); auto& R=S->Combat->EquipmentState;
  if(Device==EVTDevice::EMP) return R.EMPCooldown; if(Device==EVTDevice::Mine) return R.MineCooldown; if(Device==EVTDevice::Microwarp) return R.WarpCooldown; return R.PDCooldown;
@@ -116,18 +131,38 @@ void UVTDeviceAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,c
  const auto& E=S->Definition.Equipment;
  bool Fitted=Device==EVTDevice::EMP ? E.EMP : Device==EVTDevice::Mine ? E.Mines : Device==EVTDevice::Microwarp ? E.Warp : E.PointDefense;
  if(!Fitted||((S->Docked||S->Disabled)&&!S->Combat->RestoringBank)) {EndAbility(Handle,Info,ActivationInfo,true,true); return;}
- Remaining=Device==EVTDevice::EMP ? E.EMPCooldown : Device==EVTDevice::Mine ? E.MineCooldown : Device==EVTDevice::Microwarp ? E.WarpCooldown : 1/FMath::Max(0.001f,E.PDRate);
- if(!S->Combat->RestoringBank) S->Combat->ExecuteDevice(Device);
- Snapshot()=Remaining;
+ if(!S->Combat->RestoringBank&&!CommitAbility(Handle,Info,ActivationInfo)) {EndAbility(Handle,Info,ActivationInfo,true,true);return;}
+ const float Duration=Device==EVTDevice::EMP ? E.EMPCooldown : Device==EVTDevice::Mine ? E.MineCooldown : Device==EVTDevice::Microwarp ? E.WarpCooldown : 1/FMath::Max(0.001f,E.PDRate);
+ if(S->Combat->RestoringBank) ApplyCooldown(Handle,Info,ActivationInfo);
+ else S->Combat->ExecuteDevice(Device);
+ CooldownTask=UVTFixedStepTask::Start(this,Duration); Snapshot()=Duration;
 }
-void UVTDeviceAbility::FixedStep() {Remaining=FMath::Max(0.f,Remaining-VT::Step); Snapshot()=Remaining; if(Remaining<=0) EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,false);}
+void UVTDeviceAbility::FixedStep() {
+ if(!CooldownTask) return;
+ bool Finished=CooldownTask->Advance(VT::Step); Snapshot()=CooldownTask->GetRemaining();
+ if(Finished) EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,false);
+}
+void UVTDeviceAbility::RestoreCooldown(float Seconds) {if(CooldownTask) {CooldownTask->Restore(Seconds); Snapshot()=CooldownTask->GetRemaining();}}
 void UVTCombatComponent::RestoreDevices() {
  auto* S=CastChecked<AVTShip>(GetOwner()); const auto Saved=EquipmentState;
  for(UClass* Class:{UVTEMPAbility::StaticClass(),UVTMineAbility::StaticClass(),UVTWarpAbility::StaticClass(),UVTPDAbility::StaticClass()}) {
   float Timer=Class==UVTEMPAbility::StaticClass() ? Saved.EMPCooldown : Class==UVTMineAbility::StaticClass() ? Saved.MineCooldown : Class==UVTWarpAbility::StaticClass() ? Saved.WarpCooldown : Saved.PDCooldown;
   if(Timer<=0) continue;
   RestoringBank=true; S->Abilities->TryActivateAbilityByClass(Class); RestoringBank=false;
-  if(auto* Spec=S->Abilities->FindAbilitySpecFromClass(Class)) if(auto* A=Cast<UVTDeviceAbility>(Spec->GetPrimaryInstance())) if(A->IsActive()) {A->Remaining=Timer; A->Snapshot()=Timer;}
+  if(auto* Spec=S->Abilities->FindAbilitySpecFromClass(Class)) if(auto* A=Cast<UVTDeviceAbility>(Spec->GetPrimaryInstance())) if(A->IsActive()) {A->RestoreCooldown(Timer);}
  }
  EquipmentState.Locks.Reset(); EquipmentState.LockElapsed=0; WarpHeld=false; TorpedoHeld=false;
+}
+
+UVTFixedCooldownEffect::UVTFixedCooldownEffect() {DurationPolicy=EGameplayEffectDurationType::Infinite;}
+void UVTDeviceAbility::ApplyCooldown(const FGameplayAbilitySpecHandle,const FGameplayAbilityActorInfo* Info,const FGameplayAbilityActivationInfo) const {
+ auto* ASC=Info->AbilitySystemComponent.Get(); if(!ASC) return;
+ auto Spec=ASC->MakeOutgoingSpec(UVTFixedCooldownEffect::StaticClass(),1,ASC->MakeEffectContext());
+ Spec.Data->DynamicGrantedTags.AppendTags(CooldownTags);
+ CooldownEffect=ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+}
+void UVTDeviceAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,const FGameplayAbilityActivationInfo ActivationInfo,bool Replicate,bool Cancelled) {
+ if(Info&&Info->AbilitySystemComponent.IsValid()&&CooldownEffect.IsValid()) Info->AbilitySystemComponent->RemoveActiveGameplayEffect(CooldownEffect);
+ CooldownEffect.Invalidate();
+ Super::EndAbility(Handle,Info,ActivationInfo,Replicate,Cancelled);
 }

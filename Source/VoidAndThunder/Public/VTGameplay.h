@@ -27,6 +27,7 @@ class AVTShip;
 class AVTProjectile;
 class UVTCombatComponent;
 
+VOIDANDTHUNDER_API void VTNotifyHUD(UWorld* World);
 UCLASS()
 class VOIDANDTHUNDER_API UVTAttributes : public UAttributeSet {
  GENERATED_BODY()
@@ -75,6 +76,7 @@ UCLASS()
 class VOIDANDTHUNDER_API AVTShip : public APawn, public IAbilitySystemInterface {
  GENERATED_BODY()
 public:
+ UFUNCTION() void OnRep_UIState();
  AVTShip();
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UVTShipMovement> Movement;
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UVTCombatComponent> Combat;
@@ -85,14 +87,14 @@ public:
  UPROPERTY(VisibleAnywhere) TObjectPtr<UCameraComponent> Camera;
  UPROPERTY() TArray<TObjectPtr<class UNiagaraComponent>> EngineTrails;
  void PresentEngines();
- UPROPERTY(Replicated, BlueprintReadOnly) int32 SystemIndex = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) FName ClassId = "corsair_cruiser";
- UPROPERTY(Replicated, BlueprintReadOnly) FName Faction = "Corsairs";
- UPROPERTY(Replicated, BlueprintReadOnly) FGuid PersistentId;
- UPROPERTY(Replicated, BlueprintReadOnly) bool Docked = false;
- UPROPERTY(Replicated, BlueprintReadOnly) bool Disabled = false;
- UPROPERTY(Replicated, BlueprintReadOnly) float PortReload = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) float StarboardReload = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) int32 SystemIndex = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FName ClassId = "corsair_cruiser";
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FName Faction = "Corsairs";
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FGuid PersistentId;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool Docked = false;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool Disabled = false;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) float PortReload = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) float StarboardReload = 0;
  UPROPERTY(ReplicatedUsing=OnRep_Fit,BlueprintReadOnly) FVTLoadoutSelection Fit;
  UFUNCTION() void OnRep_Fit();
  UPROPERTY(ReplicatedUsing=OnRep_Autopilot,BlueprintReadOnly) bool Autopilot=false;
@@ -103,14 +105,14 @@ public:
  TArray<FVTPilotIntent> InputQueue;
  uint32 LastReceived = 0;
  double LastInputTime = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) bool IsNPC = false;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool IsNPC = false;
  bool Invulnerable = false;
  bool Anchored = false;
- UPROPERTY(Replicated,BlueprintReadOnly) int32 ShipRole=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) int32 ShipRole=0;
  FVTBrainState Brain;
- UPROPERTY(Replicated,BlueprintReadOnly) float DockProgress=0;
- UPROPERTY(Replicated,BlueprintReadOnly) float JumpProgress=0;
- UPROPERTY(Replicated,BlueprintReadOnly) FName JumpDestination;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float DockProgress=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float JumpProgress=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) FName JumpDestination;
  virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return Abilities; }
  virtual void PossessedBy(AController* NewController) override;
  virtual void OnRep_Controller() override;
@@ -137,11 +139,12 @@ UCLASS()
 class VOIDANDTHUNDER_API AVTPlayerState : public APlayerState {
  GENERATED_BODY()
 public:
- UPROPERTY(Replicated, BlueprintReadOnly) int32 Credits = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) int32 Boarded = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) FGuid Profile;
- UPROPERTY(Replicated, BlueprintReadOnly) TArray<float> Reputation;
- UPROPERTY(Replicated, BlueprintReadOnly) TArray<float> Heat;
+ UFUNCTION() void OnRep_UIState();
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) int32 Credits = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) int32 Boarded = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FGuid Profile;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) TArray<float> Reputation;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) TArray<float> Heat;
  virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 };
 
@@ -149,11 +152,12 @@ UCLASS()
 class VOIDANDTHUNDER_API AVTGameState : public AGameStateBase {
  GENERATED_BODY()
 public:
- UPROPERTY(Replicated, BlueprintReadOnly) double SimulationTime = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) TArray<int32> Populations;
- UPROPERTY(Replicated,BlueprintReadOnly) int32 Wave=0;
- UPROPERTY(Replicated,BlueprintReadOnly) int32 EnemiesRemaining=0;
- UPROPERTY(Replicated,BlueprintReadOnly) FString Outcome;
+ UFUNCTION() void OnRep_UIState();
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) double SimulationTime = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) TArray<int32> Populations;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) int32 Wave=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) int32 EnemiesRemaining=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) FString Outcome;
  virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 };
 
@@ -187,6 +191,13 @@ public:
  void CancelFlight(const FInputActionValue& Value,int32 Index);
  virtual void PlayerTick(float Dt) override;
  UPROPERTY() TObjectPtr<UInputMappingContext> FlightMapping;
+ UPROPERTY() TObjectPtr<UInputMappingContext> CommonMapping;
+ UPROPERTY() TObjectPtr<UInputMappingContext> MenuMapping;
+ UPROPERTY() TObjectPtr<UInputMappingContext> DockedMapping;
+ int32 InputContextState=-1;
+ void UpdateInputContexts();
+ TWeakObjectPtr<class USceneComponent> AudioListenerRoot;
+ UFUNCTION(BlueprintCallable,Category="Input") bool RemapControl(FName MappingName,FKey NewKey);
  UPROPERTY() TArray<TObjectPtr<UInputAction>> Actions;
  FVTPilotIntent LocalIntent;
  uint32 NextSequence = 0;

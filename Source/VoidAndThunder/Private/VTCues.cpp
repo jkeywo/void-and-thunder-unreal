@@ -12,7 +12,7 @@ bool UVTShipCue::OnExecute_Implementation(AActor* Target,const FGameplayCueParam
  FVector Position=Parameters.Location.IsNearlyZero() ? Target->GetActorLocation() : FVector(Parameters.Location);
  auto* Ship=Cast<AVTShip>(Target); auto* PC=Target->GetWorld()->GetFirstPlayerController(); auto* Viewer=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr;
  if(Viewer&&Ship&&(Viewer->SystemIndex!=Ship->SystemIndex||(Viewer->Movement->Motion.Position-Ship->Movement->Motion.Position).Size()>900)) return false;
- if(Sound) {float Distance=Viewer&&Ship ? float((Viewer->Movement->Motion.Position-Ship->Movement->Motion.Position).Size()) : 0; UGameplayStatics::PlaySoundAtLocation(Target,Sound,Position,FMath::Clamp(1-Distance/900,0.f,1.f),FMath::FRandRange(0.94f,1.06f));}
+ if(Sound) UGameplayStatics::PlaySoundAtLocation(Target,Sound,Position,1.f,FMath::FRandRange(0.94f,1.06f),0.f,Attenuation,Concurrency);
  if(Effect) if(auto* Burst=UNiagaraFunctionLibrary::SpawnSystemAtLocation(Target,Effect,Position,Target->GetActorRotation(),FVector(8),true,true,ENCPoolMethod::AutoRelease)) {
   TWeakObjectPtr<UNiagaraComponent> WeakBurst(Burst); FTimerHandle Timer; float Life=Ship ? Ship->GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.impact.spark_life : 0.18f;
   Target->GetWorld()->GetTimerManager().SetTimer(Timer,[WeakBurst](){if(WeakBurst.IsValid()) WeakBurst->DeactivateImmediate();},Life,false);

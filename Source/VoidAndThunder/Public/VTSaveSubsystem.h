@@ -1,5 +1,6 @@
 #pragma once
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Async/Future.h"
 #include "GameFramework/SaveGame.h"
 #include "VTTypes.h"
 #include "VTSaveSubsystem.generated.h"
@@ -127,7 +128,14 @@ public:
  void CapturePlayer(class AVTController* Controller);
  bool Migrate(UVTWorldSave* Snapshot) const;
  bool Validate(const UVTWorldSave* Snapshot) const;
- bool Save();
+ // Manual save returns committed success; autosave returns queued success.
+ bool Save(bool Background=false);
+ bool FlushPendingSave(bool Wait=true);
+ TFuture<bool> PendingWrite;
+ TArray<uint8> PendingBytes;
+ TMap<FString,TArray<uint8>> LastGoodBytes;
+ FString PendingPath;
+ bool LastWriteSucceeded=true;
  bool Load();
  void Advance(float Dt);
 };

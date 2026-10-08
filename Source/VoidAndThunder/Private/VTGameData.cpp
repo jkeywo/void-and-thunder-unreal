@@ -1,16 +1,33 @@
 #include "VTGameData.h"
+#include "VTGameplay.h"
+#include "VTUI.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
+#include "Misc/App.h"
 #if WITH_EDITOR
 EDataValidationResult UVTGameData::IsDataValid(FDataValidationContext& Context) const {
  bool Good=true;
+ auto EffectiveShips=Ships;auto EffectiveLoadouts=Loadouts;auto EffectiveSystems=Systems;auto EffectiveScenarios=Scenarios;
+ auto CheckDefinitions=[&](const auto& References,auto& Definitions) {
+  TSet<FName> IDs;
+  for(const auto& Ref:References) {
+   auto* Asset=Ref.LoadSynchronous();
+   if(!Asset||Asset->Definition.Id.IsNone()||IDs.Contains(Asset->Definition.Id)) {Good=false;Context.AddError(NSLOCTEXT("VTData","InvalidDefinition","Primary definitions must resolve and have unique, nonempty IDs."));continue;}
+   IDs.Add(Asset->Definition.Id);auto* Existing=Definitions.FindByPredicate([&](const auto& D){return D.Id==Asset->Definition.Id;});
+   if(Existing)*Existing=Asset->Definition;else Definitions.Add(Asset->Definition);
+  }
+ };
+ CheckDefinitions(ShipAssets,EffectiveShips);CheckDefinitions(EquipmentAssets,EffectiveLoadouts);CheckDefinitions(SystemAssets,EffectiveSystems);CheckDefinitions(ScenarioAssets,EffectiveScenarios);
+ auto EffectiveFindSystem=[&](FName Id){return EffectiveSystems.IndexOfByPredicate([Id](const auto& D){return D.Id==Id;});};
  auto Require=[&](bool Condition,const FString& Message) {if(!Condition) {Good=false; Context.AddError(FText::FromString(Message));}};
  auto Nonnegative=[](float Value) {return FMath::IsFinite(Value)&&Value>=0;};
- Require(Loadouts.Num()>=8&&Scenarios.Num()==2,TEXT("Native loadouts and both solo scenarios are required."));
+ Require(EffectiveLoadouts.Num()>=8&&EffectiveScenarios.Num()==2,TEXT("Native loadouts and both solo scenarios are required."));
  Require(TrackedFactions.Num()==InitialReputation.Num()&&Relations.Num()>=36,TEXT("Faction standings must match the migrated catalogue."));
  Require(FactionMeshes.Num()>=5,TEXT("Imported faction model references are required."));
- Require(Ships.Num()>=5,TEXT("The migrated ship catalogue must contain all five baseline classes."));
- Require(Systems.Num()==10,TEXT("The baseline sandbox must contain all ten systems."));
+ Require(EffectiveShips.Num()>=5,TEXT("The migrated ship catalogue must contain all five baseline classes."));
+ Require(EffectiveSystems.Num()==10,TEXT("The baseline sandbox must contain all ten systems."));
  TSet<FName> ShipIDs,SystemIDs;
- for(const auto& Ship:Ships) {
+ for(const auto& Ship:EffectiveShips) {
   FString Prefix=Ship.Id.ToString()+TEXT(": ");
   Require(!Ship.Mesh.IsNull(),Prefix+TEXT("native hull mesh is required"));
   Require(Ship.Mounts>=1&&Ship.Crewed>=1&&Ship.Crewed<=Ship.Mounts,Prefix+TEXT("mount/crew allocation is invalid"));
@@ -25,15 +42,15 @@ EDataValidationResult UVTGameData::IsDataValid(FDataValidationContext& Context) 
   for(int I=0;I<4;++I) Require(Nonnegative(Ship.ShieldMax[I]),Prefix+TEXT("shield capacities must be finite and nonnegative"));
  }
  bool Station=false;
- for(const auto& System:Systems) {
+ for(const auto& System:EffectiveSystems) {
   Require(!System.Id.IsNone()&&!SystemIDs.Contains(System.Id),TEXT("System IDs must be nonempty and unique.")); SystemIDs.Add(System.Id);
   Require(FMath::IsFinite(System.Radius)&&System.Radius>0&&!System.ChartPosition.ContainsNaN()&&Nonnegative(System.Danger)&&System.Security>=0&&System.Security<=2,System.Id.ToString()+TEXT(": system tuning is invalid")); Station|=System.HasStation;
  }
- Require(FindSystem(StartSystem)!=INDEX_NONE,TEXT("Start system is missing.")); Require(Station,TEXT("A recovery station is required."));
- for(const auto& System:Systems) for(FName Link:System.Links) {
-  int32 Other=FindSystem(Link);
+ Require(EffectiveFindSystem(StartSystem)!=INDEX_NONE,TEXT("Start system is missing.")); Require(Station,TEXT("A recovery station is required."));
+ for(const auto& System:EffectiveSystems) for(FName Link:System.Links) {
+  int32 Other=EffectiveFindSystem(Link);
   Require(Other!=INDEX_NONE&&Link!=System.Id,System.Id.ToString()+TEXT(": jump link is missing or points to itself"));
-  if(Other!=INDEX_NONE) Require(Systems[Other].Links.Contains(System.Id),System.Id.ToString()+TEXT(": jump link must be reciprocal"));
+  if(Other!=INDEX_NONE) Require(EffectiveSystems[Other].Links.Contains(System.Id),System.Id.ToString()+TEXT(": jump link must be reciprocal"));
  }
  Require(Nonnegative(Rules.BraceDamageFactor)&&Rules.BraceDamageFactor<=1&&Nonnegative(Rules.CrippleThreshold)&&Rules.CrippleThreshold<=1,TEXT("Combat fractions must remain in [0, 1]."));
  return Good ? EDataValidationResult::Valid : EDataValidationResult::Invalid;
@@ -97,4 +114,29 @@ TArray<EVTDevice> UVTGameData::CrewForFit(FName ClassId,const FVTLoadoutSelectio
   }
  }
  return Crew;
+}
+
+void UVTGameData::LoadCatalog() {
+ if(CatalogLoaded) return;
+ auto& Manager=UAssetManager::Get();
+ CatalogHandle=Manager.LoadPrimaryAsset(GetPrimaryAssetId(),{FName("Gameplay")});
+ if(CatalogHandle) CatalogHandle->WaitUntilComplete();
+ auto Overlay=[](const auto& References,auto& Definitions) {
+  for(const auto& Ref:References) if(auto* Asset=Ref.Get()) {
+   auto* Existing=Definitions.FindByPredicate([&](const auto& D){return D.Id==Asset->Definition.Id;});
+   if(Existing) *Existing=Asset->Definition; else Definitions.Add(Asset->Definition);
+  }
+ };
+ Overlay(ShipAssets,Ships); Overlay(EquipmentAssets,Loadouts); Overlay(SystemAssets,Systems); Overlay(ScenarioAssets,Scenarios);
+ if(FApp::CanEverRender()&&!IsRunningCommandlet()) {
+  TArray<FSoftObjectPath> Paths;
+  for(const auto& Ship:Ships) if(!Ship.Mesh.IsNull()) Paths.AddUnique(Ship.Mesh.ToSoftObjectPath());
+  for(const auto& Pair:FactionMeshes) if(!Pair.Value.IsNull()) Paths.AddUnique(Pair.Value.ToSoftObjectPath());
+  if(!ShipClass.IsNull()) Paths.AddUnique(ShipClass.ToSoftObjectPath());
+  if(!UIClass.IsNull()) Paths.AddUnique(UIClass.ToSoftObjectPath());
+  // Loading-screen boundary: complete presentation before any ship is spawned.
+  PresentationHandle=Manager.GetStreamableManager().RequestAsyncLoad(Paths);
+  if(PresentationHandle) PresentationHandle->WaitUntilComplete();
+ }
+ CatalogLoaded=true;
 }

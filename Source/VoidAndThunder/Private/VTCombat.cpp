@@ -79,23 +79,28 @@ void UVTCombatComponent::Volley(bool Port,const FVector2D& Direction) {
 void UVTCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
  Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(UVTCombatComponent,EquipmentState); DOREPLIFETIME(UVTCombatComponent,SpeedScale); DOREPLIFETIME(UVTCombatComponent,BoostPowered); DOREPLIFETIME(UVTCombatComponent,BoardingTarget); DOREPLIFETIME(UVTCombatComponent,BoardingProgress); DOREPLIFETIME(UVTCombatComponent,Shields); DOREPLIFETIME(UVTCombatComponent,Suppression); DOREPLIFETIME(UVTCombatComponent,PortCharge); DOREPLIFETIME(UVTCombatComponent,StarboardCharge);
 }
-UVTBroadsideAbility::UVTBroadsideAbility() {InstancingPolicy=EGameplayAbilityInstancingPolicy::InstancedPerActor; NetExecutionPolicy=EGameplayAbilityNetExecutionPolicy::ServerOnly;}
+UVTBroadsideAbility::UVTBroadsideAbility() {
+ InstancingPolicy=EGameplayAbilityInstancingPolicy::InstancedPerActor; NetExecutionPolicy=EGameplayAbilityNetExecutionPolicy::ServerOnly; NetSecurityPolicy=EGameplayAbilityNetSecurityPolicy::ServerOnly;
+ ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("State.Ship.Docked"))); ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("State.Ship.Disabled")));
+}
 void UVTBroadsideAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,const FGameplayAbilityActivationInfo ActivationInfo,const FGameplayEventData* Event) {
  auto* S=Cast<AVTShip>(Info->AvatarActor.Get());
  if(!S||((S->Docked||S->Disabled)&&!S->Combat->RestoringBank)) {EndAbility(Handle,Info,ActivationInfo,true,true); return;}
- if(S->Combat->RestoringBank) {Fired=true; ChargeRemaining=0; ReloadRemaining=0; return;}
+ if(S->Combat->RestoringBank) {Fired=true; ChargeRemaining=0; ReloadRemaining=0; BankTask=UVTFixedStepTask::Start(this,0); return;}
+ if(!CommitAbility(Handle,Info,ActivationInfo)) {EndAbility(Handle,Info,ActivationInfo,true,true);return;}
  Fired=false; ChargeRemaining=S->Definition.ChargeTime; ReloadRemaining=0;
  ChargeDirection=VTCombat::BroadsideDirection(S->Movement->Motion.Heading,Port,S->Intent.Aim,S->Definition.Arc);
  if(ChargeRemaining<=0) {S->Combat->Volley(Port,ChargeDirection); Fired=true; ReloadRemaining=S->Definition.Reload;}
+ BankTask=UVTFixedStepTask::Start(this,Fired ? ReloadRemaining : ChargeRemaining);
  (Port ? S->PortReload : S->StarboardReload)=ReloadRemaining;
  (Port ? S->Combat->PortCharge : S->Combat->StarboardCharge)=ChargeRemaining;
 }
 void UVTBroadsideAbility::FixedStep() {
  auto* S=CastChecked<AVTShip>(GetAvatarActorFromActorInfo());
  if(!Fired) {
-  ChargeRemaining=FMath::Max(0.f,ChargeRemaining-VT::Step);
-  if(ChargeRemaining<=0) {if(!S->Disabled&&!S->Docked) S->Combat->Volley(Port,ChargeDirection); Fired=true; ReloadRemaining=S->Definition.Reload;}
- } else ReloadRemaining=FMath::Max(0.f,ReloadRemaining-VT::Step);
+  BankTask->Advance(VT::Step); ChargeRemaining=BankTask->GetRemaining();
+  if(ChargeRemaining<=0) {if(!S->Disabled&&!S->Docked) S->Combat->Volley(Port,ChargeDirection); Fired=true; ReloadRemaining=S->Definition.Reload; BankTask->Restore(ReloadRemaining);}
+ } else {BankTask->Advance(VT::Step); ReloadRemaining=BankTask->GetRemaining();}
  (Port ? S->PortReload : S->StarboardReload)=ReloadRemaining;
  (Port ? S->Combat->PortCharge : S->Combat->StarboardCharge)=ChargeRemaining;
  if(Fired&&ReloadRemaining<=0) EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,false);
@@ -121,7 +126,7 @@ void UVTCombatComponent::RestoreReload(bool Port,float Remaining) {
  auto* S=CastChecked<AVTShip>(GetOwner());
  UClass* Class=Port ? UVTBroadsideAbility::StaticClass() : UVTStarboardAbility::StaticClass();
  RestoringBank=true; S->Abilities->TryActivateAbilityByClass(Class); RestoringBank=false;
- if(auto* Spec=S->Abilities->FindAbilitySpecFromClass(Class)) if(auto* A=Cast<UVTBroadsideAbility>(Spec->GetPrimaryInstance())) {A->Fired=true; A->ChargeRemaining=0; A->ReloadRemaining=Remaining;}
+ if(auto* Spec=S->Abilities->FindAbilitySpecFromClass(Class)) if(auto* A=Cast<UVTBroadsideAbility>(Spec->GetPrimaryInstance())) {A->Fired=true; A->ChargeRemaining=0; A->ReloadRemaining=Remaining; if(A->BankTask) A->BankTask->Restore(Remaining);}
  (Port ? S->PortReload : S->StarboardReload)=Remaining;
 }
 
@@ -141,3 +146,5 @@ void UVTCombatComponent::ApplyDelta(TSubclassOf<UGameplayEffect> Effect,float De
 void UVTCombatComponent::Cue(FName Name,float Magnitude) {
  if(IsRunningCommandlet()) return; auto* Ship=CastChecked<AVTShip>(GetOwner()); FGameplayCueParameters Parameters; Parameters.Location=VT::ToWorld(Ship->Movement->Motion.Position,Ship->SystemIndex); Parameters.RawMagnitude=Magnitude; Ship->Abilities->ExecuteGameplayCue(FGameplayTag::RequestGameplayTag(Name),Parameters);
 }
+
+void UVTCombatComponent::OnRep_UIState() {VTNotifyHUD(GetWorld());}
