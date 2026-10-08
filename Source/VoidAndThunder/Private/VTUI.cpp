@@ -1,3 +1,5 @@
+#include "Components/VerticalBox.h"
+#include "Components/HorizontalBox.h"
 #include "VTUI.h"
 #include "Internationalization/StringTable.h"
 #include "Blueprint/WidgetTree.h"
@@ -60,6 +62,7 @@ void UVTUI::NativeConstruct() {
  for(const auto& O:Data->Loadouts) {if(O.Slot==EVTLoadoutSlot::Battery) {if(BatterySecond) AddChoice(BatterySecond,O.Id,FText::FromStringTable(TextTable?TextTable->GetStringTableId():FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name"))); if(BatteryThird) AddChoice(BatteryThird,O.Id,FText::FromStringTable(TextTable?TextTable->GetStringTableId():FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));} if(O.Slot==EVTLoadoutSlot::Special) {if(SpecialSecond) AddChoice(SpecialSecond,O.Id,FText::FromStringTable(TextTable?TextTable->GetStringTableId():FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name"))); if(SpecialThird) AddChoice(SpecialThird,O.Id,FText::FromStringTable(TextTable?TextTable->GetStringTableId():FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));}}
  if(auto* Box=Cast<UComboBoxString>(CachedWidget(TEXT("PopulationChoice")))) {Box->AddOption(TEXT("Authored")); Box->AddOption(TEXT("Shared sandbox")); Box->SetSelectedOption(GI->PopulationProfile.ToString());}
  for(auto Pair:{TPair<UComboBoxString*,FName>(BatterySecond,GI->SelectedFit.Batteries.IsValidIndex(1) ? GI->SelectedFit.Batteries[1] : NAME_None),TPair<UComboBoxString*,FName>(BatteryThird,GI->SelectedFit.Batteries.IsValidIndex(2) ? GI->SelectedFit.Batteries[2] : NAME_None),TPair<UComboBoxString*,FName>(SpecialSecond,GI->SelectedFit.Specials.IsValidIndex(1) ? GI->SelectedFit.Specials[1] : NAME_None),TPair<UComboBoxString*,FName>(SpecialThird,GI->SelectedFit.Specials.IsValidIndex(2) ? GI->SelectedFit.Specials[2] : NAME_None)}) if(Pair.Key&&!Pair.Value.IsNone()) Pair.Key->SetSelectedOption(Pair.Value.ToString());
+ FitEditor.Initialize(*Data,GI->SelectedHull,GI->SelectedFit);BuildFitEditor();
  SetMenu(GetWorld()->GetMapName().Contains(TEXT("Menu")));
  RefreshView();
 }
@@ -70,17 +73,25 @@ void UVTUI::SetMenu(bool Open) {
  if(auto* PC=GetOwningPlayer()) {if(Open) {FInputModeGameAndUI Mode; auto* Focus=CachedWidget(GetWorld()->GetMapName().Contains(TEXT("Menu"))?(SessionOptions?TEXT("Create"):TEXT("Skirmish")):TEXT("Resume"));Mode.SetWidgetToFocus(Focus ? Focus->TakeWidget() : TakeWidget()); Mode.SetHideCursorDuringCapture(false); PC->SetInputMode(Mode);} else {FInputModeGameOnly Mode;Mode.SetConsumeCaptureMouseDown(false);PC->SetInputMode(Mode);} PC->bShowMouseCursor=true;
   if(GetWorld()->GetNetMode()==NM_Standalone&&!GetWorld()->GetMapName().Contains(TEXT("Menu"))) PC->SetPause(Open);}
 }
-bool UVTUI::StoreFit() {
+void UVTFitCheckBox::Changed(bool Checked){if(auto* UI=Editor.Get())if(!UI->FitUpdating)UI->ToggleFit(Equipment);}
+void UVTUI::BuildFitEditor(){
  auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();
- auto* GI=CastChecked<UVTGameInstance>(GetGameInstance()); if(auto* Box=Cast<UComboBoxString>(CachedWidget(TEXT("PopulationChoice")))) GI->PopulationProfile=FName(Box->GetSelectedOption()); if(HullChoice) GI->SelectedHull=SelectedId(HullChoice);
- auto Choice=[&](UComboBoxString* Box){return SelectedId(Box);};
- GI->SelectedFit=FVTLoadoutSelection();
- GI->SelectedFit.OverrideBatteries=BatteryChoice&&BatteryChoice->GetSelectedOption()!=FName(NAME_None).ToString();GI->SelectedFit.OverrideSpecials=SpecialChoice&&SpecialChoice->GetSelectedOption()!=FName(NAME_None).ToString();
- auto Add=[&](TArray<FName>& Names,UComboBoxString* Box) {if(Box&&!SelectedId(Box).IsNone()) Names.AddUnique(SelectedId(Box));};
- Add(GI->SelectedFit.Batteries,BatteryChoice); Add(GI->SelectedFit.Batteries,BatterySecond); Add(GI->SelectedFit.Batteries,BatteryThird); Add(GI->SelectedFit.Specials,SpecialChoice); Add(GI->SelectedFit.Specials,SpecialSecond); Add(GI->SelectedFit.Specials,SpecialThird);
- GI->SelectedFit.Broadside=Choice(GunChoice); GI->SelectedFit.Battery=Choice(BatteryChoice); GI->SelectedFit.Special=Choice(SpecialChoice);
- FVTShipDefinition Resolved; if(!Data->ResolveFit(GI->SelectedHull,GI->SelectedFit,Resolved)) {GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->SetStatus(TEXT("This fit exceeds the selected hull mounts. Remove extra modules and try again.")); return false;}
- GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->RememberFit(); return true;
+ auto* Row=Cast<UPanelWidget>(CachedWidget(TEXT("MountRow")));if(!Row)return;Row->ClearChildren();
+ auto* Column=WidgetTree->ConstructWidget<UVerticalBox>();Row->AddChild(Column);
+ FitSummary=WidgetTree->ConstructWidget<UTextBlock>();Column->AddChild(FitSummary);
+ for(int MountSlot=0;MountSlot<3;++MountSlot){auto* Line=WidgetTree->ConstructWidget<UHorizontalBox>();Column->AddChild(Line);
+ for(const auto& O:Data->Loadouts)if(int(O.Slot)==MountSlot){auto* Check=WidgetTree->ConstructWidget<UVTFitCheckBox>();Check->Equipment=O.Id;Check->Editor=this;auto* Label=WidgetTree->ConstructWidget<UTextBlock>();Label->SetText(FText::FromStringTable(TextTable?TextTable->GetStringTableId():FName(TEXT("/Game/UI/ST_UI.ST_UI")),O.Id.ToString()+TEXT(".name")));Check->AddChild(Label);Check->OnCheckStateChanged.AddDynamic(Check,&UVTFitCheckBox::Changed);Line->AddChild(Check);FitChecks.Add(Check);}}
+ if(HullChoice)HullChoice->OnSelectionChanged.AddDynamic(this,&UVTUI::ChangeFitHull);RefreshFitEditor();
+}
+void UVTUI::RefreshFitEditor(const FText& Reason){FitUpdating=true;const auto& P=FitEditor.Preview();for(const auto& Check:FitChecks){const auto& F=P.Selection;Check->SetIsChecked(F.Broadside==Check->Equipment||F.Batteries.Contains(Check->Equipment)||F.Specials.Contains(Check->Equipment));}if(HullChoice)HullChoice->SetSelectedOption(P.Hull.ToString());if(FitSummary)FitSummary->SetText(Reason.IsEmpty()?P.Summary():FText::Format(NSLOCTEXT("VTFit","Feedback","{0}\n{1}"),P.Summary(),Reason));FitUpdating=false;}
+void UVTUI::ToggleFit(FName Equipment){FText Reason;FitEditor.Toggle(*GetWorld()->GetSubsystem<UVTSimulation>()->Data,Equipment,Reason);RefreshFitEditor(Reason);}
+void UVTUI::ChangeFitHull(FString Item,ESelectInfo::Type Type){if(FitUpdating)return;FText Reason;FitEditor.SelectHull(*GetWorld()->GetSubsystem<UVTSimulation>()->Data,SelectedId(HullChoice),Reason);RefreshFitEditor(Reason);}
+bool UVTUI::StoreFit() {
+ auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();auto* GI=CastChecked<UVTGameInstance>(GetGameInstance());
+ if(!FitEditor.Preview().Valid)return false;
+ GI->SelectedHull=FitEditor.Preview().Hull;GI->SelectedFit=FitEditor.Preview().Selection;
+ if(auto* Box=Cast<UComboBoxString>(CachedWidget(TEXT("PopulationChoice"))))GI->PopulationProfile=FName(Box->GetSelectedOption());
+ GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->RememberFit();return true;
 }
 void UVTUI::CreateWorld() {if(!StoreFit()) return; GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->CreateWorld(false,WorldName ? WorldName->GetText().ToString() : TEXT("Campaign"));}
 void UVTUI::ContinueWorld() {if(!StoreFit()) return; GetGameInstance()->GetSubsystem<UVTSessionSubsystem>()->CreateWorld(true,WorldName ? WorldName->GetText().ToString() : TEXT("Campaign"));}
@@ -123,6 +134,7 @@ void UVTUI::RefreshView() {
  Visible(TEXT("FitRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("FitHeading"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountHeading"),Frontend||(Vessel&&Vessel->Docked));
  if(FocusPending&&MenuOpen){if(auto* Focus=CachedWidget(Frontend?(SessionOptions?TEXT("Create"):TEXT("Skirmish")):TEXT("Resume")))Focus->SetUserFocus(GetOwningPlayer());FocusPending=false;}
  for(const TCHAR* Name:{TEXT("HullChoice"),TEXT("GunChoice"),TEXT("BatteryChoice"),TEXT("SpecialChoice"),TEXT("BatterySecond"),TEXT("BatteryThird"),TEXT("SpecialSecond"),TEXT("SpecialThird")})Visible(Name,Frontend||(Vessel&&Vessel->Docked));
+ for(auto* Box:{GunChoice.Get(),BatteryChoice.Get(),SpecialChoice.Get(),BatterySecond.Get(),BatteryThird.Get(),SpecialSecond.Get(),SpecialThird.Get()})if(Box)Box->SetVisibility(ESlateVisibility::Collapsed);
  if(auto* Graphics=Cast<UTextBlock>(CachedWidget(TEXT("GraphicsStatus"))))if(GEngine)if(auto* Settings=GEngine->GetGameUserSettings()){int Level=Settings->GetOverallScalabilityLevel();Graphics->SetText(FText::FromString(FString::Printf(TEXT("Graphics: %s"),Level==1?TEXT("Performance"):Level==2?TEXT("Balanced"):Level==3?TEXT("High"):TEXT("Custom"))));}
  if(StatusText) {FString Status=Session->Status; if(GetWorld()->GetMapName().Contains(TEXT("Menu"))) if(auto* Career=GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->Career.Get()) Status+=FString::Printf(TEXT("\nCareer: %d completed runs, %d victories, wave %d, %d prizes"),Career->Runs,Career->Victories,Career->DeepestWave,Career->ShipsBoarded); if(MenuOpen&&!GetWorld()->GetMapName().Contains(TEXT("Menu"))) if(auto* Player=GetOwningPlayerState<AVTPlayerState>()) {auto* Data=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get(); for(int I=0;I<Data->TrackedFactions.Num();++I) if(Player->Reputation.IsValidIndex(I)&&Player->Heat.IsValidIndex(I)) Status+=FString::Printf(TEXT("%s%s: standing %.0f / heat %.0f  "),I%2==0 ? TEXT("\n") : TEXT(" | "),*Data->TrackedFactions[I].ToString(),Player->Reputation[I],Player->Heat[I]);} StatusText->SetText(FText::FromString(Status));}
  if(LANChoice&&LastWorlds!=Session->Worlds.Num()) {LastWorlds=Session->Worlds.Num(); LANChoice->ClearOptions(); for(const auto& Name:Session->Worlds) LANChoice->AddOption(Name); if(LastWorlds>0) LANChoice->SetSelectedIndex(0);}
@@ -205,3 +217,4 @@ void UVTUI::NativeDestruct() {
 }
 
 void UVTUI::ToggleSessionOptions(){SessionOptions=!SessionOptions;FocusPending=true;RequestRefresh();}
+

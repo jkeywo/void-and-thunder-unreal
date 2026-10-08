@@ -1,3 +1,4 @@
+#include "VTFitEditor.h"
 #include "VTGameData.h"
 #include "VTGameplay.h"
 #include "VTUI.h"
@@ -61,44 +62,7 @@ EDataValidationResult UVTGameData::IsDataValid(FDataValidationContext& Context) 
 }
 #endif
 
-bool UVTGameData::ResolveFit(FName ClassId,const FVTLoadoutSelection& Fit,FVTShipDefinition& Out) const {
- const auto* Base=FindShip(ClassId); if(!Base) return false; Out=*Base;
- const FName PrimaryNames[]={Fit.Broadside,Fit.Battery,Fit.Special};
- for(int I=0;I<3;++I) {
-  if(PrimaryNames[I].IsNone()) continue;
-  const auto* Option=Loadouts.FindByPredicate([&](const FVTLoadoutOption& O){return O.Id==PrimaryNames[I]&&int(O.Slot)==I;}); if(!Option) return false;
-  const auto& D=Option->Definition; auto& E=Out.Equipment;
-  if(I==0) {Out.Damage=D.Damage; Out.Reload=D.Reload; Out.MuzzleSpeed=D.MuzzleSpeed; Out.Arc=D.Arc; Out.ChargeTime=D.ChargeTime; Out.Guns=D.Guns;}
-  if(I==1) {Out.BatteryMax=FMath::Max(Base->BatteryMax,D.BatteryMax); Out.BatteryRecharge=FMath::Max(Base->BatteryRecharge,D.BatteryRecharge); E.EMP=D.Equipment.EMP; E.Boost=D.Equipment.Boost; E.PointDefense=D.Equipment.PointDefense;
-   E.EMPCooldown=D.Equipment.EMPCooldown; E.EMPDrain=D.Equipment.EMPDrain; E.EMPRange=D.Equipment.EMPRange; E.EMPSwivel=D.Equipment.EMPSwivel; E.EMPArc=D.Equipment.EMPArc; E.EMPSpeed=D.Equipment.EMPSpeed; E.EMPFraction=D.Equipment.EMPFraction; E.BoostMultiplier=D.Equipment.BoostMultiplier; E.BoostDrain=D.Equipment.BoostDrain; E.PDRadius=D.Equipment.PDRadius; E.PDRate=D.Equipment.PDRate; E.PDDrain=D.Equipment.PDDrain;}
-  if(I==2) {E.Torpedoes=D.Equipment.Torpedoes; E.Warp=D.Equipment.Warp; E.Mines=D.Equipment.Mines;
-   E.TorpedoDamage=D.Equipment.TorpedoDamage; E.LockInterval=D.Equipment.LockInterval; E.LockRadius=D.Equipment.LockRadius; E.TorpedoMagazine=D.Equipment.TorpedoMagazine; E.Tubes=D.Equipment.Tubes; E.TubeReload=D.Equipment.TubeReload; E.TorpedoRange=D.Equipment.TorpedoRange; E.TorpedoSpeed=D.Equipment.TorpedoSpeed; E.TorpedoTurn=D.Equipment.TorpedoTurn; E.TorpedoResupplyMin=D.Equipment.TorpedoResupplyMin; E.TorpedoResupplyMax=D.Equipment.TorpedoResupplyMax;
-   E.WarpCooldown=D.Equipment.WarpCooldown; E.WarpRange=D.Equipment.WarpRange; E.MineCooldown=D.Equipment.MineCooldown; E.MineDamage=D.Equipment.MineDamage; E.MineMagazine=D.Equipment.MineMagazine; E.MineRadius=D.Equipment.MineRadius; E.MineTTL=D.Equipment.MineTTL; E.MineResupplyMin=D.Equipment.MineResupplyMin; E.MineResupplyMax=D.Equipment.MineResupplyMax;}
- }
- // Multi-mount sets use catalogue order, matching the original mask iteration.
- for(int Slot=1;Slot<3;++Slot) {
-  const auto& Names=Slot==1 ? Fit.Batteries : Fit.Specials; const bool Override=Slot==1?Fit.OverrideBatteries:Fit.OverrideSpecials; if(Names.IsEmpty()&&!Override) continue;
-  if(Names.Num()>Out.Mounts) return false; TSet<FName> UniqueNames;
-  if(Slot==1) {Out.Equipment.EMP=false; Out.Equipment.Boost=false; Out.Equipment.PointDefense=false;}
-  else {Out.Equipment.Torpedoes=false; Out.Equipment.Warp=false; Out.Equipment.Mines=false;}
-  for(FName Name:Names) {
-   if(UniqueNames.Contains(Name)) return false; UniqueNames.Add(Name);
-   FVTLoadoutSelection Single; if(Slot==1) Single.Battery=Name; else Single.Special=Name; FVTShipDefinition D;
-   if(!ResolveFit(ClassId,Single,D)) return false;
-   auto& E=Out.Equipment; const auto& Add=D.Equipment;
-   if(Slot==1) {Out.BatteryMax=FMath::Max(Out.BatteryMax,D.BatteryMax); Out.BatteryRecharge=FMath::Max(Out.BatteryRecharge,D.BatteryRecharge); E.EMP|=Add.EMP; E.Boost|=Add.Boost; E.PointDefense|=Add.PointDefense;
-    if(Add.EMP) {E.EMPCooldown=Add.EMPCooldown; E.EMPDrain=Add.EMPDrain; E.EMPRange=Add.EMPRange; E.EMPSwivel=Add.EMPSwivel; E.EMPArc=Add.EMPArc; E.EMPSpeed=Add.EMPSpeed; E.EMPFraction=Add.EMPFraction;}
-    if(Add.Boost) {E.BoostMultiplier=Add.BoostMultiplier; E.BoostDrain=Add.BoostDrain;} if(Add.PointDefense) {E.PDRadius=Add.PDRadius; E.PDRate=Add.PDRate; E.PDDrain=Add.PDDrain;}}
-   else {E.Torpedoes|=Add.Torpedoes; E.Warp|=Add.Warp; E.Mines|=Add.Mines;
-    if(Add.Torpedoes) {E.TorpedoDamage=Add.TorpedoDamage; E.LockInterval=Add.LockInterval; E.LockRadius=Add.LockRadius; E.TorpedoMagazine=Add.TorpedoMagazine; E.Tubes=Add.Tubes; E.TubeReload=Add.TubeReload; E.TorpedoRange=Add.TorpedoRange; E.TorpedoSpeed=Add.TorpedoSpeed; E.TorpedoTurn=Add.TorpedoTurn; E.TorpedoResupplyMin=Add.TorpedoResupplyMin; E.TorpedoResupplyMax=Add.TorpedoResupplyMax;}
-    if(Add.Warp) {E.WarpCooldown=Add.WarpCooldown; E.WarpRange=Add.WarpRange;} if(Add.Mines) {E.MineCooldown=Add.MineCooldown; E.MineDamage=Add.MineDamage; E.MineMagazine=Add.MineMagazine; E.MineRadius=Add.MineRadius; E.MineTTL=Add.MineTTL; E.MineResupplyMin=Add.MineResupplyMin; E.MineResupplyMax=Add.MineResupplyMax;}}
-  }
- }
- if(Fit.CrewedDevices.Num()>10) return false;
- TSet<EVTDevice> Unique;
- for(auto Device:Fit.CrewedDevices) {if(Unique.Contains(Device)||Device==EVTDevice::Boost||Device==EVTDevice::Microwarp||Device==EVTDevice::Brace||Device==EVTDevice::Board||uint8(Device)>uint8(EVTDevice::PointDefense)) return false; Unique.Add(Device);}
- return true;
-}
+bool UVTGameData::ResolveFit(FName ClassId,const FVTLoadoutSelection& Fit,FVTShipDefinition& Out) const {return FVTFitEditor::Resolve(*this,ClassId,Fit,Out);}
 
 float UVTGameData::StandingBetween(FName A,FName B) const {
  static const FName FreebootersFaction(TEXT("Freebooters"));
@@ -107,18 +71,7 @@ float UVTGameData::StandingBetween(FName A,FName B) const {
  return 0;
 }
 
-TArray<EVTDevice> UVTGameData::CrewForFit(FName ClassId,const FVTLoadoutSelection& Fit) const {
- TArray<EVTDevice> Crew; const auto* Base=FindShip(ClassId); if(!Base) return Crew;
- for(int Slot=1;Slot<3;++Slot) {
-  const auto& Names=Slot==1 ? Fit.Batteries : Fit.Specials; int Mount=0;
-  for(const auto& O:Loadouts) if(int(O.Slot)==Slot&&Names.Contains(O.Id)) {
-   if(Mount++<Base->Crewed) continue; const auto& E=O.Definition.Equipment;
-   if(Slot==1) {if(E.EMP) Crew.AddUnique(EVTDevice::EMP); if(E.PointDefense) Crew.AddUnique(EVTDevice::PointDefense);}
-   else {if(E.Torpedoes) Crew.AddUnique(EVTDevice::Torpedo); if(E.Mines) Crew.AddUnique(EVTDevice::Mine);}
-  }
- }
- return Crew;
-}
+TArray<EVTDevice> UVTGameData::CrewForFit(FName ClassId,const FVTLoadoutSelection& Fit) const {return FVTFitEditor::Crew(*this,ClassId,Fit);}
 
 void UVTGameData::LoadCatalog() {
  if(CatalogLoaded) return;

@@ -1,6 +1,8 @@
 #pragma once
 #include "Blueprint/UserWidget.h"
 #include "VTTypes.h"
+#include "VTFitEditor.h"
+#include "Components/CheckBox.h"
 #include "Fonts/SlateFontInfo.h"
 #include "Styling/SlateColor.h"
 #include "VTUI.generated.h"
@@ -9,6 +11,13 @@ class UVTSimulation;
 enum class EVTInteractionHint : uint8 { None,Loot,Jump,Dock };
 struct FVTInteractionHint { EVTInteractionHint Kind=EVTInteractionHint::None;FVector2D Position=FVector2D::ZeroVector;FText Label;float Progress=0; };
 VOIDANDTHUNDER_API FVTInteractionHint VTInteractionHint(const AVTShip* Ship,const UVTSimulation* Sim);
+class UVTUI;
+UCLASS() class VOIDANDTHUNDER_API UVTFitCheckBox : public UCheckBox {
+ GENERATED_BODY()
+public:
+ FName Equipment;TWeakObjectPtr<UVTUI> Editor;
+ UFUNCTION() void Changed(bool Checked);
+};
 class UTextBlock;
 class UComboBoxString;
 class UEditableTextBox;
@@ -74,6 +83,14 @@ public:
  virtual int32 NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const FSlateRect& Culling,FSlateWindowElementList& Elements,int32 Layer,const FWidgetStyle& Style,bool Enabled) const override;
  virtual void NativeTick(const FGeometry& Geometry,float Dt) override;
  void SetMenu(bool Open);
+ FVTFitEditor FitEditor;
+ bool FitUpdating=false;
+ UPROPERTY() TArray<TObjectPtr<UVTFitCheckBox>> FitChecks;
+ UPROPERTY() TObjectPtr<UTextBlock> FitSummary;
+ void BuildFitEditor();
+ void RefreshFitEditor(const FText& Reason=FText::GetEmpty());
+ void ToggleFit(FName Equipment);
+ UFUNCTION() void ChangeFitHull(FString Item,ESelectInfo::Type Type);
  bool StoreFit();
  void ApplyGraphics(int32 Preset);
  UFUNCTION() void PerformanceGraphics();

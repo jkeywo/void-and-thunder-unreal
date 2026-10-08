@@ -125,3 +125,7 @@ Gate entry remains host-authoritative: a held interaction guides the shared ship
 Gate staging compares forward and reverse travel/turn estimates using the hull thrust, drag and turn rate. Reverse is restricted to the approach phase; charged passage retains the outward heading and swept crossing. Device projectiles and restored projectiles finish deferred spawning only after their type/state is assigned, and replicated type changes refresh presentation.
 
 Gate entry now uses a native authored acceleration surge to the ring, then teleports to the destination ring and follows a short quadratic braking curve to the existing 0.85 arrival point. Arrival origin/time/target are replicated and saved; prediction samples the same curve against motion time, without mutating replicated phase timers. The local PlayerCameraManager starts a white fade in the same camera update that detects a system change. Torpedoes again share the original projectile presentation.
+
+## Deep gameplay modules
+
+[ai] Fit selection, projectile creation, phase-scoped ship queries, captain standings and gate passage hide their complete lifecycle rules behind domain interfaces. Frontend/PIE share a fit editor; live/restored projectiles share pre-BeginPlay initialization; simulation queries retain ordered Actor references; standings select one connected/disconnected owner; gate passage is a replicated native ship component with schema-6 snapshot adapters. The 64 Hz coordinator, GAS authority, native tuning and campaign identity remain unchanged.
