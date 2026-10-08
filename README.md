@@ -121,3 +121,23 @@ After packaging, double-click `run-unreal.bat` to start the current Development
 build from this checkout. Published older preview ZIPs do not contain these fixes.
 
 The original amber CRT GUI is restored in native UMG/Slate: five salvaged-metal panel textures, cooldown dials, segmented bars, torpedo tubes, shield edges and projected ship rings. Tab toggles controls; F toggles the sandbox chart (controller View/right-stick respectively). The centered title card keeps Cast off and Test range, with hosting/joining under Shared world. Run `Scripts/HUDStyle.ps1` for the explicit asset upgrade after building the Editor module. `Scripts/ExportLegacyHUD.cjs <source hud.html>` regenerates static artwork with Playwright; it is a development tool, not a game dependency. Normal bootstrap preserves authored UI.
+
+
+New sandbox captains begin in a private wreck field with the engineer's narrative
+intro. Learn the helm and broadsides, choose **boost or EMP**, then **torpedoes or
+microwarp**, confront the attacker, board their disabled ship and escape through
+the gate. You choose the hull beforehand; the engineer's repairs build the fit.
+The captain remains silent. Dialogue uses engineer/enemy portraits and mapped
+control hints. Choices and checkpoints survive saving and reconnecting.
+
+In the Sandbox level, the **Skip intro** checkbox beside the PIE mode/hull/loadout
+controls starts directly in the sandbox and enables advance loadout selection.
+Skirmish and Test Range always bypass the intro. Existing campaign captains stay
+in the sandbox. The in-game dialogue also provides Skip intro.
+
+`Scripts/IntroAssets.ps1` seeds the intro's native data, portraits, wreck mesh and
+UMG widget while preserving existing assets. `-RepairChoices` and `-RefreshVisuals`
+are explicit targeted upgrades. Edit dialogue and encounter tuning in
+`Content/Data/DA_Intro`, presentation in `Content/UI/WBP_Intro`.
+`Scripts/IntroNetwork.ps1 -Packaged -RoundTripMs 150 -Loss 2` exercises independent
+four-player introductions, repair choices, skipping and reconnecting.

@@ -42,7 +42,7 @@ void UVTSimulation::PiracyStep() {
   if(Combat->BoardingProgress<Data->Rules.BoardDwell) continue;
   // Authority serializes claims: the next captain can never receive the same prize.
   Target->Combat->Claimed=true; S->Combat->Cue(TEXT("GameplayCue.Ship.Board"));
-  if(auto* PS=S->GetPlayerState<AVTPlayerState>()) {++PS->Boarded; PS->Credits+=Data->Rules.BoardingBounty;}
+  if(!UVTIntroComponent::IsArena(this,S->SystemIndex))if(auto* PS=S->GetPlayerState<AVTPlayerState>()) {++PS->Boarded; PS->Credits+=Data->Rules.BoardingBounty;}
   uint32 Random=uint32(WorldSeed)^GetTypeHash(Target->PersistentId); const auto& E=S->Definition.Equipment;
   auto Supply=[&](int Min,int Max){return Min+FMath::Min(Max-Min,int(VT::LcgNext(Random)*(Max-Min+1)));};
   S->Combat->EquipmentState.TorpedoMagazine=FMath::Min(E.TorpedoMagazine,S->Combat->EquipmentState.TorpedoMagazine+Supply(E.TorpedoResupplyMin,E.TorpedoResupplyMax));

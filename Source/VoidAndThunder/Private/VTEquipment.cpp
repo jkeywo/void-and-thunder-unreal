@@ -125,6 +125,7 @@ float& UVTDeviceAbility::Snapshot() {
 }
 void UVTDeviceAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,const FGameplayAbilityActivationInfo ActivationInfo,const FGameplayEventData* Event) {
  auto* S=Cast<AVTShip>(Info->AvatarActor.Get()); if(!S) {EndAbility(Handle,Info,ActivationInfo,true,true); return;}
+ if(auto* Intro=UVTIntroComponent::For(S))if(!Intro->SystemsOnline()&&!S->Combat->RestoringBank){EndAbility(Handle,Info,ActivationInfo,true,true);return;}
  const auto& E=S->Definition.Equipment;
  bool Fitted=Device==EVTDevice::EMP ? E.EMP : Device==EVTDevice::Mine ? E.Mines : Device==EVTDevice::Microwarp ? E.Warp : E.PointDefense;
  if(!Fitted||((S->Docked||S->Disabled)&&!S->Combat->RestoringBank)) {EndAbility(Handle,Info,ActivationInfo,true,true); return;}

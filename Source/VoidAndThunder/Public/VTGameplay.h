@@ -1,5 +1,6 @@
 #pragma once
 #include "VTShipQueries.h"
+#include "VTIntro.h"
 #include "VTGatePassage.h"
 #include "VTCaptainStandings.h"
 #include "CoreMinimal.h"
@@ -100,6 +101,8 @@ public:
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool Disabled = false;
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) float PortReload = 0;
  UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) float StarboardReload = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_IntroFixture) uint8 IntroFixture=0;
+ UFUNCTION() void OnRep_IntroFixture();
  UPROPERTY(ReplicatedUsing=OnRep_Fit,BlueprintReadOnly) FVTLoadoutSelection Fit;
  UFUNCTION() void OnRep_Fit();
  UFUNCTION() void OnRep_ClassId();
@@ -185,6 +188,11 @@ class VOIDANDTHUNDER_API AVTController : public APlayerController {
  GENERATED_BODY()
 public:
  AVTController();
+ UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UVTIntroComponent> Intro;
+ UPROPERTY() TObjectPtr<class UVTIntroWidget> IntroWidget;
+ void AdvanceIntro();
+ void IntroChoiceA();
+ void IntroChoiceB();
  UPROPERTY() TObjectPtr<class UVTUI> UI;
  void ToggleMenu();
  void ToggleAutopilot();
@@ -329,6 +337,7 @@ public:
 #endif
  UPROPERTY(BlueprintReadOnly) FString PlayMode=TEXT("sandbox");
  UPROPERTY(BlueprintReadOnly) bool ContinueWorld=false;
+ UPROPERTY(BlueprintReadWrite) bool SkipIntro=false;
  UPROPERTY(BlueprintReadWrite) FName PopulationProfile=TEXT("Shared sandbox");
  int32 NewWorldPopulation=-1;
  bool ValidationSessionStarted=false,ValidationDiscoveryStarted=false;

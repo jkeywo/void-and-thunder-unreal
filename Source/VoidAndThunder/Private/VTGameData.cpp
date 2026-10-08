@@ -1,5 +1,5 @@
-#include "VTFitEditor.h"
 #include "VTGameData.h"
+#include "VTFitEditor.h"
 #include "VTGameplay.h"
 #include "VTUI.h"
 #include "Engine/AssetManager.h"

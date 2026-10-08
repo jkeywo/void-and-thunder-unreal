@@ -1,6 +1,6 @@
+#include "VTUI.h"
 #include "Components/VerticalBox.h"
 #include "Components/HorizontalBox.h"
-#include "VTUI.h"
 #include "Internationalization/StringTable.h"
 #include "Blueprint/WidgetTree.h"
 #include "TimerManager.h"
@@ -134,7 +134,7 @@ void UVTUI::RefreshView() {
  Visible(TEXT("Autopilot"),!Frontend&&Vessel&&!Vessel->Docked&&!Vessel->Disabled);
  if(auto* Label=Cast<UTextBlock>(CachedWidget(TEXT("AutopilotLabel"))))Label->SetText(FText::FromString(Vessel&&Vessel->Autopilot?TEXT("AI pilot: on"):TEXT("AI pilot: off")));
  Visible(TEXT("Save"),!Frontend&&GetWorld()->GetNetMode()!=NM_Client&&!GetWorld()->GetSubsystem<UVTSimulation>()->ActiveScenario());
- Visible(TEXT("FitRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("FitHeading"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountHeading"),Frontend||(Vessel&&Vessel->Docked));
+ Visible(TEXT("FitRow"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountRow"),(Frontend&&(!SessionOptions||CastChecked<UVTGameInstance>(GetGameInstance())->SkipIntro))||(Vessel&&Vessel->Docked));Visible(TEXT("FitHeading"),Frontend||(Vessel&&Vessel->Docked));Visible(TEXT("MountHeading"),(Frontend&&(!SessionOptions||CastChecked<UVTGameInstance>(GetGameInstance())->SkipIntro))||(Vessel&&Vessel->Docked));
  if(FocusPending&&MenuOpen){if(auto* Focus=CachedWidget(Frontend?(SessionOptions?TEXT("Create"):TEXT("Skirmish")):TEXT("Resume")))Focus->SetUserFocus(GetOwningPlayer());FocusPending=false;}
  for(const TCHAR* Name:{TEXT("HullChoice"),TEXT("GunChoice"),TEXT("BatteryChoice"),TEXT("SpecialChoice"),TEXT("BatterySecond"),TEXT("BatteryThird"),TEXT("SpecialSecond"),TEXT("SpecialThird")})Visible(Name,Frontend||(Vessel&&Vessel->Docked));
  for(auto* Box:{GunChoice.Get(),BatteryChoice.Get(),SpecialChoice.Get(),BatterySecond.Get(),BatteryThird.Get(),SpecialSecond.Get(),SpecialThird.Get()})if(Box)Box->SetVisibility(ESlateVisibility::Collapsed);
@@ -172,10 +172,10 @@ int32 UVTUI::NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const 
  FVector2D Offset(Geometry.GetLocalSize().X-430,35),Size(405,240);
  FSlateDrawElement::MakeBox(Elements,Top,Geometry.ToPaintGeometry(Size,FSlateLayoutTransform(Offset)),FCoreStyle::Get().GetBrush("WhiteBrush"),ESlateDrawEffect::None,FLinearColor(0.025f,0.017f,0.006f,0.95f)); ++Top;
  FVector2D Min(DBL_MAX,DBL_MAX),Max(-DBL_MAX,-DBL_MAX);
- for(const auto& System:Sim->Data->Systems) {Min.X=FMath::Min(Min.X,System.ChartPosition.X); Min.Y=FMath::Min(Min.Y,System.ChartPosition.Y); Max.X=FMath::Max(Max.X,System.ChartPosition.X); Max.Y=FMath::Max(Max.Y,System.ChartPosition.Y);}
+ for(const auto& System:Sim->Data->Systems) {if(System.Id.ToString().StartsWith(TEXT("__intro_")))continue;Min.X=FMath::Min(Min.X,System.ChartPosition.X); Min.Y=FMath::Min(Min.Y,System.ChartPosition.Y); Max.X=FMath::Max(Max.X,System.ChartPosition.X); Max.Y=FMath::Max(Max.Y,System.ChartPosition.Y);}
  auto Point=[&](int I) {auto P=Sim->Data->Systems[I].ChartPosition; return Offset+FVector2D(25,25)+FVector2D((P.X-Min.X)/FMath::Max(1.,Max.X-Min.X)*240,(P.Y-Min.Y)/FMath::Max(1.,Max.Y-Min.Y)*165);};
- for(int I=0;I<Sim->Data->Systems.Num();++I) {for(FName LinkId:Sim->Data->Systems[I].Links) {int J=Sim->Data->FindSystem(LinkId); if(J>I) Line(Point(I),Point(J),FLinearColor(0.5f,0.34f,0.05f));}}
- for(int I=0;I<Sim->Data->Systems.Num();++I) {auto P=Point(I); auto Colour=I==Mine->SystemIndex ? FLinearColor(1,0.7f,0) : FLinearColor(0.7f,0.5f,0.15f); FString Label=Sim->Data->Systems[I].DisplayName.ToString()+FString::Printf(TEXT(" (%d)"),State&&State->Populations.IsValidIndex(I) ? State->Populations[I] : 0); FSlateDrawElement::MakeBox(Elements,Top,Geometry.ToPaintGeometry(FVector2D(5,5),FSlateLayoutTransform(P)),FCoreStyle::Get().GetBrush("WhiteBrush"),ESlateDrawEffect::None,Colour); FSlateDrawElement::MakeText(Elements,Top,Geometry.ToPaintGeometry(FVector2D(110,20),FSlateLayoutTransform(P+FVector2D(7,0))),Label,Font,ESlateDrawEffect::None,Colour);}
+ for(int I=0;I<Sim->Data->Systems.Num();++I) {if(UVTIntroComponent::IsArena(Sim,I))continue;for(FName LinkId:Sim->Data->Systems[I].Links) {int J=Sim->Data->FindSystem(LinkId); if(J>I) Line(Point(I),Point(J),FLinearColor(0.5f,0.34f,0.05f));}}
+ for(int I=0;I<Sim->Data->Systems.Num();++I) {if(UVTIntroComponent::IsArena(Sim,I))continue;auto P=Point(I); auto Colour=I==Mine->SystemIndex ? FLinearColor(1,0.7f,0) : FLinearColor(0.7f,0.5f,0.15f); FString Label=Sim->Data->Systems[I].DisplayName.ToString()+FString::Printf(TEXT(" (%d)"),State&&State->Populations.IsValidIndex(I) ? State->Populations[I] : 0); FSlateDrawElement::MakeBox(Elements,Top,Geometry.ToPaintGeometry(FVector2D(5,5),FSlateLayoutTransform(P)),FCoreStyle::Get().GetBrush("WhiteBrush"),ESlateDrawEffect::None,Colour); FSlateDrawElement::MakeText(Elements,Top,Geometry.ToPaintGeometry(FVector2D(110,20),FSlateLayoutTransform(P+FVector2D(7,0))),Label,Font,ESlateDrawEffect::None,Colour);}
  return Top;
 }
 

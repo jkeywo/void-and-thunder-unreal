@@ -54,3 +54,10 @@ public:
  UVTFlightFixesCommandlet();
  virtual int32 Main(const FString& Params) override;
 };
+UCLASS()
+class UVTIntroAssetsCommandlet:public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTIntroAssetsCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};

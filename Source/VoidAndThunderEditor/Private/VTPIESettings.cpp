@@ -1,5 +1,5 @@
-#include "VTFitEditor.h"
 #include "VTPIESettings.h"
+#include "VTFitEditor.h"
 #include "VTGameplay.h"
 #include "Engine/World.h"
 #include "GameFramework/WorldSettings.h"
@@ -12,5 +12,5 @@ void UVTPIESettings::SelectHull(const UVTGameData* Data,FName Id){FVTFitEditor E
 bool UVTPIESettings::Apply(UVTGameInstance* GI,UWorld* EditorWorld,const UVTGameData* Data) const {
  const auto Supported=Modes(EditorWorld);if(!GI||Supported.IsEmpty()||!Data)return false;
  FVTShipDefinition Resolved;if(!Data->ResolveFit(Hull,Fit,Resolved))return false;
- GI->PlayMode=ModeId(Supported.Contains(Mode)?Mode:Supported[0]);GI->SelectedHull=Hull;GI->SelectedFit=Fit;GI->ContinueWorld=false;GI->NewWorldPopulation=-1;return true;
+ GI->PlayMode=ModeId(Supported.Contains(Mode)?Mode:Supported[0]);GI->SelectedHull=Hull;GI->SelectedFit=Fit;GI->ContinueWorld=false;GI->NewWorldPopulation=-1;GI->SkipIntro=SkipIntro;return true;
 }

@@ -17,6 +17,7 @@ UCLASS(Config=EditorPerProjectUserSettings)
 class VOIDANDTHUNDEREDITOR_API UVTPIESettings : public UDeveloperSettings {
  GENERATED_BODY()
 public:
+ UPROPERTY(Config,EditAnywhere,Category="Preview") bool SkipIntro=false;
  UPROPERTY(Config,EditAnywhere,Category="Preview") EVTPIEMode Mode=EVTPIEMode::Sandbox;
  UPROPERTY(Config,EditAnywhere,Category="Preview") FName Hull=TEXT("corsair_cruiser");
  UPROPERTY(Config,EditAnywhere,Category="Preview") FVTLoadoutSelection Fit;

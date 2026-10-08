@@ -1,5 +1,5 @@
-#include "VTProjectileSpawn.h"
 #include "VTSaveSubsystem.h"
+#include "VTProjectileSpawn.h"
 #include "Async/Async.h"
 #include "VTSessionSubsystem.h"
 #include "VTGameplay.h"
@@ -61,7 +61,7 @@ void UVTSaveSubsystem::CapturePlayer(AVTController* PC) {
  if(!PC||!PC->GetWorld()->GetSubsystem<UVTSimulation>()->Bootstrapped) return; auto* PS=PC->GetPlayerState<AVTPlayerState>(); auto* Ship=Cast<AVTShip>(PC->GetPawn()); if(!PS||!Ship||!PS->Profile.IsValid()) return;
  FVTSavedPlayer* R=PlayerRecords.FindByPredicate([PS](const FVTSavedPlayer& Item){return Item.Profile==PS->Profile;});
  if(!R) {FVTSavedPlayer New; New.Profile=PS->Profile; New.Token=FGuid::NewGuid(); R=&PlayerRecords.Add_GetRef(New);}
- R->Ship=CaptureShip(Ship); R->Credits=PS->Credits; R->Boarded=PS->Boarded; R->Reputation=PS->Reputation; R->Heat=PS->Heat;
+ R->Intro=PC->Intro->Progress; R->Ship=CaptureShip(Ship); R->Credits=PS->Credits; R->Boarded=PS->Boarded; R->Reputation=PS->Reputation; R->Heat=PS->Heat;
 }
 bool UVTSaveSubsystem::Validate(const UVTWorldSave* S) const {
  auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); if(!S||S->Version!=6||!S->WorldId.IsValid()||!FMath::IsFinite(S->SimulationTime)||S->SimulationTime<0||S->Ships.Num()>10000||S->Projectiles.Num()>100000) return false;
@@ -84,6 +84,7 @@ bool UVTSaveSubsystem::Validate(const UVTWorldSave* S) const {
  for(const auto& R:S->Ships) if(!R.NPC||!ValidShip(R)) return false;
  TSet<FGuid> Profiles;
  for(const auto& P:S->Players) {
+  if(uint8(P.Intro.Stage)>uint8(EVTIntroStage::SpecialTrial)||!FMath::IsFinite(P.Intro.Elapsed)||P.Intro.Elapsed<0||!FMath::IsFinite(P.Intro.Distance)||P.Intro.Distance<0||!FMath::IsFinite(P.Intro.Turn)||P.Intro.Turn<0||!FMath::IsFinite(P.Intro.DeviceSeconds)||P.Intro.DeviceSeconds<0)return false;
   if(!P.Profile.IsValid()||!P.Token.IsValid()||Profiles.Contains(P.Profile)||!ValidShip(P.Ship)||P.Ship.NPC) return false;
   if(P.Reputation.Num()!=Sim->Data->TrackedFactions.Num()||P.Heat.Num()!=P.Reputation.Num()||P.Credits<0||P.Boarded<0) return false;
   Profiles.Add(P.Profile);
@@ -118,8 +119,8 @@ bool UVTSaveSubsystem::Save(bool Background) {
  for(auto It=World->GetPlayerControllerIterator();It;++It) CapturePlayer(Cast<AVTController>(It->Get()));
  auto* Snapshot=CastChecked<UVTWorldSave>(UGameplayStatics::CreateSaveGameObject(UVTWorldSave::StaticClass()));
  Snapshot->WorldId=WorldId; Snapshot->Seed=Sim->WorldSeed; Snapshot->SimulationTime=Sim->SimulationTime; Snapshot->Players=PlayerRecords;
- for(AVTShip* Ship:Sim->Ships) if(IsValid(Ship)&&Ship->IsNPC) Snapshot->Ships.Add(CaptureShip(Ship));
- for(AVTProjectile* P:Sim->Projectiles) if(IsValid(P)&&P->Remaining>0) {
+ for(AVTShip* Ship:Sim->Ships) if(IsValid(Ship)&&Ship->IsNPC&&!UVTIntroComponent::IsArena(Sim,Ship->SystemIndex)) Snapshot->Ships.Add(CaptureShip(Ship));
+ for(AVTProjectile* P:Sim->Projectiles) if(IsValid(P)&&P->Remaining>0&&!UVTIntroComponent::IsArena(Sim,P->SystemIndex)) {
   FVTSavedProjectile R; R.Id=P->PersistentId; R.Source=P->SourceId; R.System=P->SystemIndex; R.Position=P->Position; R.Velocity=P->Velocity; R.Damage=P->Damage; R.Remaining=P->Remaining; R.Radius=P->Radius; R.Kind=P->Kind; R.Target=P->TargetId; R.AttackerProfile=P->AttackerProfile; R.SourceFaction=P->SourceFaction; R.SourceNPC=P->SourceNPC; R.Height=P->Height; R.Velocity3D=P->Velocity3D; R.TurnRate=P->TurnRate; R.ReportCountdown=P->ReportCountdown; Snapshot->Projectiles.Add(R);
  }
  if(!Validate(Snapshot)) return false;
@@ -158,6 +159,7 @@ bool UVTSaveSubsystem::Load() {
   if(const auto* R=PlayerRecords.FindByPredicate([PS](const FVTSavedPlayer& P){return P.Profile==PS->Profile;})) {
    auto* Ship=RestoreShip(R->Ship,Snapshot->SimulationTime); Entities.Add(R->Ship.Id,Ship); PC->Possess(Ship); PC->LocalIntent=FVTPilotIntent(); PC->NextSequence=0; PC->SendAccumulator=0;
    PS->Credits=R->Credits; PS->Boarded=R->Boarded; PS->Reputation=R->Reputation; PS->Heat=R->Heat;
+   PC->Intro->Arena=INDEX_NONE;PC->Intro->Restore(R->Intro);
    PC->ClientAcceptIdentity(WorldId,R->Token);
   } else if(auto* Mode=World->GetAuthGameMode<AVTGameMode>()) Mode->RestartPlayer(PC);
  }

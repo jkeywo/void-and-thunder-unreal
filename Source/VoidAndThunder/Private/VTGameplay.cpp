@@ -1,4 +1,5 @@
 #include "VTGameplay.h"
+#include "VTIntroWidget.h"
 #include "VTGate.h"
 #include "GameFramework/PlayerInput.h"
 #include "Engine/AssetManager.h"
@@ -51,6 +52,7 @@ void UVTShipMovement::Step(const FVTPilotIntent& Value, bool Predict) {
  const float Reverse = Sim->Data ? Sim->Data->Rules.ReverseThrottle : 0.25f;
  Previous = Motion;
  FVTPilotIntent Effective=S->Disabled ? FVTPilotIntent() : Value;
+ if(auto* Intro=UVTIntroComponent::For(S))Intro->Filter(Effective);
  FVTShipStats Stats=S->Definition.Stats; Stats.Thrust*=S->Combat->SpeedScale; Stats.MaxSpeed*=S->Combat->SpeedScale;
  if(Sim->Data) {Stats.Thrust*=Sim->Data->FlightSpeedMultiplier; Stats.MaxSpeed*=Sim->Data->FlightSpeedMultiplier;}
  const bool Passage=S->GatePassage->Integrate(Motion,Stats,Effective,Predict);
@@ -160,8 +162,9 @@ void AVTShip::BeginPlay() {
  if(HullMesh&&HullMesh->GetPathName()==TEXT("/Engine/BasicShapes/Cube.Cube")) Mesh->SetRelativeScale3D(FVector(40,18,8));
  Mesh->SetStaticMesh(HullMesh);
  Combat->Initialize();
+ OnRep_IntroFixture();
 }
-void AVTShip::OnRep_Fit() {GetWorld()->GetSubsystem<UVTSimulation>()->Data->ResolveFit(ClassId,Fit,Definition);}
+void AVTShip::OnRep_Fit() {GetWorld()->GetSubsystem<UVTSimulation>()->Data->ResolveFit(ClassId,Fit,Definition);OnRep_IntroFixture();}
 bool AVTShip::ApplyFit(const FVTLoadoutSelection& Selected,bool Refill) {
  if(!HasAuthority()) return false; FVTShipDefinition Resolved; if(!GetWorld()->GetSubsystem<UVTSimulation>()->Data->ResolveFit(ClassId,Selected,Resolved)) return false;
  Fit=Selected; Fit.CrewedDevices=GetWorld()->GetSubsystem<UVTSimulation>()->Data->CrewForFit(ClassId,Selected); Definition=Resolved;
@@ -186,7 +189,7 @@ bool AVTShip::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarge
 }
 void AVTShip::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
  Super::GetLifetimeReplicatedProps(OutLifetimeProps);
- DOREPLIFETIME(AVTShip,Autopilot); DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
+ DOREPLIFETIME(AVTShip,IntroFixture); DOREPLIFETIME(AVTShip,Autopilot); DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
  DOREPLIFETIME(AVTShip, PersistentId); DOREPLIFETIME(AVTShip, Docked); DOREPLIFETIME(AVTShip, Disabled);
  DOREPLIFETIME(AVTShip, PortReload); DOREPLIFETIME(AVTShip, StarboardReload);
 }
@@ -201,6 +204,7 @@ void AVTGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
  Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(AVTGameState,Wave); DOREPLIFETIME(AVTGameState,EnemiesRemaining); DOREPLIFETIME(AVTGameState,Outcome); DOREPLIFETIME(AVTGameState, SimulationTime); DOREPLIFETIME(AVTGameState, Populations);
 }
 AVTController::AVTController() {
+ Intro=CreateDefaultSubobject<UVTIntroComponent>(TEXT("Introduction"));
  bShowMouseCursor = true; PlayerCameraManagerClass=AVTCameraManager::StaticClass();
  ThrottleUp=CreateDefaultSubobject<UInputAction>(TEXT("ThrottleUp"));ThrottleDown=CreateDefaultSubobject<UInputAction>(TEXT("ThrottleDown"));
  ThrottleUp->ValueType=ThrottleDown->ValueType=EInputActionValueType::Boolean;
@@ -227,6 +231,7 @@ void AVTController::BeginPlay() {
   if(!IsRunningCommandlet()&&FApp::CanEverRender()) {GetWorld()->SpawnActor<AVTSky>(); GetWorld()->SpawnActor<AVTReferenceGrid>();}
   if(UClass* UIClass=GetWorld()->GetSubsystem<UVTSimulation>()->Data->UIClass.Get() ? GetWorld()->GetSubsystem<UVTSimulation>()->Data->UIClass.Get() : LoadClass<UVTUI>(nullptr,TEXT("/Game/UI/WBP_UI.WBP_UI_C"))) {UI=CreateWidget<UVTUI>(this,UIClass); UI->AddToViewport();}
 
+  if(FApp::CanEverRender()){auto* IntroClass=LoadClass<UVTIntroWidget>(nullptr,TEXT("/Game/UI/WBP_Intro.WBP_Intro_C"));IntroWidget=CreateWidget<UVTIntroWidget>(this,IntroClass?IntroClass:UVTIntroWidget::StaticClass());IntroWidget->AddToViewport(20);}
   FlightMapping=PrepareFlightMapping(LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Flight.IMC_Flight")));
   CommonMapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Common.IMC_Common"));
   MenuMapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Menu.IMC_Menu"));
@@ -255,6 +260,12 @@ void AVTController::ReadFlight(const FInputActionValue& Value, int32 Index) {
 }
 void AVTController::SetupInputComponent() {
  Super::SetupInputComponent();
+ InputComponent->BindKey(EKeys::One,IE_Pressed,this,&AVTController::IntroChoiceA);
+ InputComponent->BindKey(EKeys::Two,IE_Pressed,this,&AVTController::IntroChoiceB);
+ InputComponent->BindKey(EKeys::Gamepad_FaceButton_Left,IE_Pressed,this,&AVTController::IntroChoiceA);
+ InputComponent->BindKey(EKeys::Gamepad_FaceButton_Top,IE_Pressed,this,&AVTController::IntroChoiceB);
+ InputComponent->BindKey(EKeys::Enter,IE_Pressed,this,&AVTController::AdvanceIntro);
+ InputComponent->BindKey(EKeys::Gamepad_FaceButton_Bottom,IE_Pressed,this,&AVTController::AdvanceIntro);
  auto* Input = Cast<UEnhancedInputComponent>(InputComponent);
  if (!Input) return;
  Input->BindAction(ThrottleUp,ETriggerEvent::Started,this,&AVTController::StepThrottle,1);
@@ -303,6 +314,7 @@ void AVTController::PlayerTick(float Dt) {
  AVTShip* Ship = Cast<AVTShip>(GetPawn()); if (!IsLocalController() || !Ship) return;
  if((UI&&UI->MenuOpen)||Ship->Autopilot) LocalIntent=FVTPilotIntent();
  float MouseX=PlayerInput?PlayerInput->GetRawKeyValue(EKeys::MouseX):0,MouseY=PlayerInput?PlayerInput->GetRawKeyValue(EKeys::MouseY):0; if(FMath::Abs(MouseX)+FMath::Abs(MouseY)>0.1f) UsingGamepadAim=false;
+ Intro->Filter(LocalIntent);
  const bool Broadside=UpdateBroadsideAim(MouseX,GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.controls,Ship->Movement->Motion.Heading,Ship->Definition.Arc);
  FVector Origin, Direction;
  if (!Broadside && !UsingGamepadAim && DeprojectMousePositionToWorld(Origin, Direction) && FMath::Abs(Direction.Z) > 0.0001) {
@@ -372,7 +384,7 @@ void UVTSimulation::Initialize(FSubsystemCollectionBase& Collection) {
  if(Handle) Handle->WaitUntilComplete();
  Data=Cast<UVTGameData>(Manager.GetPrimaryAssetObject(FPrimaryAssetId(TEXT("VTGameData"),TEXT("DA_GameData"))));
  if(!Data) Data=LoadObject<UVTGameData>(nullptr,TEXT("/Game/Data/DA_GameData.DA_GameData"));
- if(Data) Data->LoadCatalog();
+ if(Data) {Data->LoadCatalog();UVTIntroComponent::PrepareArenas(this);}
 }
 AVTShip* UVTSimulation::SpawnShip(FName Id, int32 System, const FVTMotion& Motion, bool NPC, FName Faction) {
  AVTShip* Ship = GetWorld()->SpawnActorDeferred<AVTShip>(Data&&Data->ShipClass.Get() ? Data->ShipClass.Get() : AVTShip::StaticClass(),FTransform(VT::ToWorld(Motion.Position,System)),nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
@@ -389,12 +401,14 @@ void UVTSimulation::Bootstrap(int32 Population,bool Synthetic) {
  Bootstrapped = true;
  if(Population<0&&ActiveScenario()) return;
  uint32 Random=uint32(WorldSeed);
+ int32 PopulatedSystems=0;for(int32 I=0;I<Data->Systems.Num();++I)if(!UVTIntroComponent::IsArena(this,I))++PopulatedSystems;
  for (int32 I=0; I<Data->Systems.Num(); ++I) {
+  if(UVTIntroComponent::IsArena(this,I))continue;
   const auto& Def = Data->Systems[I];
   const int32 Civilians = Def.Security == 2 ? 4 : Def.Security == 1 ? 2 : 1;
   const int32 Patrols = Def.Owner.IsNone() ? 0 : Def.Security == 2 ? 3 : Def.Security == 1 ? 1 : 0;
   const int32 Danger = FMath::RoundToInt(Def.Danger * 4);
-  const int32 Count = Population >= 0 ? Population / Data->Systems.Num() + (I < Population % Data->Systems.Num() ? 1 : 0) : Civilians + Patrols + Danger;
+  const int32 Count = Population >= 0 ? Population / PopulatedSystems + (I < Population % PopulatedSystems ? 1 : 0) : Civilians + Patrols + Danger;
   const int32 Baseline=FMath::Max(1,Civilians+Patrols+Danger);
   const int32 CivilianLimit=Population>=0&&!Synthetic ? FMath::RoundToInt(float(Count)*Civilians/Baseline) : Civilians;
   const int32 PatrolLimit=Population>=0&&!Synthetic ? CivilianLimit+FMath::RoundToInt(float(Count)*Patrols/Baseline) : Civilians+Patrols;
@@ -433,7 +447,9 @@ void UVTSimulation::FixedStep() {
   if (auto* Brain = Cast<AVTShipAI>(S->Controller)) Brain->Decide(VT::Step);
   else if(S->Autopilot) {uint32 Ack=S->Movement->Authority.Ack;AVTShipAI::DecideShip(S,VT::Step);S->Intent.Sequence=Ack;}
   else {if(!S->InputQueue.IsEmpty()) {S->Intent=S->InputQueue[0]; S->InputQueue.RemoveAt(0);}
-   if (GetWorld()->GetRealTimeSeconds() - S->LastInputTime > 0.25) { S->Intent.Throttle=0; S->Intent.Turn=0; S->Intent.Buttons=0; } AVTShipAI::CrewStep(S);}
+   if (GetWorld()->GetRealTimeSeconds() - S->LastInputTime > 0.25) { S->Intent.Throttle=0; S->Intent.Turn=0; S->Intent.Buttons=0; } auto* Intro=UVTIntroComponent::For(S);if(!Intro||!Intro->Active())AVTShipAI::CrewStep(S);}
+  if(auto* Intro=UVTIntroComponent::For(S))Intro->Filter(S->Intent);
+  if(S->IntroFixture&&(!S->Controller||S->IntroFixture==1))S->Intent={};
  }
  Phase(0);
  for (AVTShip* S : Ships) if (IsValid(S)) S->Combat->SystemsStep();
@@ -454,6 +470,7 @@ void UVTSimulation::FixedStep() {
  Phase(5);
  auto Survivors=Ships;
  for(AVTShip* S:Survivors) if(IsValid(S)) {
+  if(auto* Intro=UVTIntroComponent::For(S))if(Intro->InArena())continue;
   if(S->Attributes->Hull.GetCurrentValue()<=0) {
    S->Combat->Cue(TEXT("GameplayCue.Ship.Explosion"));
    AwardAvenging(S,Survivors);
@@ -461,11 +478,12 @@ void UVTSimulation::FixedStep() {
    else if(ActiveScenario()) {if(auto* State=GetWorld()->GetGameState<AVTGameState>()) {State->Outcome=TEXT("Ship lost"); auto* PS=S->GetPlayerState<AVTPlayerState>(); if(auto* Save=GetWorld()->GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()) Save->RecordSolo(false,State->Wave,PS ? PS->Boarded : 0);} S->Disabled=true; S->Intent=FVTPilotIntent();}
    else if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->RecoverShip(S);
   }
-  else if(((S->IsNPC&&S->ShipRole!=1)||(!S->IsNPC&&!ActiveScenario()))&&!S->Invulnerable&&S->Attributes->Hull.GetCurrentValue()<=S->Definition.Hull*Data->Rules.CrippleThreshold) {S->Disabled=true; S->Intent=FVTPilotIntent();}
+  else if(S->IntroFixture!=1&&((S->IsNPC&&S->ShipRole!=1)||(!S->IsNPC&&!ActiveScenario()))&&!S->Invulnerable&&S->Attributes->Hull.GetCurrentValue()<=S->Definition.Hull*Data->Rules.CrippleThreshold) {S->Disabled=true; S->Intent=FVTPilotIntent();}
  }
  Phase(6);
  PiracyStep();
  WorldStep();
+ for(auto It=GetWorld()->GetPlayerControllerIterator();It;++It)if(auto* PC=Cast<AVTController>(It->Get()))PC->Intro->FixedStep();
  if (auto* State = GetWorld()->GetGameState<AVTGameState>()) {
   State->SimulationTime = SimulationTime;
   if (Data) {
@@ -532,6 +550,7 @@ void AVTGameMode::RecoverShip(AVTShip* Ship) {
 void AVTGameMode::Logout(AController* Exiting) {
  auto* Save=GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();
  Save->CapturePlayer(Cast<AVTController>(Exiting));
+ if(auto* PC=Cast<AVTController>(Exiting))PC->Intro->Cleanup();
  if (auto* Ship=Cast<AVTShip>(Exiting->GetPawn())) Ship->Destroy();
  Save->Save();
  Super::Logout(Exiting);
@@ -574,8 +593,14 @@ void AVTController::ServerIdentify_Implementation(FGuid Profile,FGuid Token,FNam
  InitialHull=Record ? Record->Ship.ClassId : Hull; InitialFit=Record ? Record->Ship.Fit : Selection;
  PS->Reputation=GetWorld()->GetSubsystem<UVTSimulation>()->Data->InitialReputation; PS->Heat.Init(0,PS->Reputation.Num());
  if(Record) {
-  PS->Credits=Record->Credits; PS->Boarded=Record->Boarded; PS->Heat=Record->Heat; PS->Reputation=Record->Reputation;PS->Profile=Profile;Possess(Save->RestoreShip(Record->Ship));
- } else {PS->Profile=Profile;if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->RestartPlayer(this);}
+  PS->Credits=Record->Credits; PS->Boarded=Record->Boarded; PS->Heat=Record->Heat; PS->Reputation=Record->Reputation;PS->Profile=Profile;Possess(Save->RestoreShip(Record->Ship));Intro->Restore(Record->Intro);
+ } else {PS->Profile=Profile;if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->RestartPlayer(this);
+  auto* GI=CastChecked<UVTGameInstance>(GetGameInstance());bool Skip=GI->SkipIntro;
+#if !UE_BUILD_SHIPPING
+  FString Probe;if(FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),Probe)&&!Probe.Contains(TEXT("Intro")))Skip=true;
+  Skip|=FParse::Param(FCommandLine::Get(),TEXT("VTSkipIntro"));
+#endif
+  if(!Skip&&GI->PlayMode==TEXT("sandbox"))Intro->Start();}
  Save->CapturePlayer(this);
  const auto* Accepted=Save->PlayerRecords.FindByPredicate([Profile](const FVTSavedPlayer& R){return R.Profile==Profile;});
  if(Accepted) ClientAcceptIdentity(Save->WorldId,Accepted->Token);
@@ -584,6 +609,9 @@ void AVTController::ClientAcceptIdentity_Implementation(FGuid World,FGuid Token)
  GetGameInstance()->GetSubsystem<UVTSaveSubsystem>()->StoreToken(World,Token);
  LocalIntent=FVTPilotIntent(); NextSequence=0; SendAccumulator=0;
 }
+void AVTController::IntroChoiceA(){if(!UI||!UI->MenuOpen)Intro->ServerChooseRepair(0);}
+void AVTController::IntroChoiceB(){if(!UI||!UI->MenuOpen)Intro->ServerChooseRepair(1);}
+void AVTController::AdvanceIntro(){if(Intro&&(!UI||!UI->MenuOpen))Intro->ServerAdvance();}
 void AVTController::VTRecover() {ServerRecover();}
 void AVTController::ServerRecover_Implementation() {
  if(GetWorld()->GetSubsystem<UVTSimulation>()->ActiveScenario()) return;
@@ -686,6 +714,7 @@ void AVTShip::OnRep_Autopilot() {
 void AVTController::ToggleAutopilot(){if(auto* Ship=Cast<AVTShip>(GetPawn()))ServerSetAutopilot(!Ship->Autopilot);}
 void AVTController::ServerSetAutopilot_Implementation(bool Enabled) {
  auto* Ship=Cast<AVTShip>(GetPawn());auto* PS=GetPlayerState<AVTPlayerState>();
+ if(Intro->Active()&&Enabled)return;
  if(!Ship||Ship->IsNPC||!PS||!PS->Profile.IsValid()||(Enabled&&(Ship->Docked||Ship->Disabled)))return;
  if(Ship->Autopilot==Enabled)return;Ship->Autopilot=Enabled;Ship->Intent=FVTPilotIntent();Ship->InputQueue.Reset();Ship->Brain.Action=-1;Ship->Brain.Shoulder=-1;Ship->Brain.Thumb=-1;Ship->Brain.AimLock=0;Ship->Brain.ThumbTravel=0;Ship->Brain.WarpPrime=0;
  Ship->Combat->WarpHeld=false;Ship->Combat->TorpedoHeld=false;Ship->Combat->EquipmentState.Locks.Reset();Ship->Combat->EquipmentState.LockElapsed=0;

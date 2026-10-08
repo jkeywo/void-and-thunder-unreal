@@ -25,9 +25,14 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
 
+#if !UE_BUILD_SHIPPING
+void VTIntroValidationInput(AVTController* PC);
+void VTIntroValidationTick(UVTSimulation* Sim,const FString& Role);
+#endif
 void AVTController::ValidationInput(float Dt) {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Intro"))){VTIntroValidationInput(this);return;}
  if(ProbeRole.StartsWith(TEXT("Soak"))) {LocalIntent=FVTPilotIntent();LocalIntent.Throttle=0.6f;LocalIntent.Turn=0.15f;return;}
  if(ProbeRole.StartsWith(TEXT("Gameplay"))) {for(TActorIterator<AVTGameplayProbe> It(GetWorld());It;++It){It->DriveLocal(this);break;}return;}
  if(ProbeRole==TEXT("RenderGate")){LocalIntent=FVTPilotIntent();if(auto* Ship=Cast<AVTShip>(GetPawn()))if(Ship->SystemIndex==0&&GetWorld()->GetRealTimeSeconds()>2)LocalIntent.Buttons=VTButtons::Interact;return;}
@@ -81,6 +86,7 @@ void AVTController::ValidationInput(float Dt) {
 void UVTSimulation::ValidationTick() {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Intro"))){VTIntroValidationTick(this,ProbeRole);return;}
  if(ProbeRole.StartsWith(TEXT("Soak"))) {SoakTick(ProbeRole);return;}
  if(ProbeRole.StartsWith(TEXT("Gameplay"))) {
   AVTGameplayProbe* Fixture=nullptr;for(TActorIterator<AVTGameplayProbe> It(GetWorld());It;++It){Fixture=*It;break;}
@@ -104,7 +110,7 @@ void UVTSimulation::ValidationTick() {
 
  if(ProbeRole.StartsWith(TEXT("Render"))) {
 
-  if(auto* Player=GetWorld()->GetFirstPlayerController()) if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) Pawn->Invulnerable=true;
+  if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController())) {if(auto* Pawn=Cast<AVTShip>(Player->GetPawn()))Pawn->Invulnerable=true;if(ProbeRole==TEXT("RenderIntro")&&FParse::Param(FCommandLine::Get(),TEXT("VTIntroChoices"))&&!ProbeScaled&&Player->GetPawn()){Player->Intro->Change(EVTIntroStage::BatteryChoice);ProbeScaled=true;}}
   double Now=FPlatformTime::Seconds(), Age=GetWorld()->GetRealTimeSeconds();
   if(LastRenderFrame>0&&Age>20) RenderFrameMilliseconds.Add((Now-LastRenderFrame)*1000); LastRenderFrame=Now;
   if(ProbeRole==TEXT("Render")&&!ProbeScaled&&Age>1) {ConfigurePopulationFixture(500,FParse::Param(FCommandLine::Get(),TEXT("Busy")),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); if(FParse::Param(FCommandLine::Get(),TEXT("Busy"))) if(auto* Player=GetWorld()->GetFirstPlayerController()) if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) {Pawn->SystemIndex=0; Pawn->Movement->Motion.Position=FVector2D(0,-500); Pawn->Movement->Previous=Pawn->Movement->Motion; Pawn->Movement->Authority=Pawn->Movement->Motion;} ProbeScaled=true;}

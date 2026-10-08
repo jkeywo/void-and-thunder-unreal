@@ -3,6 +3,7 @@
 #include "Async/Future.h"
 #include "GameFramework/SaveGame.h"
 #include "VTTypes.h"
+#include "VTIntro.h"
 #include "VTSaveSubsystem.generated.h"
 USTRUCT()
 struct FVTSavedShip {
@@ -62,6 +63,7 @@ struct FVTSavedProjectile {
 USTRUCT()
 struct FVTSavedPlayer {
  GENERATED_BODY()
+ UPROPERTY() FVTIntroProgress Intro;
  UPROPERTY() FGuid Profile;
  UPROPERTY() FGuid Token;
  UPROPERTY() FVTSavedShip Ship;

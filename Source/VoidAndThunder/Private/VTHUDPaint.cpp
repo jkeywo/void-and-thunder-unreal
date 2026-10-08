@@ -16,6 +16,7 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
  auto* PC=Cast<AVTController>(GetOwningPlayer()); auto* S=PC?Cast<AVTShip>(PC->GetPawn()):nullptr;
  if(!S||HudPanels.Num()!=5)return Layer;
  auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();auto* GS=GetWorld()->GetGameState<AVTGameState>();auto* PS=PC->GetPlayerState<AVTPlayerState>();
+ const bool WeaponsReady=!PC->Intro||PC->Intro->WeaponsOnline(),SystemsReady=!PC->Intro||PC->Intro->SystemsOnline();
  const auto& D=S->Definition;const auto& E=S->Combat->EquipmentState;
  int VX=0,VY=0;PC->GetViewportSize(VX,VY);
  const FVector2D View=G.GetLocalSize();
@@ -70,7 +71,7 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
   if(Player){for(bool Port:{true,false}){float A=Heading+(Port?-PI/2:PI/2);float Reload=Port?Ship->PortReload:Ship->StarboardReload;float Ready=1-FMath::Clamp(Reload/FMath::Max(0.001f,Def.Reload),0.f,1.f);Band(0.94f,A-Def.Arc/2,Def.Arc,FLinearColor(1,0.698f,0,0.12f),2);Band(0.94f,A-Def.Arc/2,Def.Arc*Ready,FLinearColor(1,0.698f,0,0.65f),3);}}
  };
  Ring(S,true);int RingCount=0;
- for(AVTShip* Other:Sim->Queries.Ordered(S->SystemIndex))if(IsValid(Other)&&Other!=S&&(Other->GetActorLocation()-S->GetActorLocation()).SizeSquared2D()<FMath::Square(60000.f)){Ring(Other,false);if(++RingCount>=24)break;}
+ for(AVTShip* Other:Sim->Queries.Ordered(S->SystemIndex))if(IsValid(Other)&&Other!=S&&Other->IntroFixture!=1&&(Other->GetActorLocation()-S->GetActorLocation()).SizeSquared2D()<FMath::Square(60000.f)){Ring(Other,false);if(++RingCount>=24)break;}
  FVector2D Top(Size.X/2-160,14),Status(18,14),Coords(Size.X-194,14),Left(18,Size.Y-178),Right(Size.X-270,Size.Y-140);
  Art(0,Top,{320,54});Art(1,Status,{210,92});Art(2,Coords,{176,62});Art(3,Left,{262,160});Art(4,Right,{252,122});
  Text(Top+FVector2D(24,22),TEXT("H U L L"),7,Dim);Bar(Top+FVector2D(60,22),192,10,Hull,HullColour);Text(Top+FVector2D(260,19),FString::Printf(TEXT("%3.0f%%"),Hull*100),10,HullColour);
@@ -80,9 +81,9 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
  Text(Status+FVector2D(24,69),S->Combat->BoardingProgress>0?TEXT("BOARDING"):S->Autopilot?TEXT("AI PILOT"):TEXT("MANUAL HELM"),7,S->Autopilot?Amber:Dim);
  Text(Coords+FVector2D(60,17),TEXT("X"),7,Dim);Text(Coords+FVector2D(80,12),FString::Printf(TEXT("%+06.0f"),S->Movement->Motion.Position.X),14);
  Text(Coords+FVector2D(60,36),TEXT("Y"),7,Dim);Text(Coords+FVector2D(80,31),FString::Printf(TEXT("%+06.0f"),S->Movement->Motion.Position.Y),14);
- Dial(Left+FVector2D(36,32),S->PortReload,D.Reload,TEXT("< PORT"));Dial(Left+FVector2D(96,32),S->StarboardReload,D.Reload,TEXT("STBD >"));
+ Dial(Left+FVector2D(36,32),S->PortReload,D.Reload,TEXT("< PORT"),WeaponsReady);Dial(Left+FVector2D(96,32),S->StarboardReload,D.Reload,TEXT("STBD >"),WeaponsReady);
  Text(Left+FVector2D(24,92),D.Equipment.Torpedoes?FString::Printf(TEXT("TORPEDO TUBES  %d  LOCKS %d"),E.TorpedoMagazine,E.Locks.Num()):TEXT("TORPEDO TUBES --"),7,Dim);
- int Count=D.Equipment.Torpedoes?FMath::Clamp(D.Equipment.Tubes,1,16):0;float TubeW=Count?float(226-(Count-1)*5)/Count:0;
+ int Count=D.Equipment.Torpedoes&&SystemsReady?FMath::Clamp(D.Equipment.Tubes,1,16):0;float TubeW=Count?float(226-(Count-1)*5)/Count:0;
  for(int I=0;I<Count;++I){FVector2D P=Left+FVector2D(24+I*(TubeW+5),108);float Fill=FMath::Clamp(E.Loaded-I,0.f,1.f);Rect(P,{TubeW,28},FLinearColor(0.3f,0.19f,0.01f,0.7f),2);Rect(P+FVector2D(1,1),{TubeW-2,26},FLinearColor(0.01f,0.007f,0.002f,1),3);if(Fill>0)Rect(P+FVector2D(1,27-26*Fill),{TubeW-2,26*Fill},Fill>=1?Amber:FLinearColor(1,0.48f,0.09f),4);Text(P+FVector2D(3,9),Fill>=1?TEXT("RDY"):Fill>0?FString::Printf(TEXT("%.0f%%"),Fill*100):TEXT("--"),7,Fill>=1?FLinearColor(0.1f,0.06f,0):Dim);}
  float Battery=S->Attributes->Battery.GetCurrentValue()/FMath::Max(1.f,D.BatteryMax);float Aim=PC->AimBattery/FMath::Max(0.001f,Sim->Data->Feel.time.battery_max);
  float Speed=FMath::Clamp(float(S->Movement->Motion.Velocity.Size())/FMath::Max(1.f,D.Stats.MaxSpeed*Sim->Data->FlightSpeedMultiplier*S->Combat->SpeedScale),0.f,1.f);
@@ -90,10 +91,10 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
  auto Row=[&](int Y,const TCHAR* Label,float Value,const FString& ValueText){Text(Right+FVector2D(24,Y),Label,7,Dim);Bar(Right+FVector2D(79,Y+2),58,8,Value,Amber);Text(Right+FVector2D(144,Y-1),ValueText,9);};
  Row(38,TEXT("BATTERY"),Battery,FString::Printf(TEXT("%.0f%%"),Battery*100));Row(56,TEXT("AIM"),Aim,GetWorld()->GetNetMode()==NM_Standalone?FString::Printf(TEXT("%.0f%%"),Aim*100):TEXT("RT"));
  Row(74,TEXT("HELM"),Agility,PC->ThrottleControl.Label());
- Dial(Right+FVector2D(204,58),E.WarpCooldown,D.Equipment.WarpCooldown,TEXT("WARP"),D.Equipment.Warp,FLinearColor(1,0.48f,0.09f));
+ Dial(Right+FVector2D(204,58),E.WarpCooldown,D.Equipment.WarpCooldown,TEXT("WARP"),D.Equipment.Warp&&SystemsReady,FLinearColor(1,0.48f,0.09f));
  auto DeviceBinding=[&](const TCHAR* ActionName){FString Result;auto* Sub=PC->GetLocalPlayer()?ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()):nullptr;if(Sub)for(const UInputAction* Action:PC->Actions)if(Action&&Action->GetFName()==FName(ActionName))for(const auto& Key:Sub->QueryKeysMappedToAction(Action))if(Key.IsGamepadKey()==PC->UsingGamepadAim){Result=Key.GetDisplayName().ToString();break;}return Result;};
- if(D.Equipment.Warp){const auto Key=DeviceBinding(TEXT("IA_Warp"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-53},FString::Printf(TEXT("[%s] HOLD TO AIM WARP / RELEASE TO JUMP"),*Key),8,Amber);}
- if(D.Equipment.Torpedoes){const auto Key=DeviceBinding(TEXT("IA_Torpedo"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-38},FString::Printf(TEXT("[%s] HOLD TO LOCK / RELEASE TORPEDOES"),*Key),8,Dim);}
+ if(SystemsReady&&D.Equipment.Warp){const auto Key=DeviceBinding(TEXT("IA_Warp"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-53},FString::Printf(TEXT("[%s] HOLD TO AIM WARP / RELEASE TO JUMP"),*Key),8,Amber);}
+ if(SystemsReady&&D.Equipment.Torpedoes){const auto Key=DeviceBinding(TEXT("IA_Torpedo"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-38},FString::Printf(TEXT("[%s] HOLD TO LOCK / RELEASE TORPEDOES"),*Key),8,Dim);}
  Text({Size.X/2-140,Size.Y-22},TEXT("[TAB] CONTROLS   [F] CHART   [ESC] MENU"),7,Dim);
  if(S->Disabled||S->GatePassage->Status().Charge>0||S->DockProgress>0||(GS&&!GS->Outcome.IsEmpty())){FString Message=S->Disabled?TEXT("SHIP DISABLED  |  [R] RECOVER"):S->GatePassage->Status().Charge>0?(S->GatePassage->Departing()?TEXT("FLYING THROUGH GATE"):TEXT("ALIGNING / CHARGING GATE")):S->DockProgress>0?TEXT("DOCKING"):GS->Outcome;Text({Size.X/2-160,Size.Y*0.36},Message.ToUpper(),16,S->Disabled?Red:Amber);}
  const auto Hint=VTInteractionHint(S,Sim);

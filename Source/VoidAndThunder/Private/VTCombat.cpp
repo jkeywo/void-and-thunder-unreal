@@ -1,5 +1,5 @@
-#include "VTProjectileSpawn.h"
 #include "VTCombat.h"
+#include "VTProjectileSpawn.h"
 #include "Materials/MaterialInterface.h"
 #include "VTGameplay.h"
 #include "Net/UnrealNetwork.h"
@@ -40,7 +40,9 @@ void UVTCombatComponent::Initialize() {
 }
 void UVTCombatComponent::SystemsStep() {
  auto* S=CastChecked<AVTShip>(GetOwner());
- int Count=S->Definition.ShieldArcs<2 ? 1 : S->Definition.ShieldArcs<4 ? 2 : 4;
+ auto* Intro=UVTIntroComponent::For(S);
+ if(Intro&&!Intro->SystemsOnline())Shields=FVTShieldBanks(0,0,0,0);
+ int Count=Intro&&!Intro->SystemsOnline()?0:S->Definition.ShieldArcs<2 ? 1 : S->Definition.ShieldArcs<4 ? 2 : 4;
  for(int I=0;I<Count;++I) {
   if(Suppression[I]>0) Suppression[I]=FMath::Max(0.,Suppression[I]-VT::Step);
   else Shields[I]=FMath::Min(S->Definition.ShieldMax[I],Shields[I]+S->Definition.ShieldRegen*VT::Step);
@@ -53,6 +55,7 @@ void UVTCombatComponent::WeaponsStep() {
  bool PortActive=false,StarboardActive=false;
  for(auto& Spec:S->Abilities->GetActivatableAbilities()) if(auto* A=Cast<UVTBroadsideAbility>(Spec.GetPrimaryInstance())) {if(A->IsActive())A->FixedStep();(A->Port ? PortActive : StarboardActive)=A->IsActive();}
  EquipmentWeapons();
+ if(auto* Intro=UVTIntroComponent::For(S))if(!Intro->WeaponsOnline())return;
  if(S->Docked||S->Disabled||(S->Intent.Buttons&(VTButtons::Warp|VTButtons::Torpedo))) return;
  if((S->Intent.Buttons&VTButtons::Port)&&!PortActive) S->Abilities->TryActivateAbilityByClass(UVTBroadsideAbility::StaticClass());
  if((S->Intent.Buttons&VTButtons::Starboard)&&!StarboardActive) S->Abilities->TryActivateAbilityByClass(UVTStarboardAbility::StaticClass());
@@ -89,6 +92,7 @@ UVTBroadsideAbility::UVTBroadsideAbility() {
 }
 void UVTBroadsideAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,const FGameplayAbilityActivationInfo ActivationInfo,const FGameplayEventData* Event) {
  auto* S=Cast<AVTShip>(Info->AvatarActor.Get());
+ if(S)if(auto* Intro=UVTIntroComponent::For(S))if(!Intro->WeaponsOnline()&&!S->Combat->RestoringBank){EndAbility(Handle,Info,ActivationInfo,true,true);return;}
  if(!S||((S->Docked||S->Disabled||(S->Intent.Buttons&(VTButtons::Warp|VTButtons::Torpedo)))&&!S->Combat->RestoringBank)) {EndAbility(Handle,Info,ActivationInfo,true,true); return;}
  if(S->Combat->RestoringBank) {Fired=true; ChargeRemaining=0; ReloadRemaining=0; BankTask=UVTFixedStepTask::Start(this,0); return;}
  if(!CommitAbility(Handle,Info,ActivationInfo)) {EndAbility(Handle,Info,ActivationInfo,true,true);return;}
