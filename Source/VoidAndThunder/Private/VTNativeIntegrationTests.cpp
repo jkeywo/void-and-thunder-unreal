@@ -90,4 +90,27 @@ bool FVTNativeAbilityAuthority::RunTest(const FString&) {
  TestTrue(TEXT("Raw client termination cannot erase cooldown"),S->Abilities->HasMatchingGameplayTag(Tag));
  return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTFlightPresentation,"VT.Native.FlightPlayability",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTFlightPresentation::RunTest(const FString&) {
+ FNativeFixture F;F.Ship->Anchored=false;F.Ship->Movement->Motion=FVTMotion();F.Ship->Combat->SpeedScale=1;
+ FVTPilotIntent Input;Input.Throttle=1;FVTMotion Baseline;
+ for(int I=0;I<64;++I){F.Ship->Movement->Step(Input,false);VT::HelmStep(Baseline,F.Ship->Definition.Stats,Input,F.Sim->Data->Rules.ReverseThrottle,VT::Step);}
+ TestTrue(TEXT("Authored flight pace increases one-second travel"),F.Ship->Movement->Motion.Position.Size()>Baseline.Position.Size()*1.9);
+ FVTMotion Right,Left;Input.Turn=VT::PlayerTurnInput(1);for(int I=0;I<32;++I)VT::HelmStep(Right,F.Ship->Definition.Stats,Input,0.25f,VT::Step);
+ Input.Turn=VT::PlayerTurnInput(-1);for(int I=0;I<32;++I)VT::HelmStep(Left,F.Ship->Definition.Stats,Input,0.25f,VT::Step);
+ TestTrue(TEXT("D / right stick turns toward Unreal right"),VT::ToWorld(Right.Position,0).Y>0);
+ TestTrue(TEXT("A / left stick turns toward Unreal left"),VT::ToWorld(Left.Position,0).Y<0);
+ TestEqual(TEXT("Projectile visual radius restores the original 7-unit sphere"),F.Sim->Data->ProjectileVisualRadius,7.f);
+ return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTRepeatedBankIntent,"VT.Native.PersistentBroadsideIntent",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTRepeatedBankIntent::RunTest(const FString&) {
+ FNativeFixture F;auto* S=F.Ship;F.Sim->SystemShips.SetNum(F.Sim->Data->Systems.Num());F.Sim->SystemShips[S->SystemIndex].Add(S);S->Definition.ChargeTime=VT::Step*2;S->Definition.Reload=VT::Step*3;S->Definition.Guns=1;S->Intent.Buttons=VTButtons::Port;
+ int32 Initial=F.Sim->Projectiles.Num();S->Combat->WeaponsStep();S->Combat->WeaponsStep();
+ TestEqual(TEXT("Repeated intent retains windup without duplicate shots"),F.Sim->Projectiles.Num(),Initial);
+ S->Combat->WeaponsStep();TestEqual(TEXT("Windup fires exactly once"),F.Sim->Projectiles.Num(),Initial+1);
+ for(int I=0;I<3;++I)S->Combat->WeaponsStep();TestEqual(TEXT("Reload does not duplicate shots"),F.Sim->Projectiles.Num(),Initial+1);
+ S->Combat->WeaponsStep();S->Combat->WeaponsStep();TestEqual(TEXT("Ready bank restarts immediately with its original windup"),F.Sim->Projectiles.Num(),Initial+2);
+ return true;
+}
 #endif

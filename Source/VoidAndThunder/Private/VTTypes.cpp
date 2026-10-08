@@ -29,3 +29,5 @@ bool VT::SequenceAdvanceAllowed(uint32 Next,uint32 Last,double SecondsSinceInput
  const uint32 Recovery=uint32(FMath::Clamp((SecondsSinceInput-0.25)/Step,0.,4096.));
  return Next-Last<=256+Recovery;
 }
+
+float VT::PlayerTurnInput(float Axis) {return -Axis;}

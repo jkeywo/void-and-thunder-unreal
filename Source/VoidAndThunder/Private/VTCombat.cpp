@@ -1,4 +1,5 @@
 #include "VTCombat.h"
+#include "Materials/MaterialInterface.h"
 #include "VTGameplay.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/StaticMeshComponent.h"
@@ -43,11 +44,12 @@ void UVTCombatComponent::SystemsStep() {
 void UVTCombatComponent::WeaponsStep() {
  auto* S=CastChecked<AVTShip>(GetOwner());
  // Tick existing activations before consuming this step's requests.
- for(auto& Spec:S->Abilities->GetActivatableAbilities()) if(auto* A=Cast<UVTBroadsideAbility>(Spec.GetPrimaryInstance())) if(A->IsActive()) A->FixedStep();
+ bool PortActive=false,StarboardActive=false;
+ for(auto& Spec:S->Abilities->GetActivatableAbilities()) if(auto* A=Cast<UVTBroadsideAbility>(Spec.GetPrimaryInstance())) {if(A->IsActive())A->FixedStep();(A->Port ? PortActive : StarboardActive)=A->IsActive();}
  EquipmentWeapons();
  if(S->Docked||S->Disabled) return;
- if(S->Intent.Buttons&VTButtons::Port) S->Abilities->TryActivateAbilityByClass(UVTBroadsideAbility::StaticClass());
- if(S->Intent.Buttons&VTButtons::Starboard) S->Abilities->TryActivateAbilityByClass(UVTStarboardAbility::StaticClass());
+ if((S->Intent.Buttons&VTButtons::Port)&&!PortActive) S->Abilities->TryActivateAbilityByClass(UVTBroadsideAbility::StaticClass());
+ if((S->Intent.Buttons&VTButtons::Starboard)&&!StarboardActive) S->Abilities->TryActivateAbilityByClass(UVTStarboardAbility::StaticClass());
 }
 void UVTCombatComponent::Damage(float Amount,const FVector2D& Impact,AVTShip* Attacker,FGuid AttackerProfile,bool Announce,float ReportMagnitude,FName AttackerFaction) {
  auto* S=CastChecked<AVTShip>(GetOwner()); if(!S->HasAuthority()||S->Docked||Amount<=0||!FMath::IsFinite(Amount)) return;
@@ -110,7 +112,10 @@ AVTProjectile::AVTProjectile() {
  auto* Mesh=CreateDefaultSubobject<UStaticMeshComponent>("ProjectileMesh"); RootComponent=Mesh; Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
  Mesh->SetCanEverAffectNavigation(false); Mesh->SetCastShadow(false); Mesh->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"))); Mesh->SetRelativeScale3D(FVector(2));
 }
-void AVTProjectile::BeginPlay() {Super::BeginPlay(); GetWorld()->GetSubsystem<UVTSimulation>()->Projectiles.AddUnique(this);}
+void AVTProjectile::BeginPlay() {Super::BeginPlay(); auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Projectiles.AddUnique(this);
+ if(IsRunningCommandlet()||!FApp::CanEverRender())return;
+ auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent); Mesh->SetRelativeScale3D(FVector(2*(Sim->Data ? Sim->Data->ProjectileVisualRadius : 7.f)));
+ if(Sim->Data)Mesh->SetMaterial(0,Sim->Data->ProjectileMaterial.Get());}
 void AVTProjectile::EndPlay(const EEndPlayReason::Type Reason) {if(auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>()) Sim->Projectiles.Remove(this); Super::EndPlay(Reason);}
 void AVTProjectile::Tick(float Dt) {Super::Tick(Dt); if(!FApp::CanEverRender()) return; auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent);
  auto* PC=GetWorld()->GetFirstPlayerController(); auto* Viewer=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; bool Visible=Viewer&&Viewer->SystemIndex==SystemIndex; if(Mesh->IsVisible()!=Visible) Mesh->SetVisibility(Visible); if(Visible) SetActorLocation(VT::ToWorld(Position,SystemIndex)+FVector(0,0,Height*100));}

@@ -23,3 +23,11 @@ public:
  UVTContentCommandlet();
  virtual int32 Main(const FString& Params) override;
 };
+
+UCLASS()
+class UVTPlayabilityCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTPlayabilityCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};

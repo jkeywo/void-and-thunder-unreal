@@ -50,6 +50,7 @@ void UVTShipMovement::Step(const FVTPilotIntent& Value, bool Predict) {
  Previous = Motion;
  FVTPilotIntent Effective=S->Disabled ? FVTPilotIntent() : Value;
  FVTShipStats Stats=S->Definition.Stats; Stats.Thrust*=S->Combat->SpeedScale; Stats.MaxSpeed*=S->Combat->SpeedScale;
+ if(Sim->Data) {Stats.Thrust*=Sim->Data->FlightSpeedMultiplier; Stats.MaxSpeed*=Sim->Data->FlightSpeedMultiplier;}
  if(!Frozen) VT::HelmStep(Motion, Stats, Effective, Reverse, VT::Step);
  if (!Frozen && Predict && Sim->Data && Sim->Data->Systems.IsValidIndex(S->SystemIndex)) {
   float Radius = Sim->Data->Systems[S->SystemIndex].Radius;
@@ -191,7 +192,7 @@ AVTController::AVTController() { bShowMouseCursor = true; PlayerCameraManagerCla
 void AVTController::BeginPlay() {
  Super::BeginPlay();
  if (IsLocalController()) {
-  if(!IsRunningCommandlet()&&FApp::CanEverRender()) GetWorld()->SpawnActor<AVTSky>();
+  if(!IsRunningCommandlet()&&FApp::CanEverRender()) {GetWorld()->SpawnActor<AVTSky>(); GetWorld()->SpawnActor<AVTReferenceGrid>();}
   if(UClass* UIClass=GetWorld()->GetSubsystem<UVTSimulation>()->Data->UIClass.Get() ? GetWorld()->GetSubsystem<UVTSimulation>()->Data->UIClass.Get() : LoadClass<UVTUI>(nullptr,TEXT("/Game/UI/WBP_UI.WBP_UI_C"))) {UI=CreateWidget<UVTUI>(this,UIClass); UI->AddToViewport();}
 
   FlightMapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Flight.IMC_Flight"));
@@ -207,7 +208,7 @@ void AVTController::BeginPlay() {
 void AVTController::ReadFlight(const FInputActionValue& Value, int32 Index) {
  if(auto* Ship=Cast<AVTShip>(GetPawn()))if(Ship->Autopilot)return;
  if (Index == 0) LocalIntent.Throttle = Value.Get<float>();
- else if (Index == 1) LocalIntent.Turn = Value.Get<float>();
+ else if (Index == 1) LocalIntent.Turn = VT::PlayerTurnInput(Value.Get<float>());
  else if (Index == 2) {
   GamepadAim=Value.Get<FVector2D>(); if(GamepadAim.SizeSquared()>0.0025) UsingGamepadAim=true;
  } else if(Index==3||Index==4) {

@@ -1,0 +1,19 @@
+{
+	"role": "FlowHost",
+	"max_players": 2,
+	"moved": true,
+	"system": 9,
+	"ship_id": "4D1665994A1C44A503D8C8BD28A0ED11",
+	"position_x": -1047.4859422714242,
+	"position_y": -473.46633604604034,
+	"origin_x": 0.044294577260961296,
+	"origin_y": -269.99999106316011,
+	"profile": "61D8C0C84C204B402EB8EE877D961D76",
+	"credits": 0,
+	"boarded": 0,
+	"ack": 2560,
+	"npcs": 50,
+	"simulation_time": 40,
+	"world_id": "5465CF1D4D90B89965E1888713D81826",
+	"passed": true
+}

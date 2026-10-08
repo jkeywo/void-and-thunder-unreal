@@ -61,7 +61,7 @@ void UVTCombatComponent::EquipmentWeapons() {
   float Desired=0;
   if(Target) {auto Offset=Target->Movement->Motion.Position-S->Movement->Motion.Position; auto Lead=Offset+Target->Movement->Motion.Velocity*(Offset.Size()/E.EMPSpeed); Desired=FMath::Clamp(FMath::UnwindRadians(float(FMath::Atan2(Lead.Y,Lead.X))-S->Movement->Motion.Heading),-E.EMPArc*0.5f,E.EMPArc*0.5f);}
   R.EMPAim+=FMath::Clamp(FMath::UnwindRadians(Desired-R.EMPAim),-E.EMPSwivel*VT::Step,E.EMPSwivel*VT::Step);
-  if(EMPPowered) S->Abilities->TryActivateAbilityByClass(UVTEMPAbility::StaticClass());
+  if(EMPPowered&&R.EMPCooldown<=0) S->Abilities->TryActivateAbilityByClass(UVTEMPAbility::StaticClass());
  }
  if(E.Mines&&(S->Intent.Buttons&VTButtons::Mine)&&R.MineMagazine>0) S->Abilities->TryActivateAbilityByClass(UVTMineAbility::StaticClass());
  if(!E.Torpedoes) return;

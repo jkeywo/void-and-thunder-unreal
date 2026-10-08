@@ -20,6 +20,8 @@ EDataValidationResult UVTGameData::IsDataValid(FDataValidationContext& Context) 
  CheckDefinitions(ShipAssets,EffectiveShips);CheckDefinitions(EquipmentAssets,EffectiveLoadouts);CheckDefinitions(SystemAssets,EffectiveSystems);CheckDefinitions(ScenarioAssets,EffectiveScenarios);
  auto EffectiveFindSystem=[&](FName Id){return EffectiveSystems.IndexOfByPredicate([Id](const auto& D){return D.Id==Id;});};
  auto Require=[&](bool Condition,const FString& Message) {if(!Condition) {Good=false; Context.AddError(FText::FromString(Message));}};
+ Require(FMath::IsFinite(FlightSpeedMultiplier)&&FlightSpeedMultiplier>0&&FlightSpeedMultiplier<=4,TEXT("Flight speed multiplier must be in (0,4]."));
+ Require(FMath::IsFinite(ProjectileVisualRadius)&&ProjectileVisualRadius>=1&&ProjectileVisualRadius<=20,TEXT("Projectile visual radius must be in [1,20]."));
  auto Nonnegative=[](float Value) {return FMath::IsFinite(Value)&&Value>=0;};
  Require(EffectiveLoadouts.Num()>=8&&EffectiveScenarios.Num()==2,TEXT("Native loadouts and both solo scenarios are required."));
  Require(TrackedFactions.Num()==InitialReputation.Num()&&Relations.Num()>=36,TEXT("Faction standings must match the migrated catalogue."));
@@ -130,6 +132,7 @@ void UVTGameData::LoadCatalog() {
  Overlay(ShipAssets,Ships); Overlay(EquipmentAssets,Loadouts); Overlay(SystemAssets,Systems); Overlay(ScenarioAssets,Scenarios);
  if(FApp::CanEverRender()&&!IsRunningCommandlet()) {
   TArray<FSoftObjectPath> Paths;
+  if(!ProjectileMaterial.IsNull()) Paths.AddUnique(ProjectileMaterial.ToSoftObjectPath());
   for(const auto& Ship:Ships) if(!Ship.Mesh.IsNull()) Paths.AddUnique(Ship.Mesh.ToSoftObjectPath());
   for(const auto& Pair:FactionMeshes) if(!Pair.Value.IsNull()) Paths.AddUnique(Pair.Value.ToSoftObjectPath());
   if(!ShipClass.IsNull()) Paths.AddUnique(ShipClass.ToSoftObjectPath());

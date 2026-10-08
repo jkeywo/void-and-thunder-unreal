@@ -10,6 +10,7 @@
 #include "VTSessionSubsystem.h"
 #include "VTSaveSubsystem.h"
 #include "Components/Button.h"
+#include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/ComboBoxString.h"
 #include "Components/EditableTextBox.h"
@@ -44,7 +45,7 @@ void UVTUI::NativeConstruct() {
  RefreshView();
 }
 void UVTUI::SetMenu(bool Open) {
- MenuOpen=Open;FocusPending=Open;
+ MenuOpen=Open;FocusPending=Open; if(auto* W=CachedWidget(TEXT("AbilityPanel")))W->SetVisibility(Open ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
  if(auto* Captain=Cast<AVTController>(GetOwningPlayer())) Captain->UpdateInputContexts();
  RequestRefresh(); if(MenuPanel&&MenuPanel->GetParent()) MenuPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(MenuPanel) MenuPanel->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(HUDPanel) HUDPanel->SetVisibility(Open ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);if(HUDPanel&&HUDPanel->GetParent())HUDPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
  if(auto* PC=GetOwningPlayer()) {if(Open) {FInputModeGameAndUI Mode; auto* Focus=CachedWidget(GetWorld()->GetMapName().Contains(TEXT("Menu"))?TEXT("Create"):TEXT("Resume"));Mode.SetWidgetToFocus(Focus ? Focus->TakeWidget() : TakeWidget()); Mode.SetHideCursorDuringCapture(false); PC->SetInputMode(Mode);} else PC->SetInputMode(FInputModeGameOnly()); PC->bShowMouseCursor=true;
@@ -105,12 +106,29 @@ void UVTUI::RefreshView() {
  if(LANChoice&&LastWorlds!=Session->Worlds.Num()) {LastWorlds=Session->Worlds.Num(); LANChoice->ClearOptions(); for(const auto& Name:Session->Worlds) LANChoice->AddOption(Name); if(LastWorlds>0) LANChoice->SetSelectedIndex(0);}
  auto* PC=Cast<AVTController>(GetOwningPlayer()); auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; if(!Ship||!Flight) return;
  auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); auto* PS=PC->GetPlayerState<AVTPlayerState>(); auto* State=GetWorld()->GetGameState<AVTGameState>();
- FString Text=FString::Printf(TEXT("VOID & THUNDER  |  %s\nHull %.0f / %.0f   Battery %.1f / %.1f   EMP %.0f%%\nShields  Bow %.0f  Stern %.0f  Port %.0f  Starboard %.0f\nPort %.1fs  Starboard %.1fs   Torpedoes %.0f + %d   Locks %d   Mines %d\nCredits %d   Prizes %d   Captains %d\n%s %.1fs   Dock %.1fs   Boarding %.1fs\nW/S thrust   A/D turn   Mouse aim   LMB/RMB broadsides\nQ disruptor   Ctrl torpedoes (hold/release)   Shift warp (hold/release)\nSpace boost   C brace   B interact   M mines   X point defence   Esc menu"),*Sim->Data->Systems[Ship->SystemIndex].DisplayName.ToString(),Ship->Attributes->Hull.GetCurrentValue(),Ship->Definition.Hull,Ship->Attributes->Battery.GetCurrentValue(),Ship->Definition.BatteryMax,Ship->Attributes->EMPStress.GetCurrentValue()/Ship->Definition.EMPResist*100,Ship->Combat->Shields.X,Ship->Combat->Shields.Y,Ship->Combat->Shields.Z,Ship->Combat->Shields.W,Ship->PortReload,Ship->StarboardReload,Ship->Combat->EquipmentState.Loaded,Ship->Combat->EquipmentState.TorpedoMagazine,Ship->Combat->EquipmentState.Locks.Num(),Ship->Combat->EquipmentState.MineMagazine,PS ? PS->Credits : 0,PS ? PS->Boarded : 0,State ? State->PlayerArray.Num() : 0,*Ship->JumpDestination.ToString(),Ship->JumpProgress,Ship->DockProgress,Ship->Combat->BoardingProgress);
- if(State&&Sim->ActiveScenario()) {Text+=FString::Printf(TEXT("\nWave %d   Enemies %d   Focus %.1f / %.1f"),State->Wave,State->EnemiesRemaining,PC->AimBattery,Sim->Data->Feel.time.battery_max);}
- else if(PS) {int Owner=Sim->Data->FactionIndex(Sim->Data->Systems[Ship->SystemIndex].Owner); if(PS->Reputation.IsValidIndex(Owner)&&PS->Heat.IsValidIndex(Owner)) Text+=FString::Printf(TEXT("\nLocal standing %.0f   Heat %.0f   Clearance %d credits"),PS->Reputation[Owner],PS->Heat[Owner],FMath::CeilToInt(PS->Heat[Owner]*Sim->Data->Rules.CreditsPerHeat));}
- if(Ship->Disabled) Text+=TEXT("\nSHIP DISABLED â€” R / D-pad down to recover at a station (sandbox).");
- if(State&&!State->Outcome.IsEmpty()) Text+=TEXT("\n")+State->Outcome;
- Flight->SetText(FText::FromString(Text)); if(Ship->Docked&&!MenuOpen) SetMenu(true);
+ FString Text=FString::Printf(TEXT("%s | %s\nSpeed %.0f   Credits %d   Prizes %d\n%s"),*Ship->Definition.Id.ToString(),*Sim->Data->Systems[Ship->SystemIndex].DisplayName.ToString(),float(Ship->Movement->Motion.Velocity.Size()),PS ? PS->Credits : 0,PS ? PS->Boarded : 0,Ship->Autopilot ? TEXT("AUTOPILOT") : TEXT("MANUAL HELM"));
+ auto Bar=[&](const TCHAR* Name,float Value,float Max) {if(auto* B=Cast<UProgressBar>(CachedWidget(Name))) B->SetPercent(Max>0 ? FMath::Clamp(Value/Max,0.f,1.f) : 0);};
+ Bar(TEXT("HullBar"),Ship->Attributes->Hull.GetCurrentValue(),Ship->Definition.Hull); Bar(TEXT("BatteryBar"),Ship->Attributes->Battery.GetCurrentValue(),Ship->Definition.BatteryMax);
+ Bar(TEXT("EMPBar"),Ship->Attributes->EMPStress.GetCurrentValue(),Ship->Definition.EMPResist);
+ const TCHAR* ShieldNames[]={TEXT("BowBar"),TEXT("SternBar"),TEXT("PortBar"),TEXT("StarboardBar")};
+ for(int I=0;I<4;++I)Bar(ShieldNames[I],Ship->Combat->Shields[I],Ship->Definition.ShieldMax[I]);
+ auto Readout=[&](const TCHAR* Name,const FString& Value) {if(auto* T=Cast<UTextBlock>(CachedWidget(Name)))T->SetText(FText::FromString(Value));};
+ const auto& E=Ship->Combat->EquipmentState;
+ auto Bank=[&](const TCHAR* Name,const TCHAR* Key,const TCHAR* Label,float Cooldown,bool Fitted=true) {Readout(Name,FString::Printf(TEXT("%s  %s\n%s"),Key,Label,!Fitted ? TEXT("NOT FITTED") : Cooldown>0 ? *FString::Printf(TEXT("%.1fs"),Cooldown) : TEXT("READY")));};
+ Bank(TEXT("AbilityPort"),TEXT("LMB"),TEXT("PORT"),Ship->PortReload); Bank(TEXT("AbilityStarboard"),TEXT("RMB"),TEXT("STARBOARD"),Ship->StarboardReload);
+ Bank(TEXT("AbilityEMP"),TEXT("Q"),TEXT("EMP"),E.EMPCooldown,Ship->Definition.Equipment.EMP); Bank(TEXT("AbilityWarp"),TEXT("SHIFT"),TEXT("WARP"),E.WarpCooldown,Ship->Definition.Equipment.Warp);
+ Bank(TEXT("AbilityMine"),TEXT("M"),TEXT("MINES"),E.MineCooldown,Ship->Definition.Equipment.Mines); Bank(TEXT("AbilityScreen"),TEXT("X"),TEXT("SCREEN"),E.PDCooldown,Ship->Definition.Equipment.PointDefense);
+ Readout(TEXT("AbilityTorpedo"),FString::Printf(TEXT("CTRL  TORPEDO\n%d tubes | %d reserve"),FMath::FloorToInt(E.Loaded),E.TorpedoMagazine));
+ Readout(TEXT("AbilityBoost"),TEXT("SPACE  BOOST\nC  BRACE")); Readout(TEXT("AbilityInteract"),TEXT("B  INTERACT\nESC  MENU"));
+ FString Notice; if(Ship->Disabled)Notice=TEXT("SHIP DISABLED — R / D-pad down: recover at station");
+ else if(Ship->JumpProgress>0)Notice=FString::Printf(TEXT("Jumping to %s | %.1fs"),*Ship->JumpDestination.ToString(),Ship->JumpProgress);
+ else if(Ship->DockProgress>0)Notice=FString::Printf(TEXT("Docking | %.1fs"),Ship->DockProgress);
+ else if(Ship->Combat->BoardingProgress>0)Notice=FString::Printf(TEXT("Boarding | %.1fs"),Ship->Combat->BoardingProgress);
+ else Notice=TEXT("W / S thrust   A / D helm   T autopilot");
+ if(State&&Sim->ActiveScenario())Notice+=FString::Printf(TEXT("\nWave %d | %d enemies"),State->Wave,State->EnemiesRemaining);
+ if(State&&!State->Outcome.IsEmpty())Notice+=TEXT("\n")+State->Outcome;
+ Readout(TEXT("FlightState"),Notice); Flight->SetText(FText::FromString(Text));
+ if(Ship->Docked&&!MenuOpen)SetMenu(true);
 }
 void AVTController::ToggleMenu() {if(UI) UI->SetMenu(!UI->MenuOpen); LocalIntent=FVTPilotIntent();}
 

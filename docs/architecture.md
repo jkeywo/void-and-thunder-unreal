@@ -107,3 +107,5 @@ Enhanced Input uses common/menu/flight/docked contexts. Ability tags gate activa
 and fixed-step Ability Tasks own deterministic cooldown clocks; continuous battery
 costs retain their existing GAS attribute path. Audio attenuation/concurrency and
 Niagara Effect Types provide native presentation budgets without changing gameplay.
+
+The flight HUD uses authored UMG resource bars and ability readouts fed by the existing coalesced refresh path. A local native grid Actor follows the current system; sky remains camera-centered. Projectile visual radius and flight pace are independently editable on DA_GameData; collision radii remain simulation-owned.

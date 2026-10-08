@@ -103,3 +103,14 @@ do not alter selection identity or authoritative gameplay.
 
 Validation of audit items 1–7 is recorded in
 [the native integration report](docs/validation/native-integration-2026-10-08/README.md).
+
+The flight HUD includes resource/shield bars and an equipment strip. Flight pace
+(`FlightSpeedMultiplier`, currently 2) and projectile visual radius (7 simulation
+units) are editable on `DA_GameData`. Shot hit radii are unchanged. Player yaw
+input is converted once at the reflected coordinate boundary. The native cube
+sky, animated sun, emissive projectiles and plane grid are under `Content/Environment`.
+After an explicit baseline regeneration, `Scripts/Playability.ps1` reapplies these
+targeted authored upgrades; normal validation preserves their packages.
+
+After packaging, double-click `run-unreal.bat` to start the current Development
+build from this checkout. Published older preview ZIPs do not contain these fixes.

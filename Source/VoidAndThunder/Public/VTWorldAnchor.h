@@ -23,3 +23,11 @@ public:
  AVTSky();
  virtual void Tick(float DeltaTime) override;
 };
+
+UCLASS()
+class VOIDANDTHUNDER_API AVTReferenceGrid : public AActor {
+ GENERATED_BODY()
+public:
+ AVTReferenceGrid();
+ virtual void Tick(float DeltaTime) override;
+};

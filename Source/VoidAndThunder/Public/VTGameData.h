@@ -17,6 +17,9 @@ public:
  UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTScenarioAsset>> ScenarioAssets;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay,Presentation")) TSoftClassPtr<class AVTShip> ShipClass;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Presentation")) TSoftClassPtr<class UVTUI> UIClass;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Flight",meta=(ClampMin="0.1",ClampMax="4")) float FlightSpeedMultiplier=2.f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(ClampMin="1",ClampMax="20")) float ProjectileVisualRadius=7.f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(AssetBundles="Presentation")) TSoftObjectPtr<class UMaterialInterface> ProjectileMaterial= TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Environment/M_Projectile.M_Projectile")));
  void LoadCatalog();
  TSharedPtr<struct FStreamableHandle> CatalogHandle,PresentationHandle;
  bool CatalogLoaded=false;

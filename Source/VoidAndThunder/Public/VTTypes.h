@@ -474,5 +474,6 @@ namespace VT {
  VOIDANDTHUNDER_API bool SequenceAdvanceAllowed(uint32 Next,uint32 Last,double SecondsSinceInput);
  VOIDANDTHUNDER_API bool ValidIntent(const FVTPilotIntent& Intent);
  VOIDANDTHUNDER_API FVector ArenaOrigin(int32 System);
+ VOIDANDTHUNDER_API float PlayerTurnInput(float Axis);
  VOIDANDTHUNDER_API FVector ToWorld(const FVector2D& Position, int32 System);
 }

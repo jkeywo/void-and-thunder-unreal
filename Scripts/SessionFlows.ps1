@@ -5,7 +5,7 @@ $RunDir=Join-Path $ProjectRoot ('Saved\Validation\Sessions-'+(Get-Date -Format '
 $Exe=if($Packaged){"$ProjectRoot\Artifacts\Development\Windows\VoidAndThunder\Binaries\Win64\VoidAndThunder.exe"}else{"$EngineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"}
 $Common=@();if(!$Packaged){$Common+='"'+$ProjectRoot+'\VoidAndThunder.uproject"'}
 $Common+=@('/Game/Maps/Menu','-game','-nullrhi','-nosound','-unattended','-nosplash',"-VTProbeDir=$RunDir",'-ExecCmds="t.MaxFPS 60"')
-$Extra=@(); if($HostDeparture){$Extra+=@("-VTProbeSeconds=20")}; if($Continue){$Extra+='-VTContinue'}
+$Extra=@(); if($HostDeparture){$Extra+=@("-VTProbeSeconds=40")}; if($Continue){$Extra+='-VTContinue'}
 $Processes=@()
 try {
  $Processes+=Start-Process -FilePath $Exe -ArgumentList ($Common+@('-VTProbe=FlowHost','-port=7790',"-abslog=$RunDir\Host.log")+$Extra) -PassThru -WindowStyle Hidden

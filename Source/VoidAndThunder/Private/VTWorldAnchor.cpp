@@ -21,6 +21,17 @@ void UVTSimulation::CreateAnchors() {
 
 AVTSky::AVTSky() {
  PrimaryActorTick.bCanEverTick=true;
- auto* Sphere=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Sky")); RootComponent=Sphere; Sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision); Sphere->SetCastShadow(false); Sphere->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"))); Sphere->SetRelativeScale3D(FVector(40000)); Sphere->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Environment/M_SkyAtlas.M_SkyAtlas")));
+ auto* Sphere=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Sky")); RootComponent=Sphere; Sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision); Sphere->SetCastShadow(false); Sphere->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"))); Sphere->SetRelativeScale3D(FVector(40000)); Sphere->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Environment/M_SpaceSky.M_SpaceSky")));
 }
 void AVTSky::Tick(float DeltaTime) {Super::Tick(DeltaTime); if(auto* PC=GetWorld()->GetFirstPlayerController()) if(PC->PlayerCameraManager) SetActorLocation(PC->PlayerCameraManager->GetCameraLocation());}
+
+AVTReferenceGrid::AVTReferenceGrid() {
+ PrimaryActorTick.bCanEverTick=true; auto* Plane=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ReferenceGrid")); RootComponent=Plane;
+ Plane->SetCollisionEnabled(ECollisionEnabled::NoCollision); Plane->SetCastShadow(false); Plane->SetCanEverAffectNavigation(false);
+ Plane->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Plane.Plane"))); Plane->SetRelativeScale3D(FVector(6000,6000,1));
+ Plane->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Environment/M_ReferenceGrid.M_ReferenceGrid")));
+}
+void AVTReferenceGrid::Tick(float DeltaTime) {
+ Super::Tick(DeltaTime); auto* PC=GetWorld()->GetFirstPlayerController(); auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr;
+ if(Ship) SetActorLocation(VT::ArenaOrigin(Ship->SystemIndex)+FVector(0,0,-900));
+}
