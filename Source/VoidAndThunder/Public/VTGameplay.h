@@ -171,7 +171,7 @@ class VOIDANDTHUNDER_API AVTCameraManager : public APlayerCameraManager {
  GENERATED_BODY()
 public:
  virtual void UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) override;
- bool RigReady=false;
+ bool RigReady=false,GateDepartureFocus=false;
  FGuid RigShip; int32 RigSystem=-1;
  double LastCameraReal=0,OrbitYaw=0,OrbitPitch=0,OrbitDistance=0,OrbitFov=0,FreeYaw=0,FreePitch=0,LookIdle=0,MenuOrbit=0;
  FVector Focus=FVector::ZeroVector,ImpactKick=FVector::ZeroVector;
@@ -277,6 +277,7 @@ public:
  double LastRenderFrame=0;
  bool ScreenshotRequested=false;
  bool GateMarkerSeen=false,GateMarkerAnimated=false;
+ bool GateCameraDepartureSeen=false,GateCameraArrivalSeen=false;
  bool GateFlashSeen=false,GateBrakingSeen=false,GateArrivalPassed=false;
  bool UIProbeStarted=false,UIProbeFinished=false,UIInitialFocus=false,UINavigationPassed=false;
  double Accumulator = 0;

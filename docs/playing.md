@@ -95,3 +95,5 @@ Gate alignment may reverse when that reaches the staging point faster. Passage t
 Torpedo visuals are restored to the original projectile size and material. Charged gate passage now surges forwards to the ring, flashes white at teleport, then brakes rapidly from the destination ring to the same previous arrival point.
 
 Near a jump ring, a flat arrow marks the staging point and points through the gate. A smaller arrow loops through the acceleration, teleport and braking path. Hold interact to line up and pass through; approach and arrival distances are twice their previous lengths.
+
+During gate acceleration the camera stays aimed at your departure position. At teleport it switches to the final stopping position and remains centred there during braking. Normal camera tracking then resumes.

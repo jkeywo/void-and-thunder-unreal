@@ -635,7 +635,11 @@ void AVTCameraManager::UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) {
  if(GetWorld()->IsPaused()) Dt=0;
  const auto M=Ship->Movement->PresentationPose();const auto ShipPosition=VT::ToWorld(M.Position,Ship->SystemIndex);
  if(RigReady&&RigShip==Ship->PersistentId&&RigSystem!=Ship->SystemIndex)StartCameraFade(1,0,Data->GateFlashDuration,FLinearColor::White,false,false);
- if(!RigReady||RigShip!=Ship->PersistentId||RigSystem!=Ship->SystemIndex) {RigReady=true; RigShip=Ship->PersistentId; RigSystem=Ship->SystemIndex; OrbitYaw=M.Heading; OrbitPitch=FreePitch=C.pitch_base; OrbitDistance=C.distance; OrbitFov=C.base_fov; Focus=ShipPosition; FreeYaw=LookIdle=MenuOrbit=0; ImpactKick=FVector::ZeroVector;}
+ if(!RigReady||RigShip!=Ship->PersistentId||RigSystem!=Ship->SystemIndex) {RigReady=true; RigShip=Ship->PersistentId; RigSystem=Ship->SystemIndex; OrbitYaw=M.Heading; OrbitPitch=FreePitch=C.pitch_base; OrbitDistance=C.distance; OrbitFov=C.base_fov; Focus=ShipPosition; GateDepartureFocus=false; FreeYaw=LookIdle=MenuOrbit=0; ImpactKick=FVector::ZeroVector;}
+ const bool Departing=Ship->GatePassage->Departing(),Arriving=Ship->GatePassage->Arriving(),GateView=Departing||Arriving;
+ if(Departing&&!GateDepartureFocus)Focus=ShipPosition;
+ GateDepartureFocus=Departing;
+ if(Arriving)Focus=VT::ToWorld(Ship->GatePassage->Status().ArrivalTarget,Ship->SystemIndex);
  float MX=0,MY=0; int32 W=0,H=0; PC->GetViewportSize(W,H); bool Mouse=PC->GetMousePosition(MX,MY)&&W>0&&H>0;
  double LX=Mouse ? FMath::Clamp(double(MX)/W*2-1,-1.,1.) : 0,LY=Mouse ? FMath::Clamp(double(MY)/H*2-1,-1.,1.) : 0;
  bool Active=Mouse&&!PC->UsingGamepadAim&&(FVector2D(MX,MY)-LastCursor).Size()>1; LastCursor=FVector2D(MX,MY);
@@ -644,7 +648,8 @@ void AVTCameraManager::UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) {
  uint16 Buttons=PC->LocalIntent.Buttons; bool Menu=(PC->UI&&PC->UI->MenuOpen)||Ship->Docked,Locked=false;
  double Yaw=OrbitYaw,Pitch=C.pitch_base,Distance=C.distance;
  auto Lead=(M.Velocity*C.lead_secs).GetClampedToMaxSize(C.lead_max); FVector DesiredFocus=ShipPosition+FVector(Lead.X,-Lead.Y,0)*100;
- if(Menu) {DesiredFocus=ShipPosition; MenuOrbit=FMath::UnwindRadians(MenuOrbit+C.menu_orbit_rate*Dt); Yaw=M.Heading+MenuOrbit;}
+ if(GateView) {DesiredFocus=Focus;Pitch=OrbitPitch;Distance=OrbitDistance;Locked=true;}
+ else if(Menu) {DesiredFocus=ShipPosition; MenuOrbit=FMath::UnwindRadians(MenuOrbit+C.menu_orbit_rate*Dt); Yaw=M.Heading+MenuOrbit;}
  else if(Buttons&(VTButtons::Torpedo|VTButtons::Warp)) {Yaw=M.Heading; Pitch=C.topdown_pitch; Distance=Data->Rules.EngagementRange/FMath::Tan(FMath::Max(0.05,OrbitFov*0.5))*C.topdown_margin; Locked=true;}
  else if(Buttons&(VTButtons::AimPort|VTButtons::AimStarboard)) {auto Direction=VTCombat::BroadsideDirection(M.Heading,(Buttons&VTButtons::AimPort)!=0,PC->LocalIntent.Aim,Ship->Definition.Arc); Yaw=FMath::Atan2(Direction.Y,Direction.X); Pitch=C.aim_pitch; Distance=C.distance*C.aim_dist; Locked=true;}
  else if(PC->UsingGamepadAim) {FreeYaw=FMath::Clamp(FreeYaw-SX*C.look_yaw_rate*Dt,-double(PI),double(PI)); FreePitch=FMath::Clamp(FreePitch-SY*C.look_pitch_rate*Dt,double(C.pitch_min),double(C.pitch_max)); Yaw=M.Heading+FreeYaw; Pitch=FreePitch;}

@@ -240,6 +240,20 @@ bool FVTGateReverse::RunTest(const FString&) {
  Motion.Position=FVector2D(920,0);Guide=VTGate::Guide(Motion,Stats,Intent,FVector2D(1000,0),true,80,45,12,0.25);TestTrue(TEXT("Entry always accelerates forward through aperture"),Guide.Throttle>0);
  FNativeFixture F;auto* Shot=F.Ship->Combat->SpawnDeviceProjectile(EVTProjectileKind::Torpedo,FVector2D(10,20),FVector2D::ZeroVector,1,8,12);TestTrue(TEXT("Equipment projectile completes deferred lifecycle"),Shot->HasActorBegunPlay());TestTrue(TEXT("Equipment projectile begins with torpedo kind"),Shot->Kind==EVTProjectileKind::Torpedo);TestTrue(TEXT("Finished torpedo registered for simulation"),F.Sim->Projectiles.Contains(Shot));return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTGateCamera,"VT.Native.GateCameraFocus",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTGateCamera::RunTest(const FString&) {
+ FNativeFixture F;F.World->Tick(LEVELTICK_All,0.1f);auto* S=F.Ship;S->IsNPC=false;S->Anchored=false;auto* PC=F.World->SpawnActor<AVTController>();PC->Possess(S);auto* Camera=F.World->SpawnActor<AVTCameraManager>();Camera->InitializeFor(PC);FTViewTarget View;View.Target=S;auto Update=[&](){Camera->LastCameraReal=F.World->GetRealTimeSeconds()-0.05;Camera->UpdateViewTarget(View,VT::Step);};
+ const auto Link=F.Sim->Data->Systems[0].Links[0];const auto Centre=F.Sim->JumpPosition(0,Link);S->Movement->Motion=FVTMotion();S->Movement->Motion.Position=Centre-Centre.GetSafeNormal()*F.Sim->Data->GateStartDistance();S->Movement->Motion.Heading=FMath::Atan2(Centre.Y,Centre.X);S->Movement->Previous=S->Movement->Authority=S->Movement->Motion;
+ Update();FVTSavedShip R;R.JumpDestination=Link;R.JumpProgress=F.Sim->Data->Rules.JumpDwell;S->GatePassage->Restore(R,F.Sim->SimulationTime);S->LastInputTime=F.Sim->SimulationTime;S->Intent.Buttons=VTButtons::Interact;S->GatePassage->InteractionStep();Update();const auto Departure=Camera->Focus;const double Yaw=Camera->OrbitYaw,Pitch=Camera->OrbitPitch;const auto Eye=View.POV.Location;
+ for(int I=0;I<12;++I){F.Sim->FixedStep();Update();}
+ TestTrue(TEXT("Acceleration moves ship away from departure"),(VT::ToWorld(S->Movement->Motion.Position,0)-Departure).Size()>1000);
+ TestTrue(TEXT("Departure camera retains focal position"),Camera->Focus.Equals(Departure,0.001));TestTrue(TEXT("Departure retains orbit and camera position"),Camera->OrbitYaw==Yaw&&Camera->OrbitPitch==Pitch&&View.POV.Location.Equals(Eye,0.001));
+ F.Sim->TravelShip(S,F.Sim->Data->FindSystem(Link));Update();const auto Arrival=VT::ToWorld(S->GatePassage->Status().ArrivalTarget,S->SystemIndex);
+ TestTrue(TEXT("Teleport immediately focuses final arrival position"),Camera->Focus.Equals(Arrival,0.001));TestTrue(TEXT("Camera ray points at arrival endpoint"),FVector::DotProduct(View.POV.Rotation.Vector(),(Arrival-View.POV.Location).GetSafeNormal())>0.9999);
+ for(int I=0;I<12;++I){F.Sim->FixedStep();Update();TestTrue(TEXT("Braking retains final-position focus"),Camera->Focus.Equals(Arrival,0.001));}
+ auto* RestoredCamera=F.World->SpawnActor<AVTCameraManager>();RestoredCamera->InitializeFor(PC);RestoredCamera->UpdateViewTarget(View,VT::Step);TestTrue(TEXT("New camera during restored arrival uses endpoint"),RestoredCamera->Focus.Equals(Arrival,0.001));
+ for(int I=0;I<24;++I)F.Sim->FixedStep();Update();TestFalse(TEXT("Arrival completes"),S->GatePassage->Arriving());TestFalse(TEXT("Departure lock cleared"),Camera->GateDepartureFocus);return true;
+}
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTGateMarker,"VT.Native.GateDistanceMarkerAndLegacyArrival",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FVTGateMarker::RunTest(const FString&) {
  FNativeFixture F;auto* D=F.Sim->Data.Get();TestEqual(TEXT("Double approach distance"),D->GateStartDistance(),160.f);TestEqual(TEXT("Staging remains within interaction range"),D->GateInteractionRange(),240.f);TestTrue(TEXT("Double arrival distance"),FMath::IsNearlyEqual(D->GateArrivalFraction(),0.3f));
