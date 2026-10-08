@@ -13,9 +13,9 @@ bool UVTCombatComponent::Hostile(const AVTShip* Other) const {
  return Other&&Other!=S&&!Other->Docked&&(!S->IsNPC||!Other->IsNPC||S->Faction!=Other->Faction);
 }
 AVTProjectile* UVTCombatComponent::SpawnDeviceProjectile(EVTProjectileKind Kind,const FVector2D& P,const FVector2D& V,float Damage,float TTL,float Radius) {
- auto* S=CastChecked<AVTShip>(GetOwner()); auto* Shot=GetWorld()->SpawnActor<AVTProjectile>();
+ auto* S=CastChecked<AVTShip>(GetOwner()); auto* Shot=GetWorld()->SpawnActorDeferred<AVTProjectile>(AVTProjectile::StaticClass(),FTransform(VT::ToWorld(P,S->SystemIndex)));
  Shot->Kind=Kind; Shot->SystemIndex=S->SystemIndex; Shot->PersistentId=FGuid::NewGuid(); Shot->Source=S; Shot->SourceId=S->PersistentId; Shot->SourceFaction=S->Faction; Shot->SourceNPC=S->IsNPC; if(auto* PS=S->GetPlayerState<AVTPlayerState>()) Shot->AttackerProfile=PS->Profile;
- Shot->Position=P; Shot->Previous=P; Shot->Velocity=V; Shot->Damage=Damage; Shot->Remaining=TTL; Shot->Radius=Radius; return Shot;
+ Shot->Position=P; Shot->Previous=P; Shot->Velocity=V; Shot->Damage=Damage; Shot->Remaining=TTL; Shot->Radius=Radius;Shot->FinishSpawning(FTransform(VT::ToWorld(P,S->SystemIndex))); return Shot;
 }
 void UVTCombatComponent::EquipmentSystems() {
  auto* S=CastChecked<AVTShip>(GetOwner()); const auto& D=S->Definition; const auto& E=D.Equipment; auto& R=EquipmentState;

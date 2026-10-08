@@ -125,7 +125,7 @@ public:
  UPROPERTY(Replicated) FGuid SourceId;
  UPROPERTY(Replicated) FVector2D Position=FVector2D::ZeroVector;
  UPROPERTY(Replicated) FVector2D Velocity=FVector2D::ZeroVector;
- UPROPERTY(Replicated) EVTProjectileKind Kind=EVTProjectileKind::Cannon;
+ UPROPERTY(ReplicatedUsing=RefreshPresentation) EVTProjectileKind Kind=EVTProjectileKind::Cannon;
  UPROPERTY(Replicated) FGuid TargetId;
  UPROPERTY(Replicated) FGuid AttackerProfile;
  UPROPERTY(Replicated) FName SourceFaction;
@@ -139,6 +139,7 @@ public:
  UPROPERTY(Replicated) float Radius=5;
  UPROPERTY() TObjectPtr<AVTShip> Source;
  FVector2D Previous=FVector2D::ZeroVector;
+ UFUNCTION() void RefreshPresentation();
  virtual void BeginPlay() override;
  virtual void EndPlay(const EEndPlayReason::Type Reason) override;
  virtual void Tick(float Dt) override;

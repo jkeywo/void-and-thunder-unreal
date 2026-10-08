@@ -89,3 +89,5 @@ The HUD displays the active mapped binding. Warp and torpedo aiming suppress
 broadside input and cancel an unfinished broadside wind-up. Optional loadout
 selectors offer Empty mount explicitly; checked fits survive frontend setup and
 replicated ship initialization. Torpedoes have a separate smaller red visual.
+
+Gate alignment may reverse when that reaches the staging point faster. Passage through the ring always remains forwards. Torpedoes now use a 1.25-unit pure-red visual; cannon visuals remain separate.

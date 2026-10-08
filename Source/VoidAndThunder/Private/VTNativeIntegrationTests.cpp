@@ -205,4 +205,13 @@ bool FVTFitLifecycle::RunTest(const FString&) {
  FNativeFixture F;FVTLoadoutSelection Fit;Fit.OverrideBatteries=Fit.OverrideSpecials=true;Fit.Batteries={FName("loadout.boost")};Fit.Specials={FName("loadout.microwarp")};F.Ship->Fit=Fit;F.Ship->OnRep_ClassId();TestFalse(TEXT("Class notification retains selected fit instead of EMP"),F.Ship->Definition.Equipment.EMP);TestTrue(TEXT("Selected warp survives class resolution"),F.Ship->Definition.Equipment.Warp);
  auto* Deferred=F.World->SpawnActorDeferred<AVTShip>(AVTShip::StaticClass(),FTransform::Identity);Deferred->InitializeShip(TEXT("corsair_cruiser"),0,FVTMotion());Deferred->Fit=Fit;Deferred->FinishSpawning(FTransform::Identity);TestFalse(TEXT("BeginPlay preserves received fit instead of EMP"),Deferred->Definition.Equipment.EMP);TestTrue(TEXT("BeginPlay preserves fitted warp"),Deferred->Definition.Equipment.Warp);return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTGateReverse,"VT.Native.GateReverseApproach",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTGateReverse::RunTest(const FString&) {
+ FVTShipStats Stats;Stats.Thrust=100;Stats.TurnRate=Stats.TurnRateSlow=1;Stats.ForwardDrag=1;FVTMotion Motion;Motion.Position=FVector2D(940,0);FVTPilotIntent Intent;Intent.Buttons=VTButtons::Interact;
+ auto Guide=VTGate::Guide(Motion,Stats,Intent,FVector2D(1000,0),false,80,45,12,0.25);
+ TestTrue(TEXT("Nearby staging behind bow uses reverse instead of a full turn"),Guide.Throttle<0);TestTrue(TEXT("Backing retains forward gate heading"),FMath::Abs(Guide.Turn)<0.001);
+ Motion.Position=FVector2D(1920,0);Guide=VTGate::Guide(Motion,Stats,Intent,FVector2D(1000,0),false,80,45,12,0.25);TestTrue(TEXT("Long approach selects faster forward turn instead of slow reverse"),FMath::Abs(Guide.Turn)>0.5);
+ Motion.Position=FVector2D(920,0);Guide=VTGate::Guide(Motion,Stats,Intent,FVector2D(1000,0),true,80,45,12,0.25);TestTrue(TEXT("Entry always accelerates forward through aperture"),Guide.Throttle>0);
+ FNativeFixture F;auto* Shot=F.Ship->Combat->SpawnDeviceProjectile(EVTProjectileKind::Torpedo,FVector2D(10,20),FVector2D::ZeroVector,1,8,12);TestTrue(TEXT("Equipment projectile completes deferred lifecycle"),Shot->HasActorBegunPlay());TestTrue(TEXT("Equipment projectile begins with torpedo kind"),Shot->Kind==EVTProjectileKind::Torpedo);TestTrue(TEXT("Finished torpedo registered for simulation"),F.Sim->Projectiles.Contains(Shot));return true;
+}
 #endif

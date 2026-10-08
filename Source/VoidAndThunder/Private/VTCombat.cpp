@@ -117,7 +117,8 @@ AVTProjectile::AVTProjectile() {
  auto* Mesh=CreateDefaultSubobject<UStaticMeshComponent>("ProjectileMesh"); RootComponent=Mesh; Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
  Mesh->SetCanEverAffectNavigation(false); Mesh->SetCastShadow(false); Mesh->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"))); Mesh->SetRelativeScale3D(FVector(2));
 }
-void AVTProjectile::BeginPlay() {Super::BeginPlay(); auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Projectiles.AddUnique(this);
+void AVTProjectile::BeginPlay() {Super::BeginPlay(); auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Projectiles.AddUnique(this);RefreshPresentation();}
+void AVTProjectile::RefreshPresentation() {auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();
  if(IsRunningCommandlet()||!FApp::CanEverRender())return;
  auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent); Mesh->SetRelativeScale3D(FVector(2*(Sim->Data ? (Kind==EVTProjectileKind::Torpedo?Sim->Data->TorpedoVisualRadius:Sim->Data->ProjectileVisualRadius) : 7.f)));
  if(Sim->Data)Mesh->SetMaterial(0,Kind==EVTProjectileKind::Torpedo?Sim->Data->TorpedoMaterial.LoadSynchronous():Sim->Data->ProjectileMaterial.Get());}
