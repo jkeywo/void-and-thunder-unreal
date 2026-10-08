@@ -38,7 +38,7 @@ bool AtomicWrite(const FString& Path,const TArray<uint8>& Bytes) {
 FVTSavedShip UVTSaveSubsystem::CaptureShip(AVTShip* S) const {
  FVTSavedShip R; R.Id=S->PersistentId; R.ClassId=S->ClassId; R.Fit=S->Fit; R.Faction=S->Faction; R.System=S->SystemIndex;
  R.Motion=S->Movement->Motion; R.Hull=S->Attributes->Hull.GetCurrentValue(); R.Battery=S->Attributes->Battery.GetCurrentValue(); R.NPC=S->IsNPC;
- R.Invulnerable=S->Invulnerable; R.Anchored=S->Anchored; R.ShipRole=S->ShipRole; R.Brain=S->Brain; R.DockProgress=S->DockProgress; R.JumpProgress=S->JumpProgress; R.JumpDestination=S->JumpDestination;R.JumpArriving=S->JumpArriving;R.JumpArrivalStarted=S->JumpArrivalStarted;R.JumpArrivalTarget=S->JumpArrivalTarget; R.BoardingTarget=S->Combat->BoardingTarget; R.BoardingProgress=S->Combat->BoardingProgress;
+ R.Invulnerable=S->Invulnerable; R.Anchored=S->Anchored; R.ShipRole=S->ShipRole; R.Brain=S->Brain; R.DockProgress=S->DockProgress; S->GatePassage->Capture(R); R.BoardingTarget=S->Combat->BoardingTarget; R.BoardingProgress=S->Combat->BoardingProgress;
  R.Disabled=S->Disabled; R.Docked=S->Docked; R.Shields=S->Combat->Shields; R.Suppression=S->Combat->Suppression;
  R.EMPStress=S->Attributes->EMPStress.GetCurrentValue(); R.Equipment=S->Combat->EquipmentState; R.Equipment.Locks.Reset(); R.Equipment.LockElapsed=0;
  R.PortReload=S->PortReload; R.StarboardReload=S->StarboardReload;
@@ -49,7 +49,7 @@ FVTSavedShip UVTSaveSubsystem::CaptureShip(AVTShip* S) const {
 }
 AVTShip* UVTSaveSubsystem::RestoreShip(const FVTSavedShip& R,double ResumeTime) {
  auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); FVTMotion M=R.Motion; M.Ack=0;M.SimulationTime=ResumeTime>=0?ResumeTime:Sim->SimulationTime;
- AVTShip* S=Sim->SpawnShip(R.ClassId,R.System,M,R.NPC,R.Faction); S->PersistentId=R.Id;Sim->Queries.Invalidate(); S->Disabled=R.Disabled; S->Docked=R.Docked; S->Invulnerable=R.Invulnerable; S->Anchored=R.Anchored; S->ShipRole=R.ShipRole; S->Brain=R.Brain; S->DockProgress=R.DockProgress; S->JumpProgress=R.JumpProgress; S->JumpDestination=R.JumpDestination;S->JumpArriving=R.JumpArriving;S->JumpArrivalStarted=R.JumpArriving?M.SimulationTime-FMath::Clamp(R.Motion.SimulationTime-R.JumpArrivalStarted,0.,double(Sim->Data->GateArrivalDuration)):R.JumpArrivalStarted;S->JumpArrivalTarget=R.JumpArrivalTarget; S->Brain.Shoulder=-1; S->Brain.Thumb=-1; S->Brain.AimLock=0; S->Brain.WarpPrime=0;
+ AVTShip* S=Sim->SpawnShip(R.ClassId,R.System,M,R.NPC,R.Faction); S->PersistentId=R.Id;Sim->Queries.Invalidate(); S->Disabled=R.Disabled; S->Docked=R.Docked; S->Invulnerable=R.Invulnerable; S->Anchored=R.Anchored; S->ShipRole=R.ShipRole; S->Brain=R.Brain; S->DockProgress=R.DockProgress; S->GatePassage->Restore(R,M.SimulationTime); S->Brain.Shoulder=-1; S->Brain.Thumb=-1; S->Brain.AimLock=0; S->Brain.WarpPrime=0;
  S->ApplyFit(R.Fit,false); S->Combat->BoardingTarget=R.BoardingTarget; S->Combat->BoardingProgress=R.BoardingProgress;
  S->Abilities->SetNumericAttributeBase(UVTAttributes::HullAttribute(),R.Hull); S->Abilities->SetNumericAttributeBase(UVTAttributes::BatteryAttribute(),R.Battery);
  S->Abilities->SetNumericAttributeBase(UVTAttributes::GetEMPStressAttribute(),R.EMPStress); S->Combat->EquipmentState=R.Equipment; S->Combat->RestoreDevices();

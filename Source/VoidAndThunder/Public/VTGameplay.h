@@ -1,5 +1,6 @@
 #pragma once
 #include "VTShipQueries.h"
+#include "VTGatePassage.h"
 #include "VTCaptainStandings.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
@@ -115,12 +116,7 @@ public:
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) int32 ShipRole=0;
  FVTBrainState Brain;
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float DockProgress=0;
- UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float JumpProgress=0;
- UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) bool JumpEntering=false;
- UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) bool JumpArriving=false;
- UPROPERTY(Replicated) double JumpArrivalStarted=0;
- UPROPERTY(Replicated) FVector2D JumpArrivalTarget=FVector2D::ZeroVector;
- UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) FName JumpDestination;
+ UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UVTGatePassage> GatePassage;
  virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return Abilities; }
  virtual void PossessedBy(AController* NewController) override;
  virtual void OnRep_Controller() override;

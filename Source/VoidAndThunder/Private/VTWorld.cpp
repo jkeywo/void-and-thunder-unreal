@@ -11,9 +11,7 @@ FVector2D UVTSimulation::JumpPosition(int32 System,FName Destination) const {
 void UVTSimulation::TravelShip(AVTShip* Ship,int32 Destination) {
  if(!Data->Systems.IsValidIndex(Destination)) return;
  FName Previous=Data->Systems[Ship->SystemIndex].Id; Ship->SystemIndex=Destination;Queries.Invalidate();
- auto& M=Ship->Movement->Motion; M.Position=JumpPosition(Destination,Previous);Ship->JumpArrivalTarget=M.Position*0.85;Ship->JumpArrivalStarted=SimulationTime;Ship->JumpArriving=true;VTGate::Arrive(M,M.Position,Ship->JumpArrivalTarget,0,Data->GateArrivalDuration);
- Ship->Movement->Previous=M; Ship->Movement->Authority=M; Ship->Movement->Pending.Reset(); Ship->Combat->EquipmentState.Locks.Reset(); Ship->Combat->EquipmentState.LockElapsed=0; Ship->Combat->BoardingTarget.Invalidate(); Ship->Combat->BoardingProgress=0;
- Ship->JumpDestination=NAME_None; Ship->JumpProgress=0; Ship->JumpEntering=false; Ship->DockProgress=0; Ship->Intent=FVTPilotIntent(); Ship->ForceNetUpdate();
+ Ship->Movement->Motion.Position=JumpPosition(Destination,Previous);Ship->GatePassage->BeginArrival(Ship->Movement->Motion.Position,SimulationTime);
 }
 void UVTSimulation::RecordHit(AVTShip* Victim,AVTShip* Attacker,float Amount,FGuid Profile,FName AttackerFaction) {
  if(!AttackerFaction.IsNone()) Victim->Brain.LastAttackerFaction=AttackerFaction;
@@ -31,23 +29,14 @@ void UVTSimulation::WorldStep() {
  for(AVTShip* Ship:Ships) if(IsValid(Ship)) {
   Ship->Brain.AlertTTL=FMath::Max(0.f,Ship->Brain.AlertTTL-VT::Step);
   if(Ship->Brain.DistressTimer>=0&&!Ship->Disabled) {Ship->Brain.DistressTimer-=VT::Step; if(Ship->Brain.DistressTimer<=0) {Ship->Brain.DistressSent=true; Ship->Brain.DistressTimer=-1; for(auto* Patrol:Queries.Ordered(Ship->SystemIndex)) if(Patrol->ShipRole==2&&(Patrol->Faction==Ship->Faction||Data->StandingBetween(Patrol->Faction,Ship->Faction)>=0)) {Patrol->Brain.Alert=Ship->Movement->Motion.Position; Patrol->Brain.AlertTTL=Data->World.alert_ttl;}}}
-  if(Ship->IsNPC||Ship->Docked||Ship->Disabled||Ship->JumpArriving) continue;
+  if(Ship->IsNPC||Ship->Docked||Ship->Disabled||Ship->GatePassage->Arriving()) continue;
   const auto& System=Data->Systems[Ship->SystemIndex]; auto* PS=Ship->GetPlayerState<AVTPlayerState>(); auto Standing=Standings.Read(PS?PS->Profile:FGuid(),System.Owner);
   bool Allowed=!Standing.Found||Standing.Reputation>=Data->World.dock_refusal_threshold;
   bool NearStation=System.HasStation&&Allowed&&(Ship->Movement->Motion.Position-Data->Rules.StationPosition).SizeSquared()<=FMath::Square(Data->Rules.StationRadius+Data->Rules.BoardRange);
   // Legacy station docking accrues by holding position; jump/boarding use the interaction key.
   Ship->DockProgress=NearStation ? Ship->DockProgress+VT::Step : 0;
   if(Ship->DockProgress>=Data->Rules.BoardDwell) {Ship->Docked=true; Ship->Intent=FVTPilotIntent(); Ship->Movement->Motion.Velocity=FVector2D::ZeroVector; continue;}
-  FName Destination; double Best=Data->Rules.JumpRange*Data->Rules.JumpRange;
-  for(FName Link:System.Links) {double Distance=(Ship->Movement->Motion.Position-JumpPosition(Ship->SystemIndex,Link)).SizeSquared(); if(Distance<Best) {Destination=Link; Best=Distance;}}
-  if(Destination!=Ship->JumpDestination) {Ship->JumpDestination=Destination;Ship->JumpProgress=0;Ship->JumpEntering=false;}
-  const bool Held=!Destination.IsNone()&&(Ship->Intent.Buttons&VTButtons::Interact)&&!Ship->Combat->BoardingTarget.IsValid();
-  if(!Held){Ship->JumpEntering=false;continue;}
-  Ship->JumpProgress=FMath::Min(Data->Rules.JumpDwell,Ship->JumpProgress+VT::Step);
-  const auto Centre=JumpPosition(Ship->SystemIndex,Destination),Normal=Centre.GetSafeNormal();const auto& Motion=Ship->Movement->Motion;
-  const float Alignment=FVector2D::DotProduct(FVector2D(FMath::Cos(Motion.Heading),FMath::Sin(Motion.Heading)),Normal);
-  if(!Ship->JumpEntering&&Ship->JumpProgress>=Data->Rules.JumpDwell&&(Motion.Position-(Centre-Normal*Data->GateApproachDistance)).SizeSquared()<=FMath::Square(Data->GateArrivalTolerance*1.5f)&&Motion.Velocity.SizeSquared()<FMath::Square(Data->GateCruiseSpeed*0.3f)&&Alignment>=FMath::Cos(Data->GateAlignmentTolerance))Ship->JumpEntering=true;
-  if(Ship->JumpEntering&&VTGate::Crossed(Ship->Movement->Previous,Motion,Centre,Data->GateOpeningRadius-Ship->Definition.Radius,Data->GateAlignmentTolerance))TravelShip(Ship,Data->FindSystem(Destination));
+  Ship->GatePassage->InteractionStep();
  }
 }
 void AVTController::ServerStationAction_Implementation(FName Action) {

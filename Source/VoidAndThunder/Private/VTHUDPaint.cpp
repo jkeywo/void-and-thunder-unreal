@@ -95,7 +95,7 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
  if(D.Equipment.Warp){const auto Key=DeviceBinding(TEXT("IA_Warp"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-53},FString::Printf(TEXT("[%s] HOLD TO AIM WARP / RELEASE TO JUMP"),*Key),8,Amber);}
  if(D.Equipment.Torpedoes){const auto Key=DeviceBinding(TEXT("IA_Torpedo"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-38},FString::Printf(TEXT("[%s] HOLD TO LOCK / RELEASE TORPEDOES"),*Key),8,Dim);}
  Text({Size.X/2-140,Size.Y-22},TEXT("[TAB] CONTROLS   [F] CHART   [ESC] MENU"),7,Dim);
- if(S->Disabled||S->JumpProgress>0||S->DockProgress>0||(GS&&!GS->Outcome.IsEmpty())){FString Message=S->Disabled?TEXT("SHIP DISABLED  |  [R] RECOVER"):S->JumpProgress>0?(S->JumpEntering?TEXT("FLYING THROUGH GATE"):TEXT("ALIGNING / CHARGING GATE")):S->DockProgress>0?TEXT("DOCKING"):GS->Outcome;Text({Size.X/2-160,Size.Y*0.36},Message.ToUpper(),16,S->Disabled?Red:Amber);}
+ if(S->Disabled||S->GatePassage->Status().Charge>0||S->DockProgress>0||(GS&&!GS->Outcome.IsEmpty())){FString Message=S->Disabled?TEXT("SHIP DISABLED  |  [R] RECOVER"):S->GatePassage->Status().Charge>0?(S->GatePassage->Departing()?TEXT("FLYING THROUGH GATE"):TEXT("ALIGNING / CHARGING GATE")):S->DockProgress>0?TEXT("DOCKING"):GS->Outcome;Text({Size.X/2-160,Size.Y*0.36},Message.ToUpper(),16,S->Disabled?Red:Amber);}
  const auto Hint=VTInteractionHint(S,Sim);
  if(Hint.Kind!=EVTInteractionHint::None){FVector2D Anchor;if(Project(VT::ToWorld(Hint.Position,S->SystemIndex),Anchor)){
   FString Keys;auto* Sub=PC->GetLocalPlayer()?ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()):nullptr;
