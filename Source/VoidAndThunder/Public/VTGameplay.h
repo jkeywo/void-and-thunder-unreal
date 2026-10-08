@@ -207,6 +207,9 @@ public:
  double LastRealTick=0;
  bool UsingGamepadAim=false;
  FVector2D GamepadAim=FVector2D::ZeroVector;
+ int32 InteractionProbeStage=0,InteractionProbeBoarded=0;
+ bool InteractionProbePrompt=false,InteractionProbeLooted=false;
+ FKey InteractionProbeKey;
  int32 BroadsideProbeStage=0;
  bool BroadsideProbeHeld=false,BroadsideProbePassed=false;
  bool ProbeJumped=false;

@@ -126,3 +126,6 @@ than PASM. This choice does not alter the original game or vellum.
 - [ai] Share muzzle layout and inherited projectile velocity between broadside previews and volleys so aiming indicators follow actual trajectories at speed.
 
 - [ai] Read raw mouse deltas for the authored pixel-based broadside sensitivity; Unreal default legacy axis sensitivity (0.07) must not scale it a second time.
+
+- [ai] Show object-anchored, mapped keyboard/controller hold prompts for eligible ship looting and jump links, with replicated progress. Explain automatic docking as holding position, preserving existing rules.
+- [ai] Replace the Cartesian reference grid with anti-aliased rings and spokes centred on the nearest authored star in the viewer's current system. A targeted GridOnly authoring command updates just the grid material.

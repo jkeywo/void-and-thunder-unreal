@@ -1,6 +1,8 @@
 #pragma once
 #include "GameFramework/Actor.h"
+#include "VTTypes.h"
 #include "VTWorldAnchor.generated.h"
+namespace VTGrid { VOIDANDTHUNDER_API bool NearestStar(const TArray<FVTLandmarkDefinition>& Landmarks,const FVector2D& Position,FVector2D& Centre); }
 UCLASS()
 class VOIDANDTHUNDER_API AVTWorldAnchor : public AActor {
  GENERATED_BODY()
@@ -29,5 +31,8 @@ class VOIDANDTHUNDER_API AVTReferenceGrid : public AActor {
  GENERATED_BODY()
 public:
  AVTReferenceGrid();
+ UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> GridMaterial;
+ FVector LastCentre=FVector(DBL_MAX,DBL_MAX,DBL_MAX);
+ virtual void BeginPlay() override;
  virtual void Tick(float DeltaTime) override;
 };

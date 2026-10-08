@@ -4,6 +4,11 @@
 #include "Fonts/SlateFontInfo.h"
 #include "Styling/SlateColor.h"
 #include "VTUI.generated.h"
+class AVTShip;
+class UVTSimulation;
+enum class EVTInteractionHint : uint8 { None,Loot,Jump,Dock };
+struct FVTInteractionHint { EVTInteractionHint Kind=EVTInteractionHint::None;FVector2D Position=FVector2D::ZeroVector;FText Label;float Progress=0; };
+VOIDANDTHUNDER_API FVTInteractionHint VTInteractionHint(const AVTShip* Ship,const UVTSimulation* Sim);
 class UTextBlock;
 class UComboBoxString;
 class UEditableTextBox;

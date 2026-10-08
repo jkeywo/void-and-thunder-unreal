@@ -99,8 +99,8 @@ bool UVTGameData::ResolveFit(FName ClassId,const FVTLoadoutSelection& Fit,FVTShi
 }
 
 float UVTGameData::StandingBetween(FName A,FName B) const {
- static const FName Freebooters(TEXT("Freebooters"));
- if(A==B) return 100; if(A==Freebooters||B==Freebooters) return -70;
+ static const FName FreebootersFaction(TEXT("Freebooters"));
+ if(A==B) return 100; if(A==FreebootersFaction||B==FreebootersFaction) return -70;
  for(const auto& R:Relations) if((R.A==A&&R.B==B)||(R.A==B&&R.B==A)) return R.Standing;
  return 0;
 }

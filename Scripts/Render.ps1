@@ -1,11 +1,11 @@
-param([string]$EngineRoot='C:\Program Files\Epic Games\UE_5.8',[switch]$Broadside,[switch]$Menu,[switch]$Environment,[switch]$Packaged,[switch]$Busy,[switch]$Armed,[ValidateRange(640,7680)][int]$Width=1920,[ValidateRange(480,4320)][int]$Height=1080,[ValidateRange(0,3)][int]$Quality=2)
+param([string]$EngineRoot='C:\Program Files\Epic Games\UE_5.8',[switch]$Interaction,[switch]$Broadside,[switch]$Menu,[switch]$Environment,[switch]$Packaged,[switch]$Busy,[switch]$Armed,[ValidateRange(640,7680)][int]$Width=1920,[ValidateRange(480,4320)][int]$Height=1080,[ValidateRange(0,3)][int]$Quality=2)
 $ErrorActionPreference='Stop'
 $ProjectRoot=Split-Path $PSScriptRoot -Parent
 $Map=if($Menu){'/Game/Maps/Menu'}else{'/Game/Maps/Sandbox?listen'}
 $Role=if($Menu){'RenderMenu'}elseif($Environment){'RenderEnvironment'}else{'Render'}
 $Exe=if($Packaged){"$ProjectRoot\Artifacts\Development\Windows\VoidAndThunder\Binaries\Win64\VoidAndThunder.exe"}else{"$EngineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"}
 $Args=@(); if(!$Packaged){$Args+='"'+$ProjectRoot+'\VoidAndThunder.uproject"'}
-$Extra=@();if($Broadside){$Extra+="-VTBroadsideProbe"};if($Busy){$Extra+="-Busy"};if($Armed){$Extra+="-Armed"};$Args+=$Extra
+$Extra=@();if($Interaction){$Extra+="-VTInteractionProbe"};if($Broadside){$Extra+="-VTBroadsideProbe"};if($Busy){$Extra+="-Busy"};if($Armed){$Extra+="-Armed"};$Args+=$Extra
 $Args+=@($Map,'-game',"-VTProbe=$Role",'-windowed','-ForceRes',"-ResX=$Width","-ResY=$Height",'-port=7787','-unattended','-nosplash','-nop4','-stdout','-FullStdOutLogOutput',"-ExecCmds=`"sg.ViewDistanceQuality $Quality,sg.AntiAliasingQuality $Quality,sg.ShadowQuality $Quality,sg.GlobalIlluminationQuality $Quality,sg.ReflectionQuality $Quality,sg.LandscapeQuality $Quality,sg.PostProcessQuality $Quality,sg.TextureQuality $Quality,sg.EffectsQuality $Quality,sg.FoliageQuality $Quality,sg.ShadingQuality $Quality,r.ScreenPercentage 100,t.MaxFPS 0`"")
 $Started=Get-Date
 $Process=Start-Process -FilePath $Exe -ArgumentList $Args -WindowStyle Hidden -PassThru -RedirectStandardOutput "$ProjectRoot\Saved\Validation\$Role.log"

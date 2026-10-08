@@ -10,6 +10,8 @@
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionTime.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
 #include "WidgetBlueprint.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -41,10 +43,21 @@ UMaterialExpressionCustom* Shader(UMaterial* M,const TCHAR* Code,ECustomMaterial
  auto* S=NewObject<UMaterialExpressionCustom>(M); S->Code=Code; S->OutputType=Type; M->GetExpressionCollection().AddExpression(S); return S;
 }
 void Input(UMaterialExpressionCustom* S,const TCHAR* Name,UMaterialExpression* E) {FCustomInput I;I.InputName=Name;I.Input.Connect(0,E);S->Inputs.Add(I);}
+bool RadialGrid() {
+ auto* Grid=Material(TEXT("M_ReferenceGrid"));Grid->BlendMode=BLEND_Translucent;Grid->TwoSided=true;
+ auto* Position=NewObject<UMaterialExpressionWorldPosition>(Grid);Grid->GetExpressionCollection().AddExpression(Position);
+ auto* Centre=NewObject<UMaterialExpressionVectorParameter>(Grid);Centre->ParameterName=TEXT("StarCentre");Centre->DefaultValue=FLinearColor::Black;Grid->GetExpressionCollection().AddExpression(Centre);
+ auto Scalar=[&](const TCHAR* Name,float Value){auto* P=NewObject<UMaterialExpressionScalarParameter>(Grid);P->ParameterName=Name;P->DefaultValue=Value;Grid->GetExpressionCollection().AddExpression(P);return P;};
+ auto* Lines=Shader(Grid,TEXT("float2 p=Position.xy-StarCentre.xy;float r=length(p);float spacing=max(RingSpacing,100);float count=max(SpokeCount,2);float ring=abs(frac(r/spacing+0.5)-0.5)*spacing;float angle=atan2(p.y,p.x);float spoke=abs(sin(angle*count*0.5))*r/(count*0.5);float width=max(length(fwidth(p)),40);return max(1-saturate(ring/width),1-saturate(spoke/width))*0.3;"),CMOT_Float1);
+ Input(Lines,TEXT("Position"),Position);Input(Lines,TEXT("StarCentre"),Centre);Input(Lines,TEXT("RingSpacing"),Scalar(TEXT("RingSpacing"),20000));Input(Lines,TEXT("SpokeCount"),Scalar(TEXT("SpokeCount"),24));
+ auto* Colour=NewObject<UMaterialExpressionConstant3Vector>(Grid);Colour->Constant=FLinearColor(0.3f,0.38f,0.55f);Grid->GetExpressionCollection().AddExpression(Colour);Grid->GetEditorOnlyData()->EmissiveColor.Connect(0,Colour);Grid->GetEditorOnlyData()->Opacity.Connect(0,Lines);Grid->PostEditChange();return Persist(Grid);
+}
+
 }
 UVTPlayabilityCommandlet::UVTPlayabilityCommandlet(){IsEditor=true;IsClient=false;IsServer=false;LogToConsole=true;}
 int32 UVTPlayabilityCommandlet::Main(const FString& Params) {
  if(!FParse::Param(*Params,TEXT("Apply"))){UE_LOG(LogTemp,Error,TEXT("Use -Apply to update only the requested playability assets."));return 1;}
+ if(FParse::Param(*Params,TEXT("GridOnly")))return RadialGrid()?0:8;
  auto* Data=LoadObject<UVTGameData>(nullptr,TEXT("/Game/Data/DA_GameData.DA_GameData")); if(!Data)return 2;
  Data->FlightSpeedMultiplier=2;Data->ProjectileVisualRadius=7;if(!Persist(Data))return 3;
  auto* Atlas=LoadObject<UTexture2D>(nullptr,TEXT("/Game/Environment/phoenix_space_cubemap.phoenix_space_cubemap"));if(!Atlas)return 4;
@@ -56,12 +69,7 @@ int32 UVTPlayabilityCommandlet::Main(const FString& Params) {
  auto* Texture=NewObject<UMaterialExpressionTextureObject>(Sky);Texture->Texture=Cube;Sky->GetExpressionCollection().AddExpression(Texture);
  auto* Direction=NewObject<UMaterialExpressionCameraVectorWS>(Sky);Sky->GetExpressionCollection().AddExpression(Direction);
  auto* Sample=Shader(Sky,TEXT("return TextureCubeSample(Sky,SkySampler,normalize(float3(-Direction.x,Direction.y,-Direction.z))).rgb*0.8;"),CMOT_Float3);Input(Sample,TEXT("Sky"),Texture);Input(Sample,TEXT("Direction"),Direction);Sky->GetEditorOnlyData()->EmissiveColor.Connect(0,Sample);Sky->PostEditChange();if(!Persist(Sky))return 7;
- auto* Grid=Material(TEXT("M_ReferenceGrid"));Grid->BlendMode=BLEND_Translucent;Grid->TwoSided=true;
- auto* Position=NewObject<UMaterialExpressionWorldPosition>(Grid);Grid->GetExpressionCollection().AddExpression(Position);
- auto* Lines=Shader(Grid,TEXT("float2 p=Position.xy/20000;float2 d=abs(frac(p+0.5)-0.5);float2 w=max(fwidth(p),0.0005);float line=1-min(saturate(d.x/w.x),saturate(d.y/w.y));float fade=1-saturate(length(Parameters.AbsoluteWorldPosition-CameraPosition)/450000);return line*0.32*fade;"),CMOT_Float1);
- // World-space line width uses screen derivatives; the plane is local to the viewer's system.
- Lines->Code=TEXT("float2 p=Position.xy/20000;float2 d=abs(frac(p+0.5)-0.5);float2 w=max(fwidth(p),0.0005);return (1-min(saturate(d.x/w.x),saturate(d.y/w.y)))*0.3;");Input(Lines,TEXT("Position"),Position);
- auto* Colour=NewObject<UMaterialExpressionConstant3Vector>(Grid);Colour->Constant=FLinearColor(0.3f,0.38f,0.55f);Grid->GetExpressionCollection().AddExpression(Colour);Grid->GetEditorOnlyData()->EmissiveColor.Connect(0,Colour);Grid->GetEditorOnlyData()->Opacity.Connect(0,Lines);Grid->PostEditChange();if(!Persist(Grid))return 8;
+ if(!RadialGrid())return 8;
  auto* Star=Material(TEXT("M_Star"));auto* StarPosition=NewObject<UMaterialExpressionWorldPosition>(Star);Star->GetExpressionCollection().AddExpression(StarPosition);auto* Time=NewObject<UMaterialExpressionTime>(Star);Star->GetExpressionCollection().AddExpression(Time);
  auto* Surface=Shader(Star,TEXT("float3 p=Position/850;float n=sin(p.x+sin(p.y*1.9+Time*0.17))*sin(p.y+sin(p.z*2.3-Time*0.11))*sin(p.z+sin(p.x*1.7));float fine=sin(p.x*4+p.y*3+Time*0.3)*sin(p.z*5-p.y*4);float v=saturate(0.5+n*0.6+fine*0.15);return lerp(float3(0.18,0.009,0.001),float3(3.5,0.9,0.06),v);"),CMOT_Float3);Input(Surface,TEXT("Position"),StarPosition);Input(Surface,TEXT("Time"),Time);Star->GetEditorOnlyData()->EmissiveColor.Connect(0,Surface);Star->PostEditChange();if(!Persist(Star))return 9;
  auto* Shot=Material(TEXT("M_Projectile"));auto* Glow=NewObject<UMaterialExpressionConstant3Vector>(Shot);Glow->Constant=FLinearColor(12,4,0.4f);Shot->GetExpressionCollection().AddExpression(Glow);Shot->GetEditorOnlyData()->EmissiveColor.Connect(0,Glow);Shot->PostEditChange();if(!Persist(Shot))return 10;

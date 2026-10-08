@@ -115,3 +115,5 @@ The flight HUD uses authored UMG resource bars and ability readouts fed by the e
 Broadside aim is a local arc offset while held, preserved through release and encoded as the existing authoritative aim intent. The tracking camera and preview consume that direction. Viewport capture forwards the first mouse press; painted tactical markers use viewport-relative pixel scaling into widget coordinates.
 
 Broadside previews and authoritative firing share the muzzle/velocity geometry function, including inherited ship momentum. Each gun projects its own trajectory.
+
+Contextual HUD interaction hints read replicated boarding targets and travel/docking state, recheck proximity, and resolve live Enhanced Input mappings. They display intent and progress without awarding loot or changing rules. The local reference-grid actor selects the nearest authored star in the current system and passes its world centre to a dynamic radial material; ring/spoke density remains editable in the native material.

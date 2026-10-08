@@ -19,6 +19,21 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+FVTInteractionHint VTInteractionHint(const AVTShip* Ship,const UVTSimulation* Sim) {
+ FVTInteractionHint Hint;if(!Ship||!Sim||!Sim->Data||Ship->Disabled||Ship->Docked||Ship->Autopilot||!Sim->Data->Systems.IsValidIndex(Ship->SystemIndex))return Hint;
+ const auto& Rules=Sim->Data->Rules;const auto Position=Ship->Movement->Motion.Position;
+ if(Ship->Combat->BoardingTarget.IsValid())for(const AVTShip* Other:Sim->Ships)if(IsValid(Other)&&Other!=Ship&&Other->PersistentId==Ship->Combat->BoardingTarget&&Other->SystemIndex==Ship->SystemIndex&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed&&(Other->Movement->Motion.Position-Position).SizeSquared()<=FMath::Square(Rules.BoardRange)){
+  Hint.Kind=EVTInteractionHint::Loot;Hint.Position=Other->Movement->Motion.Position;Hint.Label=NSLOCTEXT("VTUI","LootShip","Board and loot ship");Hint.Progress=FMath::Clamp(Ship->Combat->BoardingProgress/FMath::Max(0.001f,Rules.BoardDwell),0.f,1.f);return Hint;
+ }
+ const auto& System=Sim->Data->Systems[Ship->SystemIndex];
+ if(System.Links.Contains(Ship->JumpDestination)){int32 Destination=Sim->Data->FindSystem(Ship->JumpDestination);const auto Jump=Sim->JumpPosition(Ship->SystemIndex,Ship->JumpDestination);if(Destination>=0&&(Position-Jump).SizeSquared()<FMath::Square(Rules.JumpRange)){Hint.Kind=EVTInteractionHint::Jump;Hint.Position=Jump;Hint.Label=FText::Format(NSLOCTEXT("VTUI","JumpTo","Jump to {0}"),Sim->Data->Systems[Destination].DisplayName);Hint.Progress=FMath::Clamp(Ship->JumpProgress/FMath::Max(0.001f,Rules.JumpDwell),0.f,1.f);return Hint;}}
+ if(System.HasStation&&(Position-Rules.StationPosition).SizeSquared()<=FMath::Square(Rules.StationRadius+Rules.BoardRange)){
+  const auto* PS=Ship->GetPlayerState<AVTPlayerState>();const int32 Owner=Sim->Data->FactionIndex(System.Owner);const bool Allowed=!PS||!PS->Reputation.IsValidIndex(Owner)||PS->Reputation[Owner]>=Sim->Data->World.dock_refusal_threshold;
+  if(Allowed){Hint.Kind=EVTInteractionHint::Dock;Hint.Position=Rules.StationPosition;Hint.Label=NSLOCTEXT("VTUI","HoldToDock","Hold position to dock");Hint.Progress=FMath::Clamp(Ship->DockProgress/FMath::Max(0.001f,Rules.BoardDwell),0.f,1.f);}
+ }
+ return Hint;
+}
+
 void UVTUI::NativeConstruct() {
  Super::NativeConstruct();
  WidgetCache.Reset(); ChoiceItems.Reset();
@@ -131,7 +146,6 @@ int32 UVTUI::NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const 
   if(P.X<10||P.Y<10||P.X>Geometry.GetLocalSize().X-10||P.Y>Geometry.GetLocalSize().Y-10) continue;
   FLinearColor Colour=Other->Disabled ? FLinearColor::Yellow : Other->Faction==Mine->Faction ? FLinearColor(0.3f,0.8f,1) : FLinearColor(1,0.4f,0.25f);
   if(Mine->Combat->EquipmentState.Locks.Contains(Other->PersistentId)) {Line(P+FVector2D(-20,-20),P+FVector2D(20,20),FLinearColor::Yellow); Line(P+FVector2D(-20,20),P+FVector2D(20,-20),FLinearColor::Yellow);}
-  if(Other->Disabled) FSlateDrawElement::MakeText(Elements,Top,Geometry.ToPaintGeometry(FVector2D(100,20),FSlateLayoutTransform(P+FVector2D(-20,25))),TEXT("BOARD"),Font,ESlateDrawEffect::None,Colour);
  }
  if(auto* Captain=Cast<AVTController>(PC)) if((Captain->LocalIntent.Buttons&VTButtons::Warp)&&Mine->Definition.Equipment.Warp&&Mine->Combat->EquipmentState.WarpCooldown<=0) {FVector2D P; if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position+Captain->LocalIntent.CursorOffset.GetClampedToMaxSize(Mine->Definition.Equipment.WarpRange),Mine->SystemIndex),P,true)) {P=P*PixelToLocal; Line(P+FVector2D(-25,0),P+FVector2D(25,0),FLinearColor(0.2f,1,0.8f)); Line(P+FVector2D(0,-25),P+FVector2D(0,25),FLinearColor(0.2f,1,0.8f));}}
  Top=PaintFlightHUD(Geometry,Elements,Top+1);

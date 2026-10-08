@@ -1,6 +1,8 @@
 #include "VTUI.h"
 #include "VTGameplay.h"
 #include "VTCombat.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
 #include "Engine/Texture2D.h"
 #include "Rendering/DrawElements.h"
 #include "Styling/CoreStyle.h"
@@ -90,6 +92,18 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
  Dial(Right+FVector2D(204,58),E.WarpCooldown,D.Equipment.WarpCooldown,TEXT("WARP"),D.Equipment.Warp,FLinearColor(1,0.48f,0.09f));
  Text({Size.X/2-140,Size.Y-22},TEXT("[TAB] CONTROLS   [F] CHART   [ESC] MENU"),7,Dim);
  if(S->Disabled||S->JumpProgress>0||S->DockProgress>0||(GS&&!GS->Outcome.IsEmpty())){FString Message=S->Disabled?TEXT("SHIP DISABLED  |  [R] RECOVER"):S->JumpProgress>0?TEXT("JUMP CHARGING"):S->DockProgress>0?TEXT("DOCKING"):GS->Outcome;Text({Size.X/2-160,Size.Y*0.36},Message.ToUpper(),16,S->Disabled?Red:Amber);}
+ const auto Hint=VTInteractionHint(S,Sim);
+ if(Hint.Kind!=EVTInteractionHint::None){FVector2D Anchor;if(Project(VT::ToWorld(Hint.Position,S->SystemIndex),Anchor)){
+  FString Keys;auto* Sub=PC->GetLocalPlayer()?ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()):nullptr;
+  if(Sub)for(const UInputAction* Action:PC->Actions)if(Action&&Action->GetFName()==FName(TEXT("IA_Interact")))for(const auto& Key:Sub->QueryKeysMappedToAction(Action)){
+   const FString Name=Key==EKeys::Gamepad_FaceButton_Right?TEXT("PAD B"):Key==EKeys::Gamepad_FaceButton_Bottom?TEXT("PAD A"):Key==EKeys::Gamepad_FaceButton_Top?TEXT("PAD Y"):Key==EKeys::Gamepad_FaceButton_Left?TEXT("PAD X"):Key.GetDisplayName().ToString();Keys+=(Keys.IsEmpty()?TEXT(""):TEXT(" / "))+FString::Printf(TEXT("[%s]"),*Name);
+  }
+  const bool NeedsKey=Hint.Kind!=EVTInteractionHint::Dock;
+  if(!NeedsKey||!Keys.IsEmpty()){
+   const FVector2D Ext(420,58);FVector2D P=Anchor/Scale+FVector2D(-210,65);P.X=FMath::Clamp(P.X,15.,FMath::Max(15.,Size.X-Ext.X-15));P.Y=FMath::Clamp(P.Y,115.,FMath::Max(115.,Size.Y-230));
+   Rect(P,Ext,FLinearColor(0.025f,0.016f,0.005f,0.94f),5);Layer+=6;Text(P+FVector2D(12,8),NeedsKey?FString::Printf(TEXT("Hold %s  %s"),*Keys,*Hint.Label.ToString()):Hint.Label.ToString(),10);Bar(P+FVector2D(12,38),396,8,Hint.Progress,Amber);
+  }
+ }}
  if(ControlsOpen){FVector2D P(Size.X-340,Size.Y/2-180);Rect(P,{322,360},FLinearColor(0.025f,0.016f,0.005f,0.97f),5);Layer+=6;Text(P+FVector2D(24,20),TEXT("C O N T R O L S"),12);const TCHAR* Keys[]={TEXT("W / S"),TEXT("A / D"),TEXT("LMB / RMB"),TEXT("SPACE / Q"),TEXT("SHIFT / CTRL"),TEXT("C / B"),TEXT("M / X"),TEXT("T / R"),TEXT("TAB / F"),TEXT("ESC")};const TCHAR* Desc[]={TEXT("Thrust"),TEXT("Steer"),TEXT("Aim / fire broadsides"),TEXT("Boost / EMP"),TEXT("Warp / torpedoes"),TEXT("Brace / interact"),TEXT("Mines / point defence"),TEXT("AI pilot / recover"),TEXT("Controls / chart"),TEXT("Pause / menu")};for(int I=0;I<10;++I){Text(P+FVector2D(24,56+I*27),Keys[I],9);Text(P+FVector2D(142,56+I*27),Desc[I],8,FLinearColor(0.85f,0.7f,0.5f));}}
  return Layer+8;
 }

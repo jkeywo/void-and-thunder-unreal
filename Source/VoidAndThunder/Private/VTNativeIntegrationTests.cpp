@@ -1,6 +1,7 @@
 #include "VTGameplay.h"
 #include "VTCombat.h"
 #include "VTUI.h"
+#include "VTWorldAnchor.h"
 #include "InputActionValue.h"
 #include "Engine/Font.h"
 #include "Engine/FontFace.h"
@@ -153,6 +154,28 @@ bool FVTBroadsideControls::RunTest(const FString&) {
  F.Ship->Combat->Volley(true,Held);
  TestEqual(TEXT("Volley emits one projectile per preview muzzle"),F.Sim->Projectiles.Num(),Start+3);
  for(int32 Gun=0;Gun<3;++Gun){const auto Preview=VTCombat::BroadsideShot(F.Ship->Movement->Motion.Position,F.Ship->Movement->Motion.Velocity,Held,F.Ship->Definition,F.Sim->Data->Rules,Gun);auto* Shot=F.Sim->Projectiles[Start+Gun].Get();TestTrue(TEXT("Preview origin matches emitted projectile"),Shot->Position.Equals(Preview.Key,0.00001));TestTrue(TEXT("Preview bearing matches momentum-inheriting projectile"),Shot->Velocity.GetSafeNormal().Equals(Preview.Value.GetSafeNormal(),0.00001));TestTrue(TEXT("Volley retains ship momentum"),Shot->Velocity.Equals(FVector2D(120,40)+Held*F.Ship->Definition.MuzzleSpeed,0.00001));}
+ return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTInteractionHints,"VT.Native.ContextInteractionHints",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTInteractionHints::RunTest(const FString&) {
+ FNativeFixture F;auto* S=F.Ship;S->IsNPC=false;FVTMotion M;M.Position=S->Movement->Motion.Position+FVector2D(30,0);auto* Prize=F.Sim->SpawnShip(TEXT("house_patrol"),S->SystemIndex,M,true,TEXT("Corsairs"));Prize->Disabled=true;Prize->Invulnerable=false;
+ F.Sim->SystemShips.SetNum(F.Sim->Data->Systems.Num());F.Sim->SystemShips[S->SystemIndex].Reset();F.Sim->SystemShips[S->SystemIndex].Append({S,Prize});F.Sim->PiracyStep();
+ TestTrue(TEXT("Authority-selected same-faction prize offers looting"),VTInteractionHint(S,F.Sim).Kind==EVTInteractionHint::Loot);
+ S->Combat->BoardingProgress=F.Sim->Data->Rules.BoardDwell*0.5f;TestEqual(TEXT("Hint reflects actual boarding progress"),VTInteractionHint(S,F.Sim).Progress,0.5f);
+ Prize->Combat->Claimed=true;TestTrue(TEXT("Claimed prize is not advertised"),VTInteractionHint(S,F.Sim).Kind==EVTInteractionHint::None);Prize->Combat->Claimed=false;
+ Prize->SystemIndex=1;TestTrue(TEXT("Other-system prizes are not advertised"),VTInteractionHint(S,F.Sim).Kind==EVTInteractionHint::None);Prize->SystemIndex=S->SystemIndex;
+ Prize->Movement->Motion.Position+=FVector2D(1000,0);TestTrue(TEXT("Stale out-of-range targets are hidden"),VTInteractionHint(S,F.Sim).Kind==EVTInteractionHint::None);S->Combat->BoardingTarget.Invalidate();
+ const auto& System=F.Sim->Data->Systems[S->SystemIndex];if(TestTrue(TEXT("Fixture has a jump link"),!System.Links.IsEmpty())){S->JumpDestination=System.Links[0];S->Movement->Motion.Position=F.Sim->JumpPosition(S->SystemIndex,S->JumpDestination);S->JumpProgress=F.Sim->Data->Rules.JumpDwell*0.5f;auto Hint=VTInteractionHint(S,F.Sim);TestTrue(TEXT("Eligible jump includes destination"),Hint.Kind==EVTInteractionHint::Jump&&!Hint.Label.IsEmpty());TestEqual(TEXT("Jump progress is read-only"),Hint.Progress,0.5f);}
+ S->Disabled=true;TestTrue(TEXT("Disabled captain has no misleading action"),VTInteractionHint(S,F.Sim).Kind==EVTInteractionHint::None);
+ return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTNearestStar,"VT.Native.RadialGridNearestStar",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTNearestStar::RunTest(const FString&) {
+ TArray<FVTLandmarkDefinition> Bodies={FVTLandmarkDefinition(FVector2D(-500,20),120,0),FVTLandmarkDefinition(FVector2D(500,20),120,0),FVTLandmarkDefinition(FVector2D(450,20),120,1)};FVector2D Centre;
+ TestTrue(TEXT("Nearest star found"),VTGrid::NearestStar(Bodies,FVector2D(450,20),Centre));TestTrue(TEXT("Nearby non-star cannot become radial origin"),Centre.Equals(FVector2D(500,20)));
+ VTGrid::NearestStar(Bodies,FVector2D(-450,20),Centre);TestTrue(TEXT("Origin changes to nearer star"),Centre.Equals(FVector2D(-500,20)));
+ TestTrue(TEXT("Travel applies the current system arena translation"),(VT::ToWorld(Centre,1)-VT::ToWorld(Centre,0)).Equals(VT::ArenaOrigin(1)-VT::ArenaOrigin(0)));
+ Bodies.Reset();TestFalse(TEXT("No star means no fabricated radial centre"),VTGrid::NearestStar(Bodies,FVector2D::ZeroVector,Centre));
  return true;
 }
 #endif

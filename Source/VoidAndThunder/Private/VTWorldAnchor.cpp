@@ -3,6 +3,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 AVTWorldAnchor::AVTWorldAnchor() {bReplicates=true; SetReplicateMovement(true); Mesh=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Landmark")); RootComponent=Mesh; Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); Mesh->SetCanEverAffectNavigation(false); Mesh->SetCastShadow(false); Mesh->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere")));}
 void AVTWorldAnchor::BeginPlay() {Super::BeginPlay(); Mesh->SetRelativeScale3D(FVector(Radius*2)); FString Material=Kind==0 ? TEXT("M_Star") : Kind==1 ? TEXT("M_Station") : TEXT("M_Jump"); Mesh->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,*FString::Printf(TEXT("/Game/Environment/%s.%s"),*Material,*Material)));}
@@ -25,6 +26,12 @@ AVTSky::AVTSky() {
 }
 void AVTSky::Tick(float DeltaTime) {Super::Tick(DeltaTime); if(auto* PC=GetWorld()->GetFirstPlayerController()) if(PC->PlayerCameraManager) SetActorLocation(PC->PlayerCameraManager->GetCameraLocation());}
 
+bool VTGrid::NearestStar(const TArray<FVTLandmarkDefinition>& Landmarks,const FVector2D& Position,FVector2D& Centre) {
+ bool Found=false;double Best=DBL_MAX;
+ for(const auto& Body:Landmarks)if(Body.Kind==0){double Distance=(Body.Position-Position).SizeSquared();if(Distance<Best){Best=Distance;Centre=Body.Position;Found=true;}}
+ return Found;
+}
+void AVTReferenceGrid::BeginPlay(){Super::BeginPlay();auto* Plane=CastChecked<UStaticMeshComponent>(RootComponent);GridMaterial=Plane->CreateDynamicMaterialInstance(0);}
 AVTReferenceGrid::AVTReferenceGrid() {
  PrimaryActorTick.bCanEverTick=true; auto* Plane=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ReferenceGrid")); RootComponent=Plane;
  Plane->SetCollisionEnabled(ECollisionEnabled::NoCollision); Plane->SetCastShadow(false); Plane->SetCanEverAffectNavigation(false);
@@ -33,5 +40,8 @@ AVTReferenceGrid::AVTReferenceGrid() {
 }
 void AVTReferenceGrid::Tick(float DeltaTime) {
  Super::Tick(DeltaTime); auto* PC=GetWorld()->GetFirstPlayerController(); auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr;
- if(Ship) SetActorLocation(VT::ArenaOrigin(Ship->SystemIndex)+FVector(0,0,-900));
+ auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();FVector2D Centre;
+ const bool HasStar=Ship&&Sim&&Sim->Data&&VTGrid::NearestStar(Sim->Data->Landmarks,Ship->Movement->Motion.Position,Centre);
+ SetActorHiddenInGame(!HasStar);
+ if(HasStar){SetActorLocation(FVector(Ship->GetActorLocation().X,Ship->GetActorLocation().Y,-900));const auto WorldCentre=VT::ToWorld(Centre,Ship->SystemIndex);if(GridMaterial&&!WorldCentre.Equals(LastCentre)){GridMaterial->SetVectorParameterValue(TEXT("StarCentre"),FLinearColor(WorldCentre.X,WorldCentre.Y,0,0));LastCentre=WorldCentre;}}
 }

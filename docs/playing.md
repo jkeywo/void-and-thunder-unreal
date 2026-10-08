@@ -75,3 +75,5 @@ by the automated keyboard/controller event probes.
 The optional AI pilot flies and operates your fitted ship while you retain the
 camera and captain identity. The host makes its decisions. Return to manual control
 with the same toggle; restored/reconnected ships start in manual mode.
+
+Nearby lootable ships and jump gates show the current keyboard/controller interaction buttons and hold progress beside the object. Looting prompts follow the host-selected eligible prize and disappear when it is claimed or leaves range. Stations show hold-position docking progress. The reference grid uses concentric distance rings and radial spokes from the nearest star in the current system.
