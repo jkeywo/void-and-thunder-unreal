@@ -75,7 +75,7 @@ bool UVTGameData::ResolveFit(FName ClassId,const FVTLoadoutSelection& Fit,FVTShi
  }
  // Multi-mount sets use catalogue order, matching the original mask iteration.
  for(int Slot=1;Slot<3;++Slot) {
-  const auto& Names=Slot==1 ? Fit.Batteries : Fit.Specials; if(Names.IsEmpty()) continue;
+  const auto& Names=Slot==1 ? Fit.Batteries : Fit.Specials; const bool Override=Slot==1?Fit.OverrideBatteries:Fit.OverrideSpecials; if(Names.IsEmpty()&&!Override) continue;
   if(Names.Num()>Out.Mounts) return false; TSet<FName> UniqueNames;
   if(Slot==1) {Out.Equipment.EMP=false; Out.Equipment.Boost=false; Out.Equipment.PointDefense=false;}
   else {Out.Equipment.Torpedoes=false; Out.Equipment.Warp=false; Out.Equipment.Mines=false;}

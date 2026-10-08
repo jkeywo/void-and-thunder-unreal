@@ -29,7 +29,12 @@ After cloning, run `git lfs install` and `git lfs pull`, then:
 ```
 
 Open `VoidAndThunder.uproject`. Play the Menu map for the frontend; the Sandbox
-map is the editor's direct gameplay entry. Native assets are committed and editable
+map is the editor's direct gameplay entry. The three dropdowns beside Play select
+mode, captain's ship and checked loadout for the next PIE session. Sandbox supports
+Skirmish, Test Range and Sandbox; Menu has no direct gameplay modes. Choices are
+saved per user, and PIE campaigns/profiles are separate from normal play.
+Optional modules respect hull mount limits; unticking all leaves optional mounts
+empty. Use hull default equipment restores the authored fit. Native assets are committed and editable
 in Unreal. C++ owns authority, the simulation and explicit movement prediction;
 Widget Blueprints, Niagara, materials, Sound Waves, String Tables and Primary Data
 Assets supply presentation and authored content. No Rust runtime is required.

@@ -123,6 +123,7 @@ public:
  FGuid WorldId = FGuid::NewGuid();
  UPROPERTY() TArray<FVTSavedPlayer> PlayerRecords;
  FString Slot = TEXT("Campaign");
+ FString CampaignPrefix;
  FVTSavedShip CaptureShip(class AVTShip* Ship) const;
  class AVTShip* RestoreShip(const FVTSavedShip& Record);
  void CapturePlayer(class AVTController* Controller);

@@ -129,3 +129,8 @@ than PASM. This choice does not alter the original game or vellum.
 
 - [ai] Show object-anchored, mapped keyboard/controller hold prompts for eligible ship looting and jump links, with replicated progress. Explain automatic docking as holding position, preserving existing rules.
 - [ai] Replace the Cartesian reference grid with anti-aliased rings and spokes centred on the nearest authored star in the viewer's current system. A targeted GridOnly authoring command updates just the grid material.
+
+- [ai] Keep all three gameplay modes on Sandbox; detect editor-supported modes from World Settings editor-only asset user data, leaving Frontend unsupported for direct-mode overrides. Toolbar selections use per-user editor settings and never replace the loaded map.
+- [ai] Checkbox-selected equipment replaces optional hull equipment, including an explicitly empty set. Preserve legacy default-fit behavior when override flags are absent. Validate mount counts through ResolveFit and prune extra modules in catalogue order on a smaller hull.
+- [ai] Isolate PIE profiles, career statistics and campaign slots per instance so previews cannot overwrite normal saves or reuse simultaneous captain identities.
+- [ai] Selecting a solo PIE mode also selects Unreal standalone networking with one player. Sandbox retains the editor networking choices. Explicit optional-fit flags default false in existing tagged saves; checked custom fits preserve empty mounts through native save serialization.

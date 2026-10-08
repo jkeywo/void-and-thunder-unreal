@@ -122,7 +122,7 @@ bool UVTSaveSubsystem::Save(bool Background) {
  }
  if(!Validate(Snapshot)) return false;
  TArray<uint8> Bytes; if(!Encode(Snapshot,Bytes)) return false;
- const FString Path=SavePath(Slot); // Validate the previous snapshot once per slot on the game thread; workers only own bytes.
+ const FString Path=SavePath(CampaignPrefix+Slot); // Validate the previous snapshot once per slot on the game thread; workers only own bytes.
  if(!LastGoodBytes.Contains(Path)) {
   TArray<uint8> Old;
   if(FFileHelper::LoadFileToArray(Old,*Path)) if(auto* Good=Decode(Old)) if(Migrate(Good)&&Validate(Good)) LastGoodBytes.Add(Path,MoveTemp(Old));
@@ -138,12 +138,12 @@ bool UVTSaveSubsystem::Save(bool Background) {
 bool UVTSaveSubsystem::Load() {
  FlushPendingSave();
  UWorld* World=GetWorld(); if(!World||World->GetNetMode()==NM_Client) return false;
- const FString Path=SavePath(Slot); TArray<uint8> Bytes; UVTWorldSave* Snapshot=nullptr;
+ const FString Path=SavePath(CampaignPrefix+Slot); TArray<uint8> Bytes; UVTWorldSave* Snapshot=nullptr;
  if(FFileHelper::LoadFileToArray(Bytes,*Path)) Snapshot=Decode(Bytes);
  if(Snapshot&&!Migrate(Snapshot)) Snapshot=nullptr;
  if(!Validate(Snapshot)) {Bytes.Reset(); if(FFileHelper::LoadFileToArray(Bytes,*(Path+TEXT(".backup")))) Snapshot=Decode(Bytes); if(Snapshot&&!Migrate(Snapshot)) Snapshot=nullptr;}
  if(!Validate(Snapshot)) return false;
- LastGoodBytes.Add(SavePath(Slot),Bytes);
+ LastGoodBytes.Add(SavePath(CampaignPrefix+Slot),Bytes);
  auto* Sim=World->GetSubsystem<UVTSimulation>();
  auto Current=Sim->Ships; auto Shots=Sim->Projectiles;
  for(AVTProjectile* P:Shots) if(IsValid(P)) P->Destroy();
@@ -172,6 +172,9 @@ void UVTSaveSubsystem::Initialize(FSubsystemCollectionBase& Collection) {
  TearDownHandle=FWorldDelegates::OnWorldBeginTearDown.AddUObject(this,&UVTSaveSubsystem::WorldTearDown);
 #if !UE_BUILD_SHIPPING
  FString Probe; if(FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),Probe)) {PersonalSlot+=TEXT("-")+Probe; Slot=TEXT("Validation-")+Probe; CareerSlot+=TEXT("-")+Probe;}
+#endif
+#if WITH_EDITOR
+ if(GetWorld()&&GetWorld()->WorldType==EWorldType::PIE){const auto* Context=GEngine->GetWorldContextFromWorld(GetWorld());const FString Suffix=FString::Printf(TEXT("-PIE-%d"),Context?Context->PIEInstance:0);PersonalSlot+=Suffix;CareerSlot+=Suffix;CampaignPrefix=FString::Printf(TEXT("PIE/%d/"),Context?Context->PIEInstance:0);}
 #endif
  Personal=Cast<UVTPersonalSave>(UGameplayStatics::LoadGameFromSlot(PersonalSlot,0));
  if(!Personal) Personal=CastChecked<UVTPersonalSave>(UGameplayStatics::CreateSaveGameObject(UVTPersonalSave::StaticClass()));

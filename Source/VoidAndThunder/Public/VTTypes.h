@@ -384,6 +384,8 @@ enum class EVTLoadoutSlot : uint8 { Broadside, Battery, Special };
 USTRUCT(BlueprintType)
 struct FVTLoadoutSelection {
  GENERATED_BODY()
+ UPROPERTY(EditAnywhere,BlueprintReadWrite) bool OverrideBatteries=false;
+ UPROPERTY(EditAnywhere,BlueprintReadWrite) bool OverrideSpecials=false;
  UPROPERTY(EditAnywhere,BlueprintReadWrite) FName Broadside;
  UPROPERTY(EditAnywhere,BlueprintReadWrite) FName Battery;
  UPROPERTY(EditAnywhere,BlueprintReadWrite) FName Special;
