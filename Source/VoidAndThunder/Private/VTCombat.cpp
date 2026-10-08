@@ -1,3 +1,4 @@
+#include "VTProjectileSpawn.h"
 #include "VTCombat.h"
 #include "Materials/MaterialInterface.h"
 #include "VTGameplay.h"
@@ -76,10 +77,7 @@ void UVTCombatComponent::Volley(bool Port,const FVector2D& Direction) {
  for(int I=0;I<Guns;++I) {
   const auto Geometry=VTCombat::BroadsideShot(S->Movement->Motion.Position,S->Movement->Motion.Velocity,Direction,D,Rules,I);
   const auto P=Geometry.Key;
-  auto* Shot=GetWorld()->SpawnActor<AVTProjectile>();
-  Shot->SystemIndex=S->SystemIndex; Shot->PersistentId=FGuid::NewGuid(); Shot->Source=S; Shot->SourceId=S->PersistentId; Shot->SourceFaction=S->Faction; Shot->SourceNPC=S->IsNPC; if(auto* PS=S->GetPlayerState<AVTPlayerState>()) Shot->AttackerProfile=PS->Profile;
-  Shot->Position=P; Shot->Previous=P; Shot->Velocity=Geometry.Value;
-  Shot->Damage=D.Damage; Shot->Remaining=Rules.ProjectileTTL; Shot->Radius=Rules.ProjectileRadius;
+  VTProjectileSpawn::Create(GetWorld(),FVTProjectileSpawnSpec::Fired(S,EVTProjectileKind::Cannon,P,Geometry.Value,D.Damage,Rules.ProjectileTTL,Rules.ProjectileRadius));
  }
 }
 void UVTCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {

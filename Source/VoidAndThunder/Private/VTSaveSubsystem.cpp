@@ -1,3 +1,4 @@
+#include "VTProjectileSpawn.h"
 #include "VTSaveSubsystem.h"
 #include "Async/Async.h"
 #include "VTSessionSubsystem.h"
@@ -161,9 +162,7 @@ bool UVTSaveSubsystem::Load() {
   } else if(auto* Mode=World->GetAuthGameMode<AVTGameMode>()) Mode->RestartPlayer(PC);
  }
  for(const auto& R:Snapshot->Projectiles) {
-  const FTransform Transform(VT::ToWorld(R.Position,R.System)+FVector(0,0,R.Height*100));auto* P=World->SpawnActorDeferred<AVTProjectile>(AVTProjectile::StaticClass(),Transform); P->PersistentId=R.Id; P->SourceId=R.Source; P->Source=Entities.FindRef(R.Source); P->SystemIndex=R.System;
-  P->Kind=R.Kind; P->TargetId=R.Target; P->AttackerProfile=R.AttackerProfile; P->SourceFaction=R.SourceFaction; P->SourceNPC=R.SourceNPC; P->Height=R.Height; P->Velocity3D=R.Velocity3D; P->TurnRate=R.TurnRate; P->ReportCountdown=R.ReportCountdown;
-  P->Position=R.Position; P->Previous=R.Position; P->Velocity=R.Velocity; P->Damage=R.Damage; P->Remaining=R.Remaining; P->Radius=R.Radius;P->FinishSpawning(Transform);
+  VTProjectileSpawn::Create(World,FVTProjectileSpawnSpec::Restored(R,Entities));
  }
  Sim->SimulationTime=Snapshot->SimulationTime; Sim->Accumulator=0; Sim->Bootstrapped=true; SinceSave=0; return true;
 }

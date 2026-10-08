@@ -1,3 +1,4 @@
+#include "VTProjectileSpawn.h"
 #include "VTGameplay.h"
 #include "VTCombat.h"
 #include "VTUI.h"
@@ -225,4 +226,7 @@ bool FVTGateSurge::RunTest(const FString&) {
  double PreviousSpeed=S->Movement->Motion.Velocity.Size();Steps=0;while(S->JumpArriving&&Steps<64){F.Sim->FixedStep();TestTrue(TEXT("Arrival decelerates each step"),S->Movement->Motion.Velocity.Size()<=PreviousSpeed+0.001);PreviousSpeed=S->Movement->Motion.Velocity.Size();++Steps;}
  TestFalse(TEXT("Braking completes"),S->JumpArriving);TestTrue(TEXT("Exact former arrival endpoint"),S->Movement->Motion.Position.Equals(Target,0.001));TestTrue(TEXT("Arrival ends at rest"),S->Movement->Motion.Velocity.IsNearlyZero());TestTrue(TEXT("Rapid arrival completes within half a second"),Steps<32);return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTSpawnLifecycle,"VT.Modules.ProjectileCreation",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTSpawnLifecycle::RunTest(const FString&){FNativeFixture F;for(auto Kind:{EVTProjectileKind::Cannon,EVTProjectileKind::EMP,EVTProjectileKind::Torpedo,EVTProjectileKind::Mine}){auto X=FVTProjectileSpawnSpec::Fired(F.Ship,Kind,FVector2D(700,700),FVector2D(12,3),5,8,4);X.TargetId=FGuid::NewGuid();X.Velocity3D=FVector(0,0,250);X.TurnRate=2;auto* P=VTProjectileSpawn::Create(F.World,X);TestTrue("Registered at BeginPlay",F.Sim->Projectiles.Contains(P));TestTrue("Full pose history",P->Position==X.Position&&P->Previous==X.Position);TestTrue("Kind and motion initialized",P->Kind==Kind&&P->TargetId==X.TargetId&&P->Velocity3D==X.Velocity3D);P->Destroy();}
+ FVTSavedProjectile R;R.Id=FGuid::NewGuid();R.Source=F.Ship->PersistentId;R.AttackerProfile=FGuid::NewGuid();R.SourceFaction=FName("Corsairs");R.Kind=EVTProjectileKind::Torpedo;R.Remaining=4;R.Velocity3D=FVector(0,0,30);TMap<FGuid,AVTShip*> Entities;auto* P=VTProjectileSpawn::Create(F.World,FVTProjectileSpawnSpec::Restored(R,Entities));TestTrue("Absent source preserves durable attribution",!P->Source&&P->SourceId==R.Source&&P->AttackerProfile==R.AttackerProfile&&P->SourceFaction==R.SourceFaction);return true;}
 #endif

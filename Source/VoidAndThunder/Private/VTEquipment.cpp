@@ -1,3 +1,4 @@
+#include "VTProjectileSpawn.h"
 #include "VTCombat.h"
 #include "VTGameplay.h"
 #include "GameplayEffect.h"
@@ -13,9 +14,7 @@ bool UVTCombatComponent::Hostile(const AVTShip* Other) const {
  return Other&&Other!=S&&!Other->Docked&&(!S->IsNPC||!Other->IsNPC||S->Faction!=Other->Faction);
 }
 AVTProjectile* UVTCombatComponent::SpawnDeviceProjectile(EVTProjectileKind Kind,const FVector2D& P,const FVector2D& V,float Damage,float TTL,float Radius) {
- auto* S=CastChecked<AVTShip>(GetOwner()); auto* Shot=GetWorld()->SpawnActorDeferred<AVTProjectile>(AVTProjectile::StaticClass(),FTransform(VT::ToWorld(P,S->SystemIndex)));
- Shot->Kind=Kind; Shot->SystemIndex=S->SystemIndex; Shot->PersistentId=FGuid::NewGuid(); Shot->Source=S; Shot->SourceId=S->PersistentId; Shot->SourceFaction=S->Faction; Shot->SourceNPC=S->IsNPC; if(auto* PS=S->GetPlayerState<AVTPlayerState>()) Shot->AttackerProfile=PS->Profile;
- Shot->Position=P; Shot->Previous=P; Shot->Velocity=V; Shot->Damage=Damage; Shot->Remaining=TTL; Shot->Radius=Radius;Shot->FinishSpawning(FTransform(VT::ToWorld(P,S->SystemIndex))); return Shot;
+ return VTProjectileSpawn::Create(GetWorld(),FVTProjectileSpawnSpec::Fired(CastChecked<AVTShip>(GetOwner()),Kind,P,V,Damage,TTL,Radius));
 }
 void UVTCombatComponent::EquipmentSystems() {
  auto* S=CastChecked<AVTShip>(GetOwner()); const auto& D=S->Definition; const auto& E=D.Equipment; auto& R=EquipmentState;
@@ -69,7 +68,7 @@ void UVTCombatComponent::EquipmentWeapons() {
  R.LaunchTimer=FMath::Max(0.f,R.LaunchTimer-VT::Step);
  if(!R.LaunchQueue.IsEmpty()&&R.LaunchTimer<=0) {
   FGuid Id=R.LaunchQueue[0]; R.LaunchQueue.RemoveAt(0); R.LaunchTimer=E.LockInterval;
-  if(FindTarget(Id)) {auto* Shot=SpawnDeviceProjectile(EVTProjectileKind::Torpedo,S->Movement->Motion.Position,FVector2D::ZeroVector,E.TorpedoDamage,8,12); Shot->TargetId=Id; Shot->Velocity3D=FVector(0,0,R.LaunchFlip ? -E.TorpedoSpeed : E.TorpedoSpeed); Shot->TurnRate=E.TorpedoTurn; R.LaunchFlip=!R.LaunchFlip;}
+  if(FindTarget(Id)) {auto Spec=FVTProjectileSpawnSpec::Fired(S,EVTProjectileKind::Torpedo,S->Movement->Motion.Position,FVector2D::ZeroVector,E.TorpedoDamage,8,12);Spec.TargetId=Id;Spec.Velocity3D=FVector(0,0,R.LaunchFlip ? -E.TorpedoSpeed : E.TorpedoSpeed);Spec.TurnRate=E.TorpedoTurn;VTProjectileSpawn::Create(GetWorld(),Spec);R.LaunchFlip=!R.LaunchFlip;}
  }
  bool Held=(S->Intent.Buttons&VTButtons::Torpedo)!=0;
  R.Locks.RemoveAll([&](FGuid Id){return !FindTarget(Id);});
