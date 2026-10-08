@@ -65,7 +65,7 @@ void AVTGameplayProbe::ServerStep() {
  } else if(Phase==6&&Age>2&&S[1]->PersistentId!=RefitVictim&&S[1]->ClassId==FName("corsair_frigate")) {Checks.Add(TEXT("network_station_refit"),S[1]->Docked);Enter(7);}
  else if(Phase==7&&Age>2&&!S[1]->Docked) {
   Checks.Add(TEXT("network_station_undock"),true);Place(S[1],StationSystem,Sim->JumpPosition(StationSystem,Sim->Data->Systems[DestinationSystem].Id));OtherSystems.Reset();for(int I=0;I<4;++I) OtherSystems.Add(S[I]->SystemIndex);Enter(8);
- } else if(Phase==8&&S[1]->SystemIndex==DestinationSystem) {
+ } else if(Phase==8&&S[1]->SystemIndex==DestinationSystem&&!S[1]->JumpArriving) {
   Checks.Add(TEXT("normal_charged_independent_jump"),Age+VT::Step>=Sim->Data->Rules.JumpDwell&&S[0]->SystemIndex==OtherSystems[0]&&S[2]->SystemIndex==OtherSystems[2]&&S[3]->SystemIndex==OtherSystems[3]);MovementOrigins.Reset();for(int I=0;I<4;++I){Place(S[I],S[I]->SystemIndex,FVector2D(-900-160*I,-900));MovementOrigins.Add(S[I]->Movement->Motion.Position);}Enter(9);
  } else if(Phase==9&&Age>30) {
   bool AllMoved=true;for(int I=0;I<4;++I) AllMoved&=(S[I]->Movement->Motion.Position-MovementOrigins[I]).Size()>100&&S[I]->Movement->Authority.Ack>0;Checks.Add(TEXT("all_captains_moved_after_loss_burst"),AllMoved);auto* Save=GetGameInstance()->GetSubsystem<UVTSaveSubsystem>();Checks.Add(TEXT("post_gameplay_snapshot"),Save->Save());Place(S[1],S[1]->SystemIndex,FVector2D(-900,-900));FVTMotion TargetMotion;TargetMotion.Position=FVector2D(-900,-700);auto* Target=Sim->SpawnShip("house_patrol",S[1]->SystemIndex,TargetMotion,true,"Freebooters");Target->Invulnerable=true;Target->Anchored=true;S[1]->PortReload=0;S[1]->StarboardReload=0;Enter(10);

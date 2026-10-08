@@ -115,6 +115,9 @@ public:
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float DockProgress=0;
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float JumpProgress=0;
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) bool JumpEntering=false;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) bool JumpArriving=false;
+ UPROPERTY(Replicated) double JumpArrivalStarted=0;
+ UPROPERTY(Replicated) FVector2D JumpArrivalTarget=FVector2D::ZeroVector;
  UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) FName JumpDestination;
  virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return Abilities; }
  virtual void PossessedBy(AController* NewController) override;
@@ -272,6 +275,7 @@ public:
  TArray<double> RenderFrameMilliseconds;
  double LastRenderFrame=0;
  bool ScreenshotRequested=false;
+ bool GateFlashSeen=false,GateBrakingSeen=false,GateArrivalPassed=false;
  bool UIProbeStarted=false,UIProbeFinished=false,UIInitialFocus=false,UINavigationPassed=false;
  double Accumulator = 0;
  double SimulationTime = 0;

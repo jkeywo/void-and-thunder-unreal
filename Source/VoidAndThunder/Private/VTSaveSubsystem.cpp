@@ -37,7 +37,7 @@ bool AtomicWrite(const FString& Path,const TArray<uint8>& Bytes) {
 FVTSavedShip UVTSaveSubsystem::CaptureShip(AVTShip* S) const {
  FVTSavedShip R; R.Id=S->PersistentId; R.ClassId=S->ClassId; R.Fit=S->Fit; R.Faction=S->Faction; R.System=S->SystemIndex;
  R.Motion=S->Movement->Motion; R.Hull=S->Attributes->Hull.GetCurrentValue(); R.Battery=S->Attributes->Battery.GetCurrentValue(); R.NPC=S->IsNPC;
- R.Invulnerable=S->Invulnerable; R.Anchored=S->Anchored; R.ShipRole=S->ShipRole; R.Brain=S->Brain; R.DockProgress=S->DockProgress; R.JumpProgress=S->JumpProgress; R.JumpDestination=S->JumpDestination; R.BoardingTarget=S->Combat->BoardingTarget; R.BoardingProgress=S->Combat->BoardingProgress;
+ R.Invulnerable=S->Invulnerable; R.Anchored=S->Anchored; R.ShipRole=S->ShipRole; R.Brain=S->Brain; R.DockProgress=S->DockProgress; R.JumpProgress=S->JumpProgress; R.JumpDestination=S->JumpDestination;R.JumpArriving=S->JumpArriving;R.JumpArrivalStarted=S->JumpArrivalStarted;R.JumpArrivalTarget=S->JumpArrivalTarget; R.BoardingTarget=S->Combat->BoardingTarget; R.BoardingProgress=S->Combat->BoardingProgress;
  R.Disabled=S->Disabled; R.Docked=S->Docked; R.Shields=S->Combat->Shields; R.Suppression=S->Combat->Suppression;
  R.EMPStress=S->Attributes->EMPStress.GetCurrentValue(); R.Equipment=S->Combat->EquipmentState; R.Equipment.Locks.Reset(); R.Equipment.LockElapsed=0;
  R.PortReload=S->PortReload; R.StarboardReload=S->StarboardReload;
@@ -46,9 +46,9 @@ FVTSavedShip UVTSaveSubsystem::CaptureShip(AVTShip* S) const {
  if(S->Combat->StarboardCharge>0) R.StarboardReload=S->Definition.Reload;
  return R;
 }
-AVTShip* UVTSaveSubsystem::RestoreShip(const FVTSavedShip& R) {
- auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); FVTMotion M=R.Motion; M.Ack=0;
- AVTShip* S=Sim->SpawnShip(R.ClassId,R.System,M,R.NPC,R.Faction); S->PersistentId=R.Id; S->Disabled=R.Disabled; S->Docked=R.Docked; S->Invulnerable=R.Invulnerable; S->Anchored=R.Anchored; S->ShipRole=R.ShipRole; S->Brain=R.Brain; S->DockProgress=R.DockProgress; S->JumpProgress=R.JumpProgress; S->JumpDestination=R.JumpDestination; S->Brain.Shoulder=-1; S->Brain.Thumb=-1; S->Brain.AimLock=0; S->Brain.WarpPrime=0;
+AVTShip* UVTSaveSubsystem::RestoreShip(const FVTSavedShip& R,double ResumeTime) {
+ auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); FVTMotion M=R.Motion; M.Ack=0;M.SimulationTime=ResumeTime>=0?ResumeTime:Sim->SimulationTime;
+ AVTShip* S=Sim->SpawnShip(R.ClassId,R.System,M,R.NPC,R.Faction); S->PersistentId=R.Id; S->Disabled=R.Disabled; S->Docked=R.Docked; S->Invulnerable=R.Invulnerable; S->Anchored=R.Anchored; S->ShipRole=R.ShipRole; S->Brain=R.Brain; S->DockProgress=R.DockProgress; S->JumpProgress=R.JumpProgress; S->JumpDestination=R.JumpDestination;S->JumpArriving=R.JumpArriving;S->JumpArrivalStarted=R.JumpArriving?M.SimulationTime-FMath::Clamp(R.Motion.SimulationTime-R.JumpArrivalStarted,0.,double(Sim->Data->GateArrivalDuration)):R.JumpArrivalStarted;S->JumpArrivalTarget=R.JumpArrivalTarget; S->Brain.Shoulder=-1; S->Brain.Thumb=-1; S->Brain.AimLock=0; S->Brain.WarpPrime=0;
  S->ApplyFit(R.Fit,false); S->Combat->BoardingTarget=R.BoardingTarget; S->Combat->BoardingProgress=R.BoardingProgress;
  S->Abilities->SetNumericAttributeBase(UVTAttributes::HullAttribute(),R.Hull); S->Abilities->SetNumericAttributeBase(UVTAttributes::BatteryAttribute(),R.Battery);
  S->Abilities->SetNumericAttributeBase(UVTAttributes::GetEMPStressAttribute(),R.EMPStress); S->Combat->EquipmentState=R.Equipment; S->Combat->RestoreDevices();
@@ -63,7 +63,7 @@ void UVTSaveSubsystem::CapturePlayer(AVTController* PC) {
  R->Ship=CaptureShip(Ship); R->Credits=PS->Credits; R->Boarded=PS->Boarded; R->Reputation=PS->Reputation; R->Heat=PS->Heat;
 }
 bool UVTSaveSubsystem::Validate(const UVTWorldSave* S) const {
- auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); if(!S||S->Version!=5||!S->WorldId.IsValid()||!FMath::IsFinite(S->SimulationTime)||S->SimulationTime<0||S->Ships.Num()>10000||S->Projectiles.Num()>100000) return false;
+ auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); if(!S||S->Version!=6||!S->WorldId.IsValid()||!FMath::IsFinite(S->SimulationTime)||S->SimulationTime<0||S->Ships.Num()>10000||S->Projectiles.Num()>100000) return false;
  TSet<FGuid> IDs;
  auto ValidShip=[&](const FVTSavedShip& R) {
   FVTShipDefinition Resolved; if(!Sim->Data->ResolveFit(R.ClassId,R.Fit,Resolved)) return false; const auto* Def=&Resolved;
@@ -72,6 +72,7 @@ bool UVTSaveSubsystem::Validate(const UVTWorldSave* S) const {
   if(!FMath::IsFinite(R.BoardingProgress)||R.BoardingProgress<0||R.BoardingProgress>Sim->Data->Rules.BoardDwell) return false;
   if(!FMath::IsFinite(R.PortReload)||R.PortReload<0||!FMath::IsFinite(R.StarboardReload)||R.StarboardReload<0) return false;
   if(R.ShipRole<0||R.ShipRole>2||!FMath::IsFinite(R.DockProgress)||R.DockProgress<0||R.DockProgress>Sim->Data->Rules.BoardDwell+VT::Step+0.001f||!FMath::IsFinite(R.JumpProgress)||R.JumpProgress<0||R.JumpProgress>Sim->Data->Rules.JumpDwell+VT::Step+0.001f||(!R.JumpDestination.IsNone()&&!Sim->Data->Systems[R.System].Links.Contains(R.JumpDestination))) return false;
+  if(!FMath::IsFinite(R.JumpArrivalStarted)||R.JumpArrivalStarted<0||R.JumpArrivalTarget.ContainsNaN()||(R.JumpArriving&&(R.NPC||R.JumpArrivalStarted>S->SimulationTime+VT::Step||R.JumpArrivalTarget.Size()>Sim->Data->Systems[R.System].Radius)))return false;
   const auto& Brain=R.Brain; if(Brain.Alert.ContainsNaN()||!FMath::IsFinite(Brain.ScanProgress)||Brain.ScanProgress<0||Brain.ScanProgress>1||!FMath::IsFinite(Brain.AttackTime)||!FMath::IsFinite(Brain.DistressTimer)) return false;
   for(float Clock:{Brain.AimLock,Brain.ThumbTravel,Brain.WarpPrime,Brain.AlertTTL}) if(!FMath::IsFinite(Clock)||Clock<0) return false;
   const auto& E=R.Equipment; const auto& D=Def->Equipment;
@@ -150,11 +151,11 @@ bool UVTSaveSubsystem::Load() {
  for(AVTShip* Ship:Current) if(IsValid(Ship)) {if(Ship->IsNPC&&Ship->Controller) Ship->Controller->Destroy(); Ship->Destroy();}
  PlayerRecords=Snapshot->Players; WorldId=Snapshot->WorldId; Sim->WorldSeed=Snapshot->Seed;
  TMap<FGuid,AVTShip*> Entities;
- for(const auto& R:Snapshot->Ships) Entities.Add(R.Id,RestoreShip(R));
+ for(const auto& R:Snapshot->Ships) Entities.Add(R.Id,RestoreShip(R,Snapshot->SimulationTime));
  for(auto It=World->GetPlayerControllerIterator();It;++It) if(auto* PC=Cast<AVTController>(It->Get())) if(auto* PS=PC->GetPlayerState<AVTPlayerState>()) {
   if(!PS->Profile.IsValid()) continue;
   if(const auto* R=PlayerRecords.FindByPredicate([PS](const FVTSavedPlayer& P){return P.Profile==PS->Profile;})) {
-   auto* Ship=RestoreShip(R->Ship); Entities.Add(R->Ship.Id,Ship); PC->Possess(Ship); PC->LocalIntent=FVTPilotIntent(); PC->NextSequence=0; PC->SendAccumulator=0;
+   auto* Ship=RestoreShip(R->Ship,Snapshot->SimulationTime); Entities.Add(R->Ship.Id,Ship); PC->Possess(Ship); PC->LocalIntent=FVTPilotIntent(); PC->NextSequence=0; PC->SendAccumulator=0;
    PS->Credits=R->Credits; PS->Boarded=R->Boarded; PS->Reputation=R->Reputation; PS->Heat=R->Heat;
    PC->ClientAcceptIdentity(WorldId,R->Token);
   } else if(auto* Mode=World->GetAuthGameMode<AVTGameMode>()) Mode->RestartPlayer(PC);
@@ -212,7 +213,8 @@ bool UVTSaveSubsystem::Migrate(UVTWorldSave* Snapshot) const {
   for(auto& Ship:Snapshot->Ships) Upgrade(Ship); for(auto& Captain:Snapshot->Players) Upgrade(Captain.Ship); Snapshot->Version=4;
  }
  if(Snapshot->Version==4) Snapshot->Version=5;
- return Snapshot->Version==5;
+ if(Snapshot->Version==5){auto Upgrade=[](FVTSavedShip& Ship){Ship.JumpArriving=false;Ship.JumpArrivalStarted=0;Ship.JumpArrivalTarget=FVector2D::ZeroVector;};for(auto& Ship:Snapshot->Ships)Upgrade(Ship);for(auto& Captain:Snapshot->Players)Upgrade(Captain.Ship);Snapshot->Version=6;}
+ return Snapshot->Version==6;
 }
 
 void UVTSaveSubsystem::RememberFit() {

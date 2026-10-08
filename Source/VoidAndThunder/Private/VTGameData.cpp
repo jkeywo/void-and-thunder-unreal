@@ -54,7 +54,7 @@ EDataValidationResult UVTGameData::IsDataValid(FDataValidationContext& Context) 
   Require(Other!=INDEX_NONE&&Link!=System.Id,System.Id.ToString()+TEXT(": jump link is missing or points to itself"));
   if(Other!=INDEX_NONE) Require(EffectiveSystems[Other].Links.Contains(System.Id),System.Id.ToString()+TEXT(": jump link must be reciprocal"));
  }
- Require(FMath::IsFinite(GateOpeningRadius)&&GateOpeningRadius>0&&FMath::IsFinite(GateApproachDistance)&&GateApproachDistance>0&&FMath::IsFinite(GateArrivalTolerance)&&GateArrivalTolerance>0&&GateApproachDistance+GateArrivalTolerance*1.5f<Rules.JumpRange&&FMath::IsFinite(GateCruiseSpeed)&&GateCruiseSpeed>0&&FMath::IsFinite(GateAlignmentTolerance)&&GateAlignmentTolerance>0&&GateAlignmentTolerance<PI/2&&FMath::IsFinite(TorpedoVisualRadius)&&TorpedoVisualRadius>0,TEXT("Gate geometry/approach and torpedo presentation tuning must be finite and usable."));
+ Require(FMath::IsFinite(GateOpeningRadius)&&GateOpeningRadius>0&&FMath::IsFinite(GateApproachDistance)&&GateApproachDistance>0&&FMath::IsFinite(GateArrivalTolerance)&&GateArrivalTolerance>0&&GateApproachDistance+GateArrivalTolerance*1.5f<Rules.JumpRange&&FMath::IsFinite(GateCruiseSpeed)&&GateCruiseSpeed>0&&FMath::IsFinite(GateAlignmentTolerance)&&GateAlignmentTolerance>0&&GateAlignmentTolerance<PI/2&&FMath::IsFinite(GatePassageAcceleration)&&GatePassageAcceleration>0&&FMath::IsFinite(GateArrivalDuration)&&GateArrivalDuration>=0.05f&&FMath::IsFinite(GateFlashDuration)&&GateFlashDuration>=0.05f,TEXT("Gate geometry/approach and passage tuning must be finite and usable."));
  for(const auto& Ship:EffectiveShips)if(Ship.Id.ToString().StartsWith(TEXT("corsair")))Require(Ship.Radius<GateOpeningRadius,TEXT("All captain hulls must fit through the gate aperture."));
  Require(Nonnegative(Rules.BraceDamageFactor)&&Rules.BraceDamageFactor<=1&&Nonnegative(Rules.CrippleThreshold)&&Rules.CrippleThreshold<=1,TEXT("Combat fractions must remain in [0, 1]."));
  return Good ? EDataValidationResult::Valid : EDataValidationResult::Invalid;
@@ -135,7 +135,6 @@ void UVTGameData::LoadCatalog() {
  if(FApp::CanEverRender()&&!IsRunningCommandlet()) {
   TArray<FSoftObjectPath> Paths;
   if(!ProjectileMaterial.IsNull()) Paths.AddUnique(ProjectileMaterial.ToSoftObjectPath());
-  if(!TorpedoMaterial.IsNull()) Paths.AddUnique(TorpedoMaterial.ToSoftObjectPath());
   for(const auto& Ship:Ships) if(!Ship.Mesh.IsNull()) Paths.AddUnique(Ship.Mesh.ToSoftObjectPath());
   for(const auto& Pair:FactionMeshes) if(!Pair.Value.IsNull()) Paths.AddUnique(Pair.Value.ToSoftObjectPath());
   if(!ShipClass.IsNull()) Paths.AddUnique(ShipClass.ToSoftObjectPath());

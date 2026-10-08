@@ -120,8 +120,8 @@ AVTProjectile::AVTProjectile() {
 void AVTProjectile::BeginPlay() {Super::BeginPlay(); auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Projectiles.AddUnique(this);RefreshPresentation();}
 void AVTProjectile::RefreshPresentation() {auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();
  if(IsRunningCommandlet()||!FApp::CanEverRender())return;
- auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent); Mesh->SetRelativeScale3D(FVector(2*(Sim->Data ? (Kind==EVTProjectileKind::Torpedo?Sim->Data->TorpedoVisualRadius:Sim->Data->ProjectileVisualRadius) : 7.f)));
- if(Sim->Data)Mesh->SetMaterial(0,Kind==EVTProjectileKind::Torpedo?Sim->Data->TorpedoMaterial.LoadSynchronous():Sim->Data->ProjectileMaterial.Get());}
+ auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent); Mesh->SetRelativeScale3D(FVector(2*(Sim->Data ? Sim->Data->ProjectileVisualRadius : 7.f)));
+ if(Sim->Data)Mesh->SetMaterial(0,Sim->Data->ProjectileMaterial.Get());}
 void AVTProjectile::EndPlay(const EEndPlayReason::Type Reason) {if(auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>()) Sim->Projectiles.Remove(this); Super::EndPlay(Reason);}
 void AVTProjectile::Tick(float Dt) {Super::Tick(Dt); if(!FApp::CanEverRender()) return; auto* Mesh=CastChecked<UStaticMeshComponent>(RootComponent);
  auto* PC=GetWorld()->GetFirstPlayerController(); auto* Viewer=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; bool Visible=Viewer&&Viewer->SystemIndex==SystemIndex; if(Mesh->IsVisible()!=Visible) Mesh->SetVisibility(Visible); if(Visible) SetActorLocation(VT::ToWorld(Position,SystemIndex)+FVector(0,0,Height*100));}

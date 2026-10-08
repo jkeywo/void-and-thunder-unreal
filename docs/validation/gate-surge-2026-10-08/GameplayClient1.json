@@ -1,0 +1,10 @@
+{
+	"observed_phases": 8190,
+	"failure": "",
+	"passed": true,
+	"reconciliation_samples": 507,
+	"correction_p95_units": 0,
+	"correction_max_units": 36.301306409370433,
+	"max_pending_inputs": 44,
+	"final_ack": 3956
+}

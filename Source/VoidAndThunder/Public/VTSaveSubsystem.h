@@ -25,6 +25,9 @@ struct FVTSavedShip {
  UPROPERTY() float DockProgress=0;
  UPROPERTY() float JumpProgress=0;
  UPROPERTY() FName JumpDestination;
+ UPROPERTY() bool JumpArriving=false;
+ UPROPERTY() double JumpArrivalStarted=0;
+ UPROPERTY() FVector2D JumpArrivalTarget=FVector2D::ZeroVector;
  UPROPERTY() FGuid BoardingTarget;
  UPROPERTY() float BoardingProgress = 0;
  UPROPERTY() bool Disabled = false;
@@ -70,7 +73,7 @@ UCLASS()
 class VOIDANDTHUNDER_API UVTWorldSave : public USaveGame {
  GENERATED_BODY()
 public:
- UPROPERTY() int32 Version = 5;
+ UPROPERTY() int32 Version = 6;
  UPROPERTY() int32 Seed = 12345;
  UPROPERTY() FGuid WorldId;
  UPROPERTY() double SimulationTime = 0;
@@ -125,7 +128,7 @@ public:
  FString Slot = TEXT("Campaign");
  FString CampaignPrefix;
  FVTSavedShip CaptureShip(class AVTShip* Ship) const;
- class AVTShip* RestoreShip(const FVTSavedShip& Record);
+ class AVTShip* RestoreShip(const FVTSavedShip& Record,double ResumeTime=-1);
  void CapturePlayer(class AVTController* Controller);
  bool Migrate(UVTWorldSave* Snapshot) const;
  bool Validate(const UVTWorldSave* Snapshot) const;

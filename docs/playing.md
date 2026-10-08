@@ -88,6 +88,8 @@ A fitted microwarp uses Left Shift / right shoulder: hold to aim, release to jum
 The HUD displays the active mapped binding. Warp and torpedo aiming suppress
 broadside input and cancel an unfinished broadside wind-up. Optional loadout
 selectors offer Empty mount explicitly; checked fits survive frontend setup and
-replicated ship initialization. Torpedoes have a separate smaller red visual.
+replicated ship initialization. Torpedoes use the original projectile size and material.
 
-Gate alignment may reverse when that reaches the staging point faster. Passage through the ring always remains forwards. Torpedoes now use a 1.25-unit pure-red visual; cannon visuals remain separate.
+Gate alignment may reverse when that reaches the staging point faster. Passage through the ring always remains forwards.
+
+Torpedo visuals are restored to the original projectile size and material. Charged gate passage now surges forwards to the ring, flashes white at teleport, then brakes rapidly from the destination ring to the same previous arrival point.

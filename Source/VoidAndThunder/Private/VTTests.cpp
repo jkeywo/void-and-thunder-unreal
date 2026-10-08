@@ -95,9 +95,9 @@ bool FVTSaveTest::RunTest(const FString& Params) {
  auto* Sim=World->GetSubsystem<UVTSimulation>(); Sim->Bootstrap(0);
  auto* Save=GI->GetSubsystem<UVTSaveSubsystem>();
  auto* Previous=NewObject<UVTWorldSave>(); Previous->Version=2; Previous->SimulationTime=12; FVTSavedShip OldShip; Previous->Ships.Add(OldShip);
- TestTrue("Prior Unreal schema migrates",Save->Migrate(Previous)); TestEqual("Migration advances schema",Previous->Version,5);
+ TestTrue("Prior Unreal schema migrates",Save->Migrate(Previous)); TestEqual("Migration advances schema",Previous->Version,6);
  TestEqual("Missing pose clock uses snapshot boundary",Previous->Ships[0].Motion.SimulationTime,12.);
- Previous->Version=6; TestFalse("Unknown future schema is rejected",Save->Migrate(Previous));
+ Previous->Version=7; TestFalse("Unknown future schema is rejected",Save->Migrate(Previous));
  Save->Slot=TEXT("Automation-")+FGuid::NewGuid().ToString(EGuidFormats::Digits);
  FVTMotion M; auto* Shooter=Sim->SpawnShip("corsair_cruiser",0,M,false,"Corsairs"); Shooter->IsNPC=true;
  M.Position=FVector2D(700,700); auto* Target=Sim->SpawnShip("house_patrol",0,M,false,"Guild"); Target->IsNPC=true;

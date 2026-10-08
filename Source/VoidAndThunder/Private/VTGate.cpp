@@ -14,6 +14,13 @@ FVTPilotIntent VTGate::Guide(const FVTMotion& Motion,const FVTShipStats& Stats,c
  const float Accel=Desired*Stats.ForwardDrag+(Desired-Speed)*3;
  Result.Throttle=FMath::Clamp(Accel/FMath::Max(0.01f,Stats.Thrust*(Accel<0?Reverse:1.f)),-1.f,1.f);return Result;
 }
+void VTGate::Depart(FVTMotion& Motion,const FVector2D& Centre,float Acceleration,float Dt) {
+ const auto Direction=(Centre-Motion.Position).GetSafeNormal();const float Speed=FMath::Max(0.f,float(FVector2D::DotProduct(Motion.Velocity,Direction))),Next=Speed+Acceleration*Dt;
+ Motion.Position+=Direction*((Speed+Next)*0.5f*Dt);Motion.Velocity=Direction*Next;Motion.Heading=FMath::Atan2(Centre.Y,Centre.X);Motion.Omega=0;
+}
+bool VTGate::Arrive(FVTMotion& Motion,const FVector2D& Origin,const FVector2D& Target,double Elapsed,float Duration) {
+ const double Alpha=FMath::Clamp(Elapsed/Duration,0.,1.);Motion.Position=FMath::Lerp(Origin,Target,1-FMath::Square(1-Alpha));Motion.Velocity=(Target-Origin)*(2*(1-Alpha)/Duration);const auto Direction=Target-Origin;Motion.Heading=FMath::Atan2(Direction.Y,Direction.X);Motion.Omega=0;return Alpha>=1;
+}
 bool VTGate::Crossed(const FVTMotion& Before,const FVTMotion& After,const FVector2D& Centre,float Clearance,float Tolerance) {
  if(Clearance<=0)return false;const auto Normal=Centre.GetSafeNormal();const auto Side=FVector2D(-Normal.Y,Normal.X);const float A=FVector2D::DotProduct(Before.Position-Centre,Normal),B=FVector2D::DotProduct(After.Position-Centre,Normal);
  if(A>0||B<=0||B-A<=0||FVector2D::DotProduct(FVector2D(FMath::Cos(After.Heading),FMath::Sin(After.Heading)),Normal)<FMath::Cos(Tolerance))return false;

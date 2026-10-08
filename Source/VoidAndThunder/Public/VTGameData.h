@@ -23,10 +23,11 @@ public:
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="50")) float GateOpeningRadius=80;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateApproachDistance=80;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateCruiseSpeed=45;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GatePassageAcceleration=1200;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.05")) float GateArrivalDuration=0.35f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.05")) float GateFlashDuration=0.3f;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateArrivalTolerance=12;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.01",ClampMax="0.5")) float GateAlignmentTolerance=0.18f;
- UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(ClampMin="0.1")) float TorpedoVisualRadius=1.25f;
- UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(AssetBundles="Presentation")) TSoftObjectPtr<UMaterialInterface> TorpedoMaterial=TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Environment/M_Torpedo.M_Torpedo")));
  void LoadCatalog();
  TSharedPtr<struct FStreamableHandle> CatalogHandle,PresentationHandle;
  bool CatalogLoaded=false;

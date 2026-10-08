@@ -143,3 +143,7 @@ than PASM. This choice does not alter the original game or vellum.
 
 - [ai] Permit reverse gate staging when estimated travel plus turning time is lower, while always driving forward through the aperture. Use existing hull reverse thrust and native gate tuning.
 - [ai] Fix torpedo presentation at its actual lifecycle boundary: equipment and save restoration must assign projectile kind before BeginPlay, with RepNotify refreshing client visuals. The earlier deferred-only render fixture missed the live equipment spawn bug. Halve the authored radius again to 1.25 and remove green/blue from the red material.
+
+- [ai] User reverses the torpedo size/red change: restore the common 7-unit projectile radius and original projectile material, remove the separate red asset/properties, and retain the corrected deferred spawning lifecycle.
+- [ai] User requests rapid gate acceleration and braking with unchanged endpoints. Keep reverse staging, charge and aperture validation; accelerate at 1200 source units/s squared, teleport at the gate to the destination gate, and brake over 0.35 seconds to the former gate-times-0.85 arrival position. These timings are native data tuning.
+- [ai] Cover the system/camera transition with a native white camera fade that starts opaque on the detecting frame and fades out over 0.3 seconds. Only the travelling captain's camera flashes. Persist committed arrival state in save schema 6; legacy schema 5 starts without an arrival phase.

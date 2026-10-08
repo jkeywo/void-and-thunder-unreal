@@ -10,6 +10,7 @@
 #include "Internationalization/StringTableCore.h"
 #include "VTSaveSubsystem.h"
 #include "Components/ComboBoxString.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
@@ -213,5 +214,15 @@ bool FVTGateReverse::RunTest(const FString&) {
  Motion.Position=FVector2D(1920,0);Guide=VTGate::Guide(Motion,Stats,Intent,FVector2D(1000,0),false,80,45,12,0.25);TestTrue(TEXT("Long approach selects faster forward turn instead of slow reverse"),FMath::Abs(Guide.Turn)>0.5);
  Motion.Position=FVector2D(920,0);Guide=VTGate::Guide(Motion,Stats,Intent,FVector2D(1000,0),true,80,45,12,0.25);TestTrue(TEXT("Entry always accelerates forward through aperture"),Guide.Throttle>0);
  FNativeFixture F;auto* Shot=F.Ship->Combat->SpawnDeviceProjectile(EVTProjectileKind::Torpedo,FVector2D(10,20),FVector2D::ZeroVector,1,8,12);TestTrue(TEXT("Equipment projectile completes deferred lifecycle"),Shot->HasActorBegunPlay());TestTrue(TEXT("Equipment projectile begins with torpedo kind"),Shot->Kind==EVTProjectileKind::Torpedo);TestTrue(TEXT("Finished torpedo registered for simulation"),F.Sim->Projectiles.Contains(Shot));return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTGateSurge,"VT.Native.GateSurgeArrivalAndSave",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTGateSurge::RunTest(const FString&) {
+ FNativeFixture F;auto* S=F.Ship;S->IsNPC=false;S->Anchored=false;const auto Link=F.Sim->Data->Systems[0].Links[0];const auto Centre=F.Sim->JumpPosition(0,Link),Axis=Centre.GetSafeNormal();S->Movement->Motion=FVTMotion();S->Movement->Motion.Position=Centre-Axis*F.Sim->Data->GateApproachDistance;S->Movement->Motion.Heading=FMath::Atan2(Axis.Y,Axis.X);S->JumpDestination=Link;S->JumpEntering=true;S->JumpProgress=F.Sim->Data->Rules.JumpDwell;S->Intent.Buttons=VTButtons::Interact;
+ double Peak=0;int Steps=0;while(S->SystemIndex==0&&Steps<64){F.Sim->FixedStep();if(S->SystemIndex==0){Peak=FMath::Max(Peak,S->Movement->Motion.Velocity.Size());TestTrue(TEXT("Source cannot teleport before reaching aperture"),FVector2D::DotProduct(S->Movement->Motion.Position-Centre,Axis)<=0);}++Steps;}
+ TestEqual(TEXT("Surge crosses into linked system"),S->SystemIndex,F.Sim->Data->FindSystem(Link));TestTrue(TEXT("Departure crosses 80 units within half a second"),Steps<32);TestTrue(TEXT("Departure accelerates far above staging cruise"),Peak>F.Sim->Data->GateCruiseSpeed*4);TestTrue(TEXT("Arrival braking begins at destination ring"),S->JumpArriving);
+ const auto Arrival=F.Sim->JumpPosition(S->SystemIndex,F.Sim->Data->Systems[0].Id),Target=Arrival*0.85;TestTrue(TEXT("Teleport position is destination aperture"),S->Movement->Motion.Position.Equals(Arrival,0.001));TestTrue(TEXT("Arrival endpoint is unchanged"),S->JumpArrivalTarget.Equals(Target,0.001));
+ F.Sim->FixedStep();auto* Save=F.GI->GetSubsystem<UVTSaveSubsystem>();auto Record=Save->CaptureShip(S);TArray<uint8> Bytes;auto* Snapshot=NewObject<UVTWorldSave>();Snapshot->Ships.Add(Record);TestTrue(TEXT("Serialize committed arrival"),UGameplayStatics::SaveGameToMemory(Snapshot,Bytes));auto* Loaded=Cast<UVTWorldSave>(UGameplayStatics::LoadGameFromMemory(Bytes));if(TestNotNull(TEXT("Arrival save restored"),Loaded)){auto* Restored=Save->RestoreShip(Loaded->Ships[0]);TestTrue(TEXT("Arrival phase and timestamp restore without held input"),Restored->JumpArriving&&Restored->JumpArrivalStarted==S->JumpArrivalStarted&&Restored->Intent.Buttons==0);Restored->Movement->Step(FVTPilotIntent(),false);TestTrue(TEXT("Restored curve matches current arrival"),Restored->Movement->Motion.Position.Equals(S->Movement->Motion.Position,0.001));Restored->Destroy();}
+ double PreviousSpeed=S->Movement->Motion.Velocity.Size();Steps=0;while(S->JumpArriving&&Steps<64){F.Sim->FixedStep();TestTrue(TEXT("Arrival decelerates each step"),S->Movement->Motion.Velocity.Size()<=PreviousSpeed+0.001);PreviousSpeed=S->Movement->Motion.Velocity.Size();++Steps;}
+ TestFalse(TEXT("Braking completes"),S->JumpArriving);TestTrue(TEXT("Exact former arrival endpoint"),S->Movement->Motion.Position.Equals(Target,0.001));TestTrue(TEXT("Arrival ends at rest"),S->Movement->Motion.Velocity.IsNearlyZero());TestTrue(TEXT("Rapid arrival completes within half a second"),Steps<32);return true;
 }
 #endif

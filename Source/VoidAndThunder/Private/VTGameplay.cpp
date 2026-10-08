@@ -53,12 +53,15 @@ void UVTShipMovement::Step(const FVTPilotIntent& Value, bool Predict) {
  FVTPilotIntent Effective=S->Disabled ? FVTPilotIntent() : Value;
  FVTShipStats Stats=S->Definition.Stats; Stats.Thrust*=S->Combat->SpeedScale; Stats.MaxSpeed*=S->Combat->SpeedScale;
  if(Sim->Data) {Stats.Thrust*=Sim->Data->FlightSpeedMultiplier; Stats.MaxSpeed*=Sim->Data->FlightSpeedMultiplier;}
- if(!Frozen&&!S->IsNPC&&!S->Autopilot&&(Effective.Buttons&VTButtons::Interact)&&!S->Combat->BoardingTarget.IsValid()&&Sim->Data&&Sim->Data->Systems.IsValidIndex(S->SystemIndex)) {
+ bool Passage=false;
+ if(!Frozen&&S->JumpArriving&&Sim->Data){const double Time=Predict?Motion.SimulationTime+VT::Step:Sim->SimulationTime;const bool Done=VTGate::Arrive(Motion,S->JumpArrivalTarget/0.85,S->JumpArrivalTarget,Time-S->JumpArrivalStarted,Sim->Data->GateArrivalDuration);if(Done&&!Predict)S->JumpArriving=false;Passage=true;}
+ if(!Passage&&!Frozen&&!S->IsNPC&&!S->Autopilot&&(Effective.Buttons&VTButtons::Interact)&&!S->Combat->BoardingTarget.IsValid()&&Sim->Data&&Sim->Data->Systems.IsValidIndex(S->SystemIndex)) {
   FName Link=S->JumpEntering?S->JumpDestination:NAME_None;double Best=FMath::Square(Sim->Data->Rules.JumpRange);
   if(Link.IsNone())for(FName Candidate:Sim->Data->Systems[S->SystemIndex].Links){double Distance=(Motion.Position-Sim->JumpPosition(S->SystemIndex,Candidate)).SizeSquared();if(Distance<Best){Best=Distance;Link=Candidate;}}
-  if(!Link.IsNone())Effective=VTGate::Guide(Motion,Stats,Effective,Sim->JumpPosition(S->SystemIndex,Link),S->JumpEntering,Sim->Data->GateApproachDistance,Sim->Data->GateCruiseSpeed,Sim->Data->GateArrivalTolerance,Reverse);
+  if(!Link.IsNone()&&S->JumpEntering){VTGate::Depart(Motion,Sim->JumpPosition(S->SystemIndex,Link),Sim->Data->GatePassageAcceleration,VT::Step);Passage=true;}
+  else if(!Link.IsNone())Effective=VTGate::Guide(Motion,Stats,Effective,Sim->JumpPosition(S->SystemIndex,Link),S->JumpEntering,Sim->Data->GateApproachDistance,Sim->Data->GateCruiseSpeed,Sim->Data->GateArrivalTolerance,Reverse);
  }
- if(!Frozen) VT::HelmStep(Motion, Stats, Effective, Reverse, VT::Step);
+ if(!Frozen&&!Passage) VT::HelmStep(Motion, Stats, Effective, Reverse, VT::Step);
  if (!Frozen && Predict && Sim->Data && Sim->Data->Systems.IsValidIndex(S->SystemIndex)) {
   float Radius = Sim->Data->Systems[S->SystemIndex].Radius;
   const float Length = float(Motion.Position.Size());
@@ -189,7 +192,7 @@ bool AVTShip::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarge
 }
 void AVTShip::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
  Super::GetLifetimeReplicatedProps(OutLifetimeProps);
- DOREPLIFETIME(AVTShip,Autopilot); DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip,JumpProgress); DOREPLIFETIME(AVTShip,JumpEntering); DOREPLIFETIME(AVTShip,JumpDestination); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
+ DOREPLIFETIME(AVTShip,Autopilot); DOREPLIFETIME(AVTShip,DockProgress); DOREPLIFETIME(AVTShip,JumpProgress); DOREPLIFETIME(AVTShip,JumpEntering);DOREPLIFETIME(AVTShip,JumpArriving);DOREPLIFETIME(AVTShip,JumpArrivalStarted);DOREPLIFETIME(AVTShip,JumpArrivalTarget); DOREPLIFETIME(AVTShip,JumpDestination); DOREPLIFETIME(AVTShip, ShipRole); DOREPLIFETIME(AVTShip, Fit); DOREPLIFETIME(AVTShip, IsNPC); DOREPLIFETIME(AVTShip, SystemIndex); DOREPLIFETIME(AVTShip, ClassId); DOREPLIFETIME(AVTShip, Faction);
  DOREPLIFETIME(AVTShip, PersistentId); DOREPLIFETIME(AVTShip, Docked); DOREPLIFETIME(AVTShip, Disabled);
  DOREPLIFETIME(AVTShip, PortReload); DOREPLIFETIME(AVTShip, StarboardReload);
 }
@@ -615,6 +618,7 @@ void AVTCameraManager::UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) {
  double Now=GetWorld()->GetRealTimeSeconds(),Dt=LastCameraReal>0 ? FMath::Clamp(Now-LastCameraReal,0.,0.1) : 0; LastCameraReal=Now;
  if(GetWorld()->IsPaused()) Dt=0;
  const auto M=Ship->Movement->PresentationPose();const auto ShipPosition=VT::ToWorld(M.Position,Ship->SystemIndex);
+ if(RigReady&&RigShip==Ship->PersistentId&&RigSystem!=Ship->SystemIndex)StartCameraFade(1,0,Data->GateFlashDuration,FLinearColor::White,false,false);
  if(!RigReady||RigShip!=Ship->PersistentId||RigSystem!=Ship->SystemIndex) {RigReady=true; RigShip=Ship->PersistentId; RigSystem=Ship->SystemIndex; OrbitYaw=M.Heading; OrbitPitch=FreePitch=C.pitch_base; OrbitDistance=C.distance; OrbitFov=C.base_fov; Focus=ShipPosition; FreeYaw=LookIdle=MenuOrbit=0; ImpactKick=FVector::ZeroVector;}
  float MX=0,MY=0; int32 W=0,H=0; PC->GetViewportSize(W,H); bool Mouse=PC->GetMousePosition(MX,MY)&&W>0&&H>0;
  double LX=Mouse ? FMath::Clamp(double(MX)/W*2-1,-1.,1.) : 0,LY=Mouse ? FMath::Clamp(double(MY)/H*2-1,-1.,1.) : 0;
