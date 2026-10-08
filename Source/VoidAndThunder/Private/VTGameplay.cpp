@@ -200,14 +200,34 @@ void AVTPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 void AVTGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
  Super::GetLifetimeReplicatedProps(OutLifetimeProps); DOREPLIFETIME(AVTGameState,Wave); DOREPLIFETIME(AVTGameState,EnemiesRemaining); DOREPLIFETIME(AVTGameState,Outcome); DOREPLIFETIME(AVTGameState, SimulationTime); DOREPLIFETIME(AVTGameState, Populations);
 }
-AVTController::AVTController() { bShowMouseCursor = true; PlayerCameraManagerClass=AVTCameraManager::StaticClass(); }
+AVTController::AVTController() {
+ bShowMouseCursor = true; PlayerCameraManagerClass=AVTCameraManager::StaticClass();
+ ThrottleUp=CreateDefaultSubobject<UInputAction>(TEXT("ThrottleUp"));ThrottleDown=CreateDefaultSubobject<UInputAction>(TEXT("ThrottleDown"));
+ ThrottleUp->ValueType=ThrottleDown->ValueType=EInputActionValueType::Boolean;
+}
+UInputMappingContext* AVTController::PrepareFlightMapping(UInputMappingContext* Authored) {
+ if(!Authored)return nullptr;
+ auto* Mapping=DuplicateObject<UInputMappingContext>(Authored,this);
+ for(int32 I=0;I<Mapping->GetMappings().Num();++I) {
+  auto& Key=Mapping->GetMapping(I);
+  if(!Key.Action||Key.Action->GetFName()!=TEXT("IA_Throttle")||Key.Key.IsGamepadKey())continue;
+  bool Reverse=false;for(const auto& Modifier:Key.Modifiers)if(Modifier&&Modifier->IsA<UInputModifierNegate>())Reverse=true;
+  Key.Action=Reverse?ThrottleDown:ThrottleUp;Key.Modifiers.Reset();Key.Triggers.Reset();
+ }
+ return Mapping;
+}
+void AVTController::StepThrottle(const FInputActionValue& Value,int32 Delta) {
+ if(!Value.Get<bool>())return;
+ if(auto* Ship=Cast<AVTShip>(GetPawn()))if(Ship->Autopilot)return;
+ ThrottleControl.Step(Delta);LocalIntent.Throttle=ThrottleControl.Value();
+}
 void AVTController::BeginPlay() {
  Super::BeginPlay();
  if (IsLocalController()) {
   if(!IsRunningCommandlet()&&FApp::CanEverRender()) {GetWorld()->SpawnActor<AVTSky>(); GetWorld()->SpawnActor<AVTReferenceGrid>();}
   if(UClass* UIClass=GetWorld()->GetSubsystem<UVTSimulation>()->Data->UIClass.Get() ? GetWorld()->GetSubsystem<UVTSimulation>()->Data->UIClass.Get() : LoadClass<UVTUI>(nullptr,TEXT("/Game/UI/WBP_UI.WBP_UI_C"))) {UI=CreateWidget<UVTUI>(this,UIClass); UI->AddToViewport();}
 
-  FlightMapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Flight.IMC_Flight"));
+  FlightMapping=PrepareFlightMapping(LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Flight.IMC_Flight")));
   CommonMapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Common.IMC_Common"));
   MenuMapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Menu.IMC_Menu"));
   DockedMapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Docked.IMC_Docked"));
@@ -219,7 +239,7 @@ void AVTController::BeginPlay() {
 }
 void AVTController::ReadFlight(const FInputActionValue& Value, int32 Index) {
  if(auto* Ship=Cast<AVTShip>(GetPawn()))if(Ship->Autopilot)return;
- if (Index == 0) LocalIntent.Throttle = Value.Get<float>();
+ if (Index == 0) {ThrottleControl.SetAnalog(Value.Get<float>());LocalIntent.Throttle=ThrottleControl.Value();}
  else if (Index == 1) LocalIntent.Turn = VT::PlayerTurnInput(Value.Get<float>());
  else if (Index == 2) {
   GamepadAim=Value.Get<FVector2D>(); if(GamepadAim.SizeSquared()>0.0025) UsingGamepadAim=true;
@@ -237,6 +257,8 @@ void AVTController::SetupInputComponent() {
  Super::SetupInputComponent();
  auto* Input = Cast<UEnhancedInputComponent>(InputComponent);
  if (!Input) return;
+ Input->BindAction(ThrottleUp,ETriggerEvent::Started,this,&AVTController::StepThrottle,1);
+ Input->BindAction(ThrottleDown,ETriggerEvent::Started,this,&AVTController::StepThrottle,-1);
  const TCHAR* CommonNames[]={TEXT("Menu"),TEXT("Autopilot"),TEXT("Recover")};
  for(int I=0;I<3;++I) if(auto* Action=LoadObject<UInputAction>(nullptr,*FString::Printf(TEXT("/Game/Input/IA_%s.IA_%s"),CommonNames[I],CommonNames[I]))) {
   if(I==0) Input->BindAction(Action,ETriggerEvent::Started,this,&AVTController::ToggleMenu);
@@ -275,6 +297,7 @@ bool AVTController::UpdateBroadsideAim(float MouseDelta,const FVTFeelControls& C
 
 void AVTController::PlayerTick(float Dt) {
  Super::PlayerTick(Dt);
+ if(InputContextState==0)LocalIntent.Throttle=ThrottleControl.Value();
  ValidationInput(Dt);
  if(UI&&UI->MenuOpen) {LocalIntent=FVTPilotIntent();}
  AVTShip* Ship = Cast<AVTShip>(GetPawn()); if (!IsLocalController() || !Ship) return;

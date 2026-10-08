@@ -21,7 +21,7 @@ Guests return to Menu and can rejoin the same world with their saved identity/to
 
 | Action | Keyboard / mouse | Controller |
 |---|---|---|
-| Thrust / turn | W/S, A/D | Left stick |
+| Speed / turn | Tap W/S: reverse → halt → half → full; A/D steer | Left stick (analogue) |
 | Aim | Mouse | Right stick, while aiming a device |
 | Port / starboard broadside | Left / right mouse | Left / right trigger |
 | EMP disruptor | Q | X / square |

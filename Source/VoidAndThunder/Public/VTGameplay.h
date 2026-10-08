@@ -3,6 +3,7 @@
 #include "VTGatePassage.h"
 #include "VTCaptainStandings.h"
 #include "CoreMinimal.h"
+#include "VTThrottle.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameStateBase.h"
@@ -204,6 +205,11 @@ public:
  UFUNCTION(BlueprintCallable,Category="Input") bool RemapControl(FName MappingName,FKey NewKey);
  UPROPERTY() TArray<TObjectPtr<UInputAction>> Actions;
  FVTPilotIntent LocalIntent;
+ FVTThrottleControl ThrottleControl;
+ UPROPERTY() TObjectPtr<UInputAction> ThrottleUp;
+ UPROPERTY() TObjectPtr<UInputAction> ThrottleDown;
+ void StepThrottle(const FInputActionValue& Value,int32 Delta);
+ UInputMappingContext* PrepareFlightMapping(UInputMappingContext* Authored);
  float BroadsideOffset=0;
  bool UpdateBroadsideAim(float MouseDelta,const FVTFeelControls& Controls,float Heading,float Arc);
  uint32 NextSequence = 0;
@@ -214,6 +220,7 @@ public:
  int32 InteractionProbeStage=0,InteractionProbeBoarded=0;
  bool InteractionProbePrompt=false,InteractionProbeLooted=false;
  FKey InteractionProbeKey;
+ int32 ThrottleProbeStage=0;bool ThrottleProbePassed=true;
  int32 FlightProbeStage=0;bool FlightProbeHeld=false,FlightProbePassed=false;FVector2D FlightProbeOrigin;
  int32 BroadsideProbeStage=0;
  bool BroadsideProbeHeld=false,BroadsideProbePassed=false;

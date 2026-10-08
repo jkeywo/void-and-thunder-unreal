@@ -5,6 +5,8 @@
 #include "VTWorldAnchor.h"
 #include "VTGate.h"
 #include "InputActionValue.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
 #include "Engine/Font.h"
 #include "Engine/FontFace.h"
 #include "Internationalization/StringTable.h"
@@ -32,6 +34,28 @@ struct FNativeFixture {
  }
  ~FNativeFixture() {World->BeginTearingDown();GI->Shutdown();World->EndPlay(EEndPlayReason::Quit);World->DestroyWorld(false);GEngine->DestroyWorldContext(World);}
 };
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTThrottleInput,"VT.Input.ThrottleLadderAndLegacyMapping",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FVTThrottleInput::RunTest(const FString&) {
+ FNativeFixture F;auto* PC=F.World->SpawnActor<AVTController>();PC->Possess(F.Ship);
+ TestEqual(TEXT("Original default is half"),PC->ThrottleControl.Value(),0.5f);
+ PC->StepThrottle(FInputActionValue(true),-1);TestEqual(TEXT("S selects halt"),PC->LocalIntent.Throttle,0.f);
+ PC->StepThrottle(FInputActionValue(false),-1);TestEqual(TEXT("Release retains halt"),PC->LocalIntent.Throttle,0.f);
+ PC->StepThrottle(FInputActionValue(true),-1);TestEqual(TEXT("Second S selects reverse"),PC->LocalIntent.Throttle,-1.f);
+ PC->StepThrottle(FInputActionValue(true),-1);TestEqual(TEXT("Reverse saturates"),PC->LocalIntent.Throttle,-1.f);
+ for(float Expected:{0.f,0.5f,1.f,1.f}){PC->StepThrottle(FInputActionValue(true),1);TestEqual(TEXT("W climbs and saturates"),PC->LocalIntent.Throttle,Expected);}
+ PC->ReadFlight(FInputActionValue(0.62f),0);TestEqual(TEXT("Stick remains analogue"),PC->LocalIntent.Throttle,0.62f);
+ PC->StepThrottle(FInputActionValue(true),-1);TestEqual(TEXT("Keyboard inherits nearest stick notch"),PC->LocalIntent.Throttle,0.f);
+ PC->ReadFlight(FInputActionValue(0.f),0);TestEqual(TEXT("Centred stick halts"),PC->LocalIntent.Throttle,0.f);
+ auto* Authored=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Flight.IMC_Flight"));
+ auto* Adapted=PC->PrepareFlightMapping(Authored);TestNotNull(TEXT("Authored flight context"),Authored);TestNotNull(TEXT("Local flight context"),Adapted);
+ if(!Authored||!Adapted)return false;
+ TestTrue(TEXT("Authored package remains distinct"),Adapted!=Authored);
+ bool Up=false,Down=false,Analog=false;
+ for(const auto& M:Adapted->GetMappings()){if(M.Key==EKeys::W)Up=M.Action==PC->ThrottleUp;if(M.Key==EKeys::S)Down=M.Action==PC->ThrottleDown;if(M.Key==EKeys::Gamepad_LeftY)Analog=M.Action->GetFName()==TEXT("IA_Throttle");}
+ TestTrue(TEXT("W/S use distinct edge actions and stick retains axis"),Up&&Down&&Analog);
+ for(const auto& M:Authored->GetMappings())if(M.Key==EKeys::W||M.Key==EKeys::S)TestEqual(TEXT("Original asset is unchanged"),M.Action->GetFName(),FName(TEXT("IA_Throttle")));
+ return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTNativeCooldown,"VT.Native.FixedStepGASLifecycle",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FVTNativeCooldown::RunTest(const FString&) {
