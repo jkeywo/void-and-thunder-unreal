@@ -21,6 +21,7 @@ EDataValidationResult UVTGameData::IsDataValid(FDataValidationContext& Context) 
  CheckDefinitions(ShipAssets,EffectiveShips);CheckDefinitions(EquipmentAssets,EffectiveLoadouts);CheckDefinitions(SystemAssets,EffectiveSystems);CheckDefinitions(ScenarioAssets,EffectiveScenarios);
  auto EffectiveFindSystem=[&](FName Id){return EffectiveSystems.IndexOfByPredicate([Id](const auto& D){return D.Id==Id;});};
  auto Require=[&](bool Condition,const FString& Message) {if(!Condition) {Good=false; Context.AddError(FText::FromString(Message));}};
+ Require(FMath::IsFinite(SystemDistanceScale)&&SystemDistanceScale>=1&&FMath::IsFinite(BoundaryFadeDistance)&&BoundaryFadeDistance>0&&FMath::IsFinite(BoundaryMinimumSpeed)&&BoundaryMinimumSpeed>0&&BoundaryMinimumSpeed<=1,TEXT("World scale and boundary speed settings must be finite and positive."));
  Require(FMath::IsFinite(FlightSpeedMultiplier)&&FlightSpeedMultiplier>0&&FlightSpeedMultiplier<=4,TEXT("Flight speed multiplier must be in (0,4]."));
  Require(FMath::IsFinite(ProjectileVisualRadius)&&ProjectileVisualRadius>=1&&ProjectileVisualRadius<=20,TEXT("Projectile visual radius must be in [1,20]."));
  auto Nonnegative=[](float Value) {return FMath::IsFinite(Value)&&Value>=0;};
@@ -97,4 +98,18 @@ void UVTGameData::LoadCatalog() {
   if(PresentationHandle) PresentationHandle->WaitUntilComplete();
  }
  CatalogLoaded=true;
+}
+
+void UVTGameData::ApplyWorldScale(){
+ for(auto& S:Systems){S.Radius*=SystemDistanceScale;S.ChartPosition*=10;}
+ for(auto& B:Landmarks){B.Position*=SystemDistanceScale;if(B.Kind==0||B.Kind>=3)B.Radius*=SystemDistanceScale;}
+ Rules.StationPosition*=SystemDistanceScale;
+ for(auto& S:Scenarios){S.Radius*=SystemDistanceScale;S.Player.Position*=SystemDistanceScale;for(auto& E:S.Enemies)E.Position*=SystemDistanceScale;}
+}
+float UVTGameData::BoundarySpeed(int32 System,const FVector2D& Position) const{
+ if(!Systems.IsValidIndex(System))return 1;
+ double Distance=DBL_MAX;for(const auto& B:Landmarks)if(B.Kind==0)Distance=FMath::Min(Distance,(Position-B.Position).Size());
+ if(Distance==DBL_MAX)return 1;
+ const float Alpha=FMath::Clamp(float((Distance-Systems[System].Radius)/FMath::Max(1.f,BoundaryFadeDistance)),0.f,1.f);
+ return FMath::Lerp(1.f,BoundaryMinimumSpeed,Alpha);
 }

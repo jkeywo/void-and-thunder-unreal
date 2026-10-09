@@ -1,4 +1,5 @@
 #include "VTUI.h"
+#include "VTNavigation.h"
 #include "VTGameplay.h"
 #include "VTCombat.h"
 #include "EnhancedInputSubsystems.h"
@@ -63,7 +64,7 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
   if(!Project(Origin,Centre)||Centre.X<-100||Centre.Y<-100||Centre.X>View.X+100||Centre.Y>View.Y+100||!Project(Origin+FVector(Radius*100,0,0),EX)||!Project(Origin+FVector(0,Radius*100,0),EY))return;
   EX-=Centre;EY-=Centre;auto Band=[&](float R,float Start,float Sweep,FLinearColor C,float Thickness){TArray<FVector2D> Points;int N=FMath::Max(2,FMath::CeilToInt(FMath::Abs(Sweep)*10));for(int I=0;I<=N;++I){float A=Start+Sweep*I/N;Points.Add(Centre+(EX*FMath::Cos(A)+EY*FMath::Sin(A))*R);}FSlateDrawElement::MakeLines(Out,Layer,G.ToPaintGeometry(),Points,ESlateDrawEffect::None,C,true,Thickness);};
   auto FillBand=[&](float Inner,float Outer,float Start,float Sweep,FLinearColor C){if(Outer<=Inner)return;TArray<FSlateVertex> Vertices;TArray<SlateIndex> Indices;int N=FMath::Max(2,FMath::CeilToInt(FMath::Abs(Sweep)*12));for(int I=0;I<=N;++I){float A=Start+Sweep*I/N;FVector2D Axis=EX*FMath::Cos(A)+EY*FMath::Sin(A);for(float R:{Inner,Outer})Vertices.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(G.GetAccumulatedRenderTransform(),FVector2f(Centre+Axis*R),FVector2f(0.5f,0.5f),C.ToFColor(false)));if(I<N){SlateIndex V=I*2;Indices.Append({V,SlateIndex(V+1),SlateIndex(V+2),SlateIndex(V+1),SlateIndex(V+3),SlateIndex(V+2)});}}auto Resource=FSlateApplication::Get().GetRenderer()->GetResourceHandle(*FCoreStyle::Get().GetBrush("WhiteBrush"));FSlateDrawElement::MakeCustomVerts(Out,Layer,Resource,Vertices,Indices,nullptr,0,0);};
-  Band(1,0,2*PI,FLinearColor(0.35f,0.29f,0.2f,0.6f),1);Band(0.42f,0,2*PI,FLinearColor(1,0.698f,0,0.16f),1);
+  Band(1,0,2*PI,VTNavigation::RelationshipColour(S,Ship,Sim),2);Band(0.42f,0,2*PI,FLinearColor(1,0.698f,0,0.16f),1);
   float Heading=-Ship->Movement->Motion.Heading;const auto& Def=Ship->Definition;
   float H=FMath::Clamp(Ship->Attributes->Hull.GetCurrentValue()/FMath::Max(1.f,Def.Hull),0.f,1.f);FLinearColor HC=Ship->Disabled?FLinearColor(0.4f,0.75f,0.8f,0.4f):H<0.25f?FLinearColor(1,0.18f,0.08f,0.5f):H<0.5f?FLinearColor(1,0.48f,0.09f,0.35f):FLinearColor(1,0.698f,0,0.3f);
   FillBand(0,0.42f*(1-H),0,2*PI,HC);
@@ -95,7 +96,7 @@ int32 UVTUI::PaintFlightHUD(const FGeometry& G,FSlateWindowElementList& Out,int3
  auto DeviceBinding=[&](const TCHAR* ActionName){FString Result;auto* Sub=PC->GetLocalPlayer()?ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()):nullptr;if(Sub)for(const UInputAction* Action:PC->Actions)if(Action&&Action->GetFName()==FName(ActionName))for(const auto& Key:Sub->QueryKeysMappedToAction(Action))if(Key.IsGamepadKey()==PC->UsingGamepadAim){Result=Key.GetDisplayName().ToString();break;}return Result;};
  if(SystemsReady&&D.Equipment.Warp){const auto Key=DeviceBinding(TEXT("IA_Warp"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-53},FString::Printf(TEXT("[%s] HOLD TO AIM WARP / RELEASE TO JUMP"),*Key),8,Amber);}
  if(SystemsReady&&D.Equipment.Torpedoes){const auto Key=DeviceBinding(TEXT("IA_Torpedo"));if(!Key.IsEmpty())Text({Size.X/2-210,Size.Y-38},FString::Printf(TEXT("[%s] HOLD TO LOCK / RELEASE TORPEDOES"),*Key),8,Dim);}
- Text({Size.X/2-140,Size.Y-22},TEXT("[TAB] CONTROLS   [F] CHART   [ESC] MENU"),7,Dim);
+ Text({Size.X/2-140,Size.Y-22},TEXT("[TAB] CONTROLS   [F] CHART  [G] MAP  [ESC] MENU"),7,Dim);
  if(S->Disabled||S->GatePassage->Status().Charge>0||S->DockProgress>0||(GS&&!GS->Outcome.IsEmpty())){FString Message=S->Disabled?TEXT("SHIP DISABLED  |  [R] RECOVER"):S->GatePassage->Status().Charge>0?(S->GatePassage->Departing()?TEXT("FLYING THROUGH GATE"):TEXT("ALIGNING / CHARGING GATE")):S->DockProgress>0?TEXT("DOCKING"):GS->Outcome;Text({Size.X/2-160,Size.Y*0.36},Message.ToUpper(),16,S->Disabled?Red:Amber);}
  const auto Hint=VTInteractionHint(S,Sim);
  if(Hint.Kind!=EVTInteractionHint::None){FVector2D Anchor;if(Project(VT::ToWorld(Hint.Position,S->SystemIndex),Anchor)){

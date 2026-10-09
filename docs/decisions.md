@@ -163,3 +163,13 @@ than PASM. This choice does not alter the original game or vellum.
 - [ai] New sandbox captains start the intro; existing campaign records default to completed. Explicit runtime Skip and per-user PIE Skip intro are available. No automatic local completion preference suppresses a deliberately created new campaign. Initial helm is Halt; the chosen hull is retained and systems progressively restored through the repair choices below. Story boarding pays no credits.
 
 - [ai] Revised at the user's request: intro captains choose no fit beforehand. They retain their selected hull and default broadsides, start with explicit empty optional mounts, then choose boost versus EMP and torpedoes versus microwarp. Each mutually exclusive repair consumes that stage's parts, persists with the captain and must be tried before the next stage. The host validates choices through FVTFitEditor. PIE loadout editing is disabled while the intro is enabled; sandbox creation hides pre-fit controls. Skipping PIE retains normal fit selection.
+
+- [ai] User requests 5x system distances and celestial sizes, 10x inter-system separation, relation-coloured outer rings and a clickable full-screen route map. Preserve ship, station and gate aperture sizes and weapon ranges. Scale authored spawn/layout positions; preserve save schema 6 through an optional layout-scale migration.
+- [ai] Confirmed by the user: full speed inside the nearest star's system radius; linearly reduce thrust and maximum speed to 0.01 over the next 100 metres. This replaces the invisible boundary spring and uses the same rule for predicted and authoritative ships. Gate passage remains committed motion.
+- [ai] F opens the compact chart; G or its expand control opens a full-screen chart. Clicking a system selects a shortest gate route; waypoint guidance advances after each jump. Unfitted equipment input is removed before aim/camera or authoritative action processing.
+
+- [ai] Preserve close-range tutorial encounter spacing and move its wreck field clear of the enlarged star; its private system radius grows with the others. Ship combat ranges and training targets retain their existing teaching distances. Legacy volley-test fixtures move clear of the new stellar surface without changing their relative placement or damage assertions.
+
+- [ai] Preserve the existing M mine binding; G opens the full-screen chart. Landmark mesh visibility is local presentation rather than replicated actor hidden state, so each captain independently sees their current system.
+
+- [ai] Preserve piloting with the compact chart; only the full-screen map removes flight input. Clicks outside the compact chart pass through to gameplay.

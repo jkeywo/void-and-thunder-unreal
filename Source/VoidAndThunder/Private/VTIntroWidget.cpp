@@ -17,7 +17,7 @@ void UVTIntroWidget::Advance(){if(auto* PC=Cast<AVTController>(GetOwningPlayer()
 void UVTIntroWidget::SkipIntro(){if(auto* PC=Cast<AVTController>(GetOwningPlayer()))PC->Intro->ServerSkip();}
 void UVTIntroWidget::NativeTick(const FGeometry& Geometry,float Dt){
  Super::NativeTick(Geometry,Dt);auto* PC=Cast<AVTController>(GetOwningPlayer());auto* I=PC?PC->Intro.Get():nullptr;
- if(!Comms)return;bool Show=I&&I->Active()&&I->Data&&PC->GetPawn()&&(!PC->UI||!PC->UI->MenuOpen);Comms->SetVisibility(Show?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);if(!Show)return;
+ if(!Comms)return;bool Show=I&&I->Active()&&I->Data&&PC->GetPawn()&&(!PC->UI||!(PC->UI->MenuOpen||PC->UI->ChartOpen));Comms->SetVisibility(Show?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);if(!Show)return;
  const auto* Beat=I->Data->Beat(I->Progress.Stage);if(!Beat)return;
  Speaker->SetText(Beat->Enemy?NSLOCTEXT("VTIntro","Enemy","ENEMY CAPTAIN  /  INCOMING TRANSMISSION"):NSLOCTEXT("VTIntro","Engineer","ENGINEER  /  INTERNAL COMMS"));
  Portrait->SetBrushFromTexture(Beat->Enemy?I->Data->CaptainPortrait:I->Data->EngineerPortrait);
@@ -42,7 +42,7 @@ void UVTIntroWidget::NativeTick(const FGeometry& Geometry,float Dt){
 }
 int32 UVTIntroWidget::NativePaint(const FPaintArgs& Args,const FGeometry& G,const FSlateRect& Cull,FSlateWindowElementList& Out,int32 Layer,const FWidgetStyle& Style,bool Enabled) const{
  auto Top=Super::NativePaint(Args,G,Cull,Out,Layer,Style,Enabled);auto* PC=Cast<AVTController>(GetOwningPlayer());auto* S=PC?Cast<AVTShip>(PC->GetPawn()):nullptr;
- if(!S||!PC->Intro->Active()||!PC->Intro->HasWaypoint||(PC->UI&&PC->UI->MenuOpen))return Top;
+ if(!S||!PC->Intro->Active()||!PC->Intro->HasWaypoint||(PC->UI&&(PC->UI->MenuOpen||PC->UI->ChartOpen)))return Top;
  FVector2D P;PC->ProjectWorldLocationToScreen(VT::ToWorld(PC->Intro->ObjectivePosition,S->SystemIndex),P,true);int W=0,H=0;PC->GetViewportSize(W,H);P*=G.GetLocalSize()/FVector2D(FMath::Max(1,W),FMath::Max(1,H));
  P.X=FMath::Clamp(P.X,35.,G.GetLocalSize().X-180);P.Y=FMath::Clamp(P.Y,365.,G.GetLocalSize().Y-240);
  const FLinearColor Amber(1,0.65f,0.08f);TArray<FVector2D> Points={P+FVector2D(0,-16),P+FVector2D(16,0),P+FVector2D(0,16),P+FVector2D(-16,0),P+FVector2D(0,-16)};FSlateDrawElement::MakeLines(Out,Top+1,G.ToPaintGeometry(),Points,ESlateDrawEffect::None,Amber,true,2);

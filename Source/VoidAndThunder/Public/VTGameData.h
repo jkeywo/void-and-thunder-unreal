@@ -34,6 +34,11 @@ public:
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.05")) float GateFlashDuration=0.3f;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateArrivalTolerance=12;
  UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.01",ClampMax="0.5")) float GateAlignmentTolerance=0.18f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="World scale",meta=(ClampMin="1")) float SystemDistanceScale=5;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="World scale",meta=(ClampMin="1")) float BoundaryFadeDistance=100;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="World scale",meta=(ClampMin="0.001",ClampMax="1")) float BoundaryMinimumSpeed=0.01f;
+ void ApplyWorldScale();
+ float BoundarySpeed(int32 System,const FVector2D& Position) const;
  void LoadCatalog();
  TSharedPtr<struct FStreamableHandle> CatalogHandle,PresentationHandle;
  bool CatalogLoaded=false;

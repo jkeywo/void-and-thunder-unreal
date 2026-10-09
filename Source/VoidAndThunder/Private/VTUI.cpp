@@ -67,6 +67,7 @@ void UVTUI::NativeConstruct() {
  RefreshView();
 }
 void UVTUI::SetMenu(bool Open) {
+ if(Open&&ChartOpen)SetChart(false,false);
  MenuOpen=Open;FocusPending=Open;if(auto* W=CachedWidget(TEXT("MenuBackdrop")))W->SetVisibility(Open?ESlateVisibility::HitTestInvisible:ESlateVisibility::Collapsed); if(auto* W=CachedWidget(TEXT("AbilityPanel")))W->SetVisibility(ESlateVisibility::Collapsed);
  if(auto* Captain=Cast<AVTController>(GetOwningPlayer())) Captain->UpdateInputContexts();
  RequestRefresh(); if(MenuPanel&&MenuPanel->GetParent()) MenuPanel->GetParent()->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(MenuPanel) MenuPanel->SetVisibility(Open ? ESlateVisibility::Visible : ESlateVisibility::Collapsed); if(HUDPanel) HUDPanel->SetVisibility(ESlateVisibility::Collapsed);if(HUDPanel&&HUDPanel->GetParent())HUDPanel->GetParent()->SetVisibility(ESlateVisibility::Collapsed);
@@ -144,7 +145,7 @@ void UVTUI::RefreshView() {
  auto* PC=Cast<AVTController>(GetOwningPlayer()); auto* Ship=PC ? Cast<AVTShip>(PC->GetPawn()) : nullptr; if(!Ship||!Flight) return;
  if(Ship->Docked&&!MenuOpen)SetMenu(true);
 }
-void AVTController::ToggleMenu() {if(UI) UI->SetMenu(!UI->MenuOpen); LocalIntent=FVTPilotIntent();}
+void AVTController::ToggleMenu() {if(UI&&UI->ChartOpen){UI->SetChart(false,false);return;}if(UI) UI->SetMenu(!UI->MenuOpen); LocalIntent=FVTPilotIntent();}
 
 int32 UVTUI::NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const FSlateRect& Culling,FSlateWindowElementList& Elements,int32 Layer,const FWidgetStyle& Style,bool Enabled) const {
  int32 Top=Super::NativePaint(Args,Geometry,Culling,Elements,Layer+1,Style,Enabled)+1;
@@ -168,14 +169,7 @@ int32 UVTUI::NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const 
  }
  if(auto* Captain=Cast<AVTController>(PC)) if((Captain->LocalIntent.Buttons&VTButtons::Warp)&&Mine->Definition.Equipment.Warp&&Mine->Combat->EquipmentState.WarpCooldown<=0) {FVector2D P; if(PC->ProjectWorldLocationToScreen(VT::ToWorld(Mine->Movement->Motion.Position+Captain->LocalIntent.CursorOffset.GetClampedToMaxSize(Mine->Definition.Equipment.WarpRange),Mine->SystemIndex),P,true)) {P=P*PixelToLocal; Line(P+FVector2D(-25,0),P+FVector2D(25,0),FLinearColor(0.2f,1,0.8f)); Line(P+FVector2D(0,-25),P+FVector2D(0,25),FLinearColor(0.2f,1,0.8f));}}
  Top=PaintFlightHUD(Geometry,Elements,Top+1);
- if(!ChartOpen||CastChecked<UVTGameInstance>(GetGameInstance())->PlayMode!=TEXT("sandbox")) return Top;
- FVector2D Offset(Geometry.GetLocalSize().X-430,35),Size(405,240);
- FSlateDrawElement::MakeBox(Elements,Top,Geometry.ToPaintGeometry(Size,FSlateLayoutTransform(Offset)),FCoreStyle::Get().GetBrush("WhiteBrush"),ESlateDrawEffect::None,FLinearColor(0.025f,0.017f,0.006f,0.95f)); ++Top;
- FVector2D Min(DBL_MAX,DBL_MAX),Max(-DBL_MAX,-DBL_MAX);
- for(const auto& System:Sim->Data->Systems) {if(System.Id.ToString().StartsWith(TEXT("__intro_")))continue;Min.X=FMath::Min(Min.X,System.ChartPosition.X); Min.Y=FMath::Min(Min.Y,System.ChartPosition.Y); Max.X=FMath::Max(Max.X,System.ChartPosition.X); Max.Y=FMath::Max(Max.Y,System.ChartPosition.Y);}
- auto Point=[&](int I) {auto P=Sim->Data->Systems[I].ChartPosition; return Offset+FVector2D(25,25)+FVector2D((P.X-Min.X)/FMath::Max(1.,Max.X-Min.X)*240,(P.Y-Min.Y)/FMath::Max(1.,Max.Y-Min.Y)*165);};
- for(int I=0;I<Sim->Data->Systems.Num();++I) {if(UVTIntroComponent::IsArena(Sim,I))continue;for(FName LinkId:Sim->Data->Systems[I].Links) {int J=Sim->Data->FindSystem(LinkId); if(J>I) Line(Point(I),Point(J),FLinearColor(0.5f,0.34f,0.05f));}}
- for(int I=0;I<Sim->Data->Systems.Num();++I) {if(UVTIntroComponent::IsArena(Sim,I))continue;auto P=Point(I); auto Colour=I==Mine->SystemIndex ? FLinearColor(1,0.7f,0) : FLinearColor(0.7f,0.5f,0.15f); FString Label=Sim->Data->Systems[I].DisplayName.ToString()+FString::Printf(TEXT(" (%d)"),State&&State->Populations.IsValidIndex(I) ? State->Populations[I] : 0); FSlateDrawElement::MakeBox(Elements,Top,Geometry.ToPaintGeometry(FVector2D(5,5),FSlateLayoutTransform(P)),FCoreStyle::Get().GetBrush("WhiteBrush"),ESlateDrawEffect::None,Colour); FSlateDrawElement::MakeText(Elements,Top,Geometry.ToPaintGeometry(FVector2D(110,20),FSlateLayoutTransform(P+FVector2D(7,0))),Label,Font,ESlateDrawEffect::None,Colour);}
+ Top=PaintNavigation(Geometry,Elements,Top+5);
  return Top;
 }
 

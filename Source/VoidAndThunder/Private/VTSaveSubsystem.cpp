@@ -118,7 +118,7 @@ bool UVTSaveSubsystem::Save(bool Background) {
  auto* Sim=World->GetSubsystem<UVTSimulation>(); if(!Sim||!Sim->Bootstrapped||!Sim->Data||World->GetMapName().Contains(TEXT("Menu"))||CastChecked<UVTGameInstance>(GetGameInstance())->PlayMode!=TEXT("sandbox")) return false;
  for(auto It=World->GetPlayerControllerIterator();It;++It) CapturePlayer(Cast<AVTController>(It->Get()));
  auto* Snapshot=CastChecked<UVTWorldSave>(UGameplayStatics::CreateSaveGameObject(UVTWorldSave::StaticClass()));
- Snapshot->WorldId=WorldId; Snapshot->Seed=Sim->WorldSeed; Snapshot->SimulationTime=Sim->SimulationTime; Snapshot->Players=PlayerRecords;
+ Snapshot->LayoutScale=Sim->Data->SystemDistanceScale;Snapshot->WorldId=WorldId; Snapshot->Seed=Sim->WorldSeed; Snapshot->SimulationTime=Sim->SimulationTime; Snapshot->Players=PlayerRecords;
  for(AVTShip* Ship:Sim->Ships) if(IsValid(Ship)&&Ship->IsNPC&&!UVTIntroComponent::IsArena(Sim,Ship->SystemIndex)) Snapshot->Ships.Add(CaptureShip(Ship));
  for(AVTProjectile* P:Sim->Projectiles) if(IsValid(P)&&P->Remaining>0&&!UVTIntroComponent::IsArena(Sim,P->SystemIndex)) {
   FVTSavedProjectile R; R.Id=P->PersistentId; R.Source=P->SourceId; R.System=P->SystemIndex; R.Position=P->Position; R.Velocity=P->Velocity; R.Damage=P->Damage; R.Remaining=P->Remaining; R.Radius=P->Radius; R.Kind=P->Kind; R.Target=P->TargetId; R.AttackerProfile=P->AttackerProfile; R.SourceFaction=P->SourceFaction; R.SourceNPC=P->SourceNPC; R.Height=P->Height; R.Velocity3D=P->Velocity3D; R.TurnRate=P->TurnRate; R.ReportCountdown=P->ReportCountdown; Snapshot->Projectiles.Add(R);
@@ -215,6 +215,13 @@ bool UVTSaveSubsystem::Migrate(UVTWorldSave* Snapshot) const {
  }
  if(Snapshot->Version==4) Snapshot->Version=5;
  if(Snapshot->Version==5){auto Upgrade=[](FVTSavedShip& Ship){Ship.JumpArriving=false;Ship.JumpArrivalStarted=0;Ship.JumpArrivalTarget=FVector2D::ZeroVector;};for(auto& Ship:Snapshot->Ships)Upgrade(Ship);for(auto& Captain:Snapshot->Players)Upgrade(Captain.Ship);Snapshot->Version=6;}
+ if(!FMath::IsFinite(Snapshot->LayoutScale)||Snapshot->LayoutScale<=0)return false;
+ const auto* D=GetWorld()->GetSubsystem<UVTSimulation>()->Data.Get();const float Factor=D->SystemDistanceScale/Snapshot->LayoutScale;
+ if(!FMath::IsNearlyEqual(Factor,1.f)){
+  auto Scale=[&](FVTSavedShip& S){S.Motion.Position=S.Docked?D->Rules.StationPosition+(S.Motion.Position-D->Rules.StationPosition/Factor):S.Motion.Position*Factor;S.Brain.Alert*=Factor;S.JumpArrivalOrigin*=Factor;S.JumpArrivalTarget*=Factor;};
+  for(auto& S:Snapshot->Ships)Scale(S);for(auto& P:Snapshot->Players)Scale(P.Ship);for(auto& P:Snapshot->Projectiles)P.Position*=Factor;
+  Snapshot->LayoutScale=D->SystemDistanceScale;
+ }
  return Snapshot->Version==6;
 }
 

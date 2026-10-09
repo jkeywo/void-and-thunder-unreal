@@ -77,6 +77,7 @@ class VOIDANDTHUNDER_API UVTWorldSave : public USaveGame {
  GENERATED_BODY()
 public:
  UPROPERTY() int32 Version = 6;
+ UPROPERTY() float LayoutScale = 1;
  UPROPERTY() int32 Seed = 12345;
  UPROPERTY() FGuid WorldId;
  UPROPERTY() double SimulationTime = 0;

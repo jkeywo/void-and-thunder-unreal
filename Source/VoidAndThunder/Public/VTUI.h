@@ -40,9 +40,16 @@ public:
  UPROPERTY(EditDefaultsOnly,Category="HUD|Style") TObjectPtr<class UStringTable> TextTable;
  bool SessionOptions=false;
  UFUNCTION() void ToggleSessionOptions();
- bool ControlsOpen=false, ChartOpen=false;
+ bool ControlsOpen=false, ChartOpen=false,FullMap=false;
+ FName RouteDestination;
+ void ToggleFullMap();
+ void SetChart(bool Open,bool Full);
+ FVector2D ChartPoint(int32 System,const FVector2D& Size) const;
+ int32 PaintNavigation(const FGeometry& Geometry,FSlateWindowElementList& Elements,int32 Layer) const;
+ virtual FReply NativeOnMouseButtonDown(const FGeometry& Geometry,const FPointerEvent& Event) override;
+ virtual FReply NativeOnKeyDown(const FGeometry& Geometry,const FKeyEvent& Event) override;
  void ToggleControls(){if(!MenuOpen)ControlsOpen=!ControlsOpen;}
- void ToggleChart(){if(!MenuOpen){ChartOpen=!ChartOpen;ControlsOpen=false;}}
+ void ToggleChart(){if(!MenuOpen)SetChart(!ChartOpen,false);}
  int32 PaintFlightHUD(const FGeometry& Geometry,FSlateWindowElementList& Elements,int32 Layer) const;
  bool MenuOpen=false;
  bool FocusPending=false;

@@ -141,3 +141,19 @@ are explicit targeted upgrades. Edit dialogue and encounter tuning in
 `Content/Data/DA_Intro`, presentation in `Content/UI/WBP_Intro`.
 `Scripts/IntroNetwork.ps1 -Packaged -RoundTripMs 150 -Loss 2` exercises independent
 four-player introductions, repair choices, skipping and reconnecting.
+
+
+Press **G** for the full-screen star chart, or **F** for its compact form. Click a
+system to plot the shortest connected gate route; close the chart to see the next
+gate waypoint. The waypoint advances after each jump. Click the current system to
+clear guidance. The chart leaves the world running. The full-screen map suppresses flight input
+while you select a destination; the compact chart allows piloting.
+
+Outer ship rings show your captain's relationship: green friendly, amber neutral,
+red hostile (including hostile heat), blue your own ship. Unfitted Ctrl/Shift
+systems do nothing, including camera changes. System layout distances and celestial
+radii are five times larger; arenas are ten times farther apart and only stars are
+visible outside your current system. At the nearest star's system boundary, thrust
+and maximum speed fade linearly from 1x to 0.01x over 100 m, identically on host and
+predicted clients. Ships, weapons, stations and gate apertures retain their sizes.
+Existing schema-6 campaigns migrate their spatial positions once when loaded.

@@ -35,14 +35,14 @@ Beats.Add(B);};
 }
 const FVTIntroBeat* UVTIntroData::Beat(EVTIntroStage S) const{return Beats.FindByPredicate([S](const FVTIntroBeat& B){return B.Stage==S;});}
 UVTIntroComponent::UVTIntroComponent(){SetIsReplicatedByDefault(true);PrimaryComponentTick.bCanEverTick=false;}
-void UVTIntroComponent::BeginPlay(){Super::BeginPlay();Data=LoadObject<UVTIntroData>(nullptr,TEXT("/Game/Data/DA_Intro.DA_Intro"));if(!Data)Data=NewObject<UVTIntroData>(this);}
+void UVTIntroComponent::BeginPlay(){Super::BeginPlay();Data=LoadObject<UVTIntroData>(nullptr,TEXT("/Game/Data/DA_Intro.DA_Intro"));if(!Data)Data=NewObject<UVTIntroData>(this);Data=DuplicateObject<UVTIntroData>(Data,this);const auto Offset=FVector2D(0,-1000)*(GetWorld()->GetSubsystem<UVTSimulation>()->Data->SystemDistanceScale-1);Data->Start+=Offset;Data->ClearPoint+=Offset;Data->DebrisPoint+=Offset;Data->EnemyPoint+=Offset;}
 UVTIntroComponent* UVTIntroComponent::For(const AVTShip* S){const auto* PC=S?Cast<AVTController>(S->GetController()):nullptr;return PC?PC->Intro.Get():nullptr;}
 bool UVTIntroComponent::IsArena(const UVTSimulation* Sim,int32 I){return Sim&&Sim->Data&&Sim->Data->Systems.IsValidIndex(I)&&Sim->Data->Systems[I].Id.ToString().StartsWith(TEXT("__intro_"));}
 void UVTIntroComponent::PrepareArenas(UVTSimulation* Sim){
  if(!Sim||!Sim->Data||Sim->Data->Systems.IsEmpty()||IsArena(Sim,Sim->Data->Systems.Num()-1))return;
  Sim->Data=DuplicateObject<UVTGameData>(Sim->Data,Sim);
  const int32 Start=FMath::Max(0,Sim->Data->FindSystem(Sim->Data->StartSystem));
- for(int32 I=0;I<4;++I){FVTSystemDefinition S;S.Id=FName(*FString::Printf(TEXT("__intro_%d"),I));S.DisplayName=NSLOCTEXT("VTIntro","Arena","Wreck field");S.Radius=1400;S.ChartPosition=Sim->Data->Systems[Start].ChartPosition-FVector2D(5,0);S.Links.Add(Sim->Data->StartSystem);Sim->Data->Systems.Add(S);}
+ for(int32 I=0;I<4;++I){FVTSystemDefinition S;S.Id=FName(*FString::Printf(TEXT("__intro_%d"),I));S.DisplayName=NSLOCTEXT("VTIntro","Arena","Wreck field");S.Radius=1400*Sim->Data->SystemDistanceScale;S.ChartPosition=Sim->Data->Systems[Start].ChartPosition-FVector2D(50,0);S.Links.Add(Sim->Data->StartSystem);Sim->Data->Systems.Add(S);}
 }
 void UVTIntroComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const{Super::GetLifetimeReplicatedProps(OutLifetimeProps);DOREPLIFETIME(UVTIntroComponent,Progress);DOREPLIFETIME(UVTIntroComponent,ObjectivePosition);DOREPLIFETIME(UVTIntroComponent,HasWaypoint);}
 void UVTIntroComponent::OnRep_Progress(){VTNotifyHUD(GetWorld());}
@@ -98,7 +98,7 @@ void UVTIntroComponent::Rebuild(){
  S->Abilities->CancelAllAbilities();S->Combat->EquipmentState.LaunchQueue.Reset();S->PortReload=S->StarboardReload=0;S->Combat->PortCharge=S->Combat->StarboardCharge=0;
  S->Abilities->SetNumericAttributeBase(UVTAttributes::HullAttribute(),S->Definition.Hull*(SystemsOnline()?1:Data->InitialHullFraction));
  S->Abilities->SetNumericAttributeBase(UVTAttributes::GetEMPStressAttribute(),0);S->Combat->Shields=SystemsOnline()?S->Definition.ShieldMax:FVTShieldBanks(0,0,0,0);
- SpawnFixture(FVector2D(-440,-350),true,true);SpawnFixture(FVector2D(-400,-690),true,true);SpawnFixture(FVector2D(-650,-670),true,true);
+ SpawnFixture(Data->Start+FVector2D(180,150),true,true);SpawnFixture(Data->Start+FVector2D(220,-190),true,true);SpawnFixture(Data->Start+FVector2D(-30,-170),true,true);
  if(Progress.Stage<=EVTIntroStage::Debris)Target=SpawnFixture(Data->DebrisPoint,true);
  if(Progress.Stage==EVTIntroStage::BatteryTrial||Progress.Stage==EVTIntroStage::SpecialTrial)Target=SpawnFixture(Data->DebrisPoint,false,true);
  if(Progress.Stage==EVTIntroStage::Challenge||Progress.Stage==EVTIntroStage::Duel||Progress.Stage==EVTIntroStage::Salvage){Target=SpawnFixture(Data->EnemyPoint,false);if(Progress.Stage==EVTIntroStage::Salvage)Target->Disabled=true;}
@@ -119,7 +119,7 @@ void UVTIntroComponent::Change(EVTIntroStage Stage){
 void UVTIntroComponent::ServerAdvance_Implementation(){if(!CanAdvance())return;Change(Progress.Stage==EVTIntroStage::Wake?EVTIntroStage::Helm:Progress.Stage==EVTIntroStage::Challenge?EVTIntroStage::Duel:EVTIntroStage::Complete);}
 void UVTIntroComponent::ServerSkip_Implementation(){
  if(!Active())return;auto* PC=CastChecked<AVTController>(GetOwner());auto* S=Cast<AVTShip>(PC->GetPawn());if(!S)return;
- auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();if(InArena()){S->SystemIndex=FMath::Max(0,Sim->Data->FindSystem(Sim->Data->StartSystem));S->Movement->Motion.Position=FVector2D(0,-270);S->Movement->Motion.Velocity=FVector2D::ZeroVector;ResetIntroMotion(S);S->Disabled=false;S->Abilities->SetNumericAttributeBase(UVTAttributes::HullAttribute(),S->Definition.Hull);S->Combat->Shields=S->Definition.ShieldMax;Sim->Queries.Invalidate();S->ForceNetUpdate();}
+ auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();if(InArena()){S->SystemIndex=FMath::Max(0,Sim->Data->FindSystem(Sim->Data->StartSystem));S->Movement->Motion.Position=FVector2D(0,-270)*Sim->Data->SystemDistanceScale;S->Movement->Motion.Velocity=FVector2D::ZeroVector;ResetIntroMotion(S);S->Disabled=false;S->Abilities->SetNumericAttributeBase(UVTAttributes::HullAttribute(),S->Definition.Hull);S->Combat->Shields=S->Definition.ShieldMax;Sim->Queries.Invalidate();S->ForceNetUpdate();}
  Change(EVTIntroStage::Complete);ClientResetHelm();
 }
 void UVTIntroComponent::Retry(){if(!InArena())return;Rebuild();Progress.Elapsed=0;Progress.Distance=Progress.Turn=Progress.DeviceSeconds=0;}

@@ -73,7 +73,7 @@ bool FVTCombatIntegrationTest::RunTest(const FString& Params) {
  auto* Sim=World->GetSubsystem<UVTSimulation>(); Sim->Bootstrap(0);
  TestNotNull("Native cruiser definition imported",Sim->Data->FindShip("corsair_cruiser"));
  AddInfo(FString::Printf(TEXT("Native asset shield %.3f count %d"),Sim->Data->Ships[0].ShieldMax.X,Sim->Data->Ships.Num()));
- FVTMotion A; A.Position=FVector2D(500,-500); FVTMotion B; B.Position=FVector2D(500,-350); B.Heading=-PI/2;
+ FVTMotion A; A.Position=FVector2D(2000,-500); FVTMotion B; B.Position=FVector2D(2000,-350); B.Heading=-PI/2;
  auto* Shooter=Sim->SpawnShip("corsair_cruiser",0,A,false,"Corsairs");
  auto* Target=Sim->SpawnShip("corsair_cruiser",0,B,false,"Corsairs");
  Shooter->Intent.Aim=FVector2D(0,1); Shooter->Intent.Buttons=VTButtons::Port;
@@ -193,8 +193,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTBoundaryTest,"VT.World.LandmarksAndIntentAut
 bool FVTBoundaryTest::RunTest(const FString& Params) {
  UWorld* World=UWorld::CreateWorld(EWorldType::Game,false,FName("VTBoundaryTest")); auto& Context=GEngine->CreateNewWorldContext(EWorldType::Game); Context.SetCurrentWorld(World); World->SetGameInstance(NewObject<UVTGameInstance>(GEngine)); World->SetGameMode(FURL()); World->InitializeActorsForPlay(FURL()); World->BeginPlay(); auto* Sim=World->GetSubsystem<UVTSimulation>(); Sim->Bootstrap(0);
  FVTMotion M; M.Position=FVector2D(50,0); M.Velocity=FVector2D(-20,5); auto* Ship=Sim->SpawnShip("corsair_cruiser",0,M,false,"Corsairs"); Sim->LandmarkStep();
- TestTrue("Star separates hull from solid surface",FMath::Abs(Ship->Movement->Motion.Position.Size()-(120+Ship->Definition.Radius))<0.001); TestTrue("Landmark removes inward velocity",FMath::Abs(Ship->Movement->Motion.Velocity.X)<0.001); TestEqual("Tangential velocity retained",Ship->Movement->Motion.Velocity.Y,5.);
- TestTrue("Star blocks scanner line of sight",Sim->Occluded(0,FVector2D(-200,0),FVector2D(200,0))); TestFalse("Clear scanner ray is unblocked",Sim->Occluded(0,FVector2D(-200,-400),FVector2D(200,-400)));
+ TestTrue("Star separates hull from solid surface",FMath::Abs(Ship->Movement->Motion.Position.Size()-(Sim->Data->Landmarks[0].Radius+Ship->Definition.Radius))<0.001); TestTrue("Landmark removes inward velocity",FMath::Abs(Ship->Movement->Motion.Velocity.X)<0.001); TestEqual("Tangential velocity retained",Ship->Movement->Motion.Velocity.Y,5.);
+ TestTrue("Star blocks scanner line of sight",Sim->Occluded(0,FVector2D(-200,0),FVector2D(200,0))); TestFalse("Clear scanner ray is unblocked",Sim->Occluded(0,FVector2D(-200,-800),FVector2D(200,-800)));
  auto* Shot=Ship->Combat->SpawnDeviceProjectile(EVTProjectileKind::Cannon,FVector2D(-200,0),FVector2D(30000,0),1,3,6); Sim->ProjectileStep(); TestFalse("Swept projectile cannot pass through star",IsValid(Shot));
  FVTPilotIntent Intent; Intent.Sequence=1; Intent.Throttle=0.5f; Ship->ServerIntent_Implementation(Intent); TestEqual("Valid intent is queued",Ship->InputQueue.Num(),1); Ship->ServerIntent_Implementation(Intent); TestEqual("Replay cannot enqueue twice",Ship->InputQueue.Num(),1);
  Intent.Sequence=2; Intent.Throttle=2; Ship->ServerIntent_Implementation(Intent); TestEqual("Invalid throttle rejected at authority",Ship->LastReceived,uint32(1)); Intent.Throttle=0.5f; Intent.Sequence=300; Ship->ServerIntent_Implementation(Intent); TestEqual("Sequence jump rejected",Ship->LastReceived,uint32(1));

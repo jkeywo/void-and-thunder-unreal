@@ -54,14 +54,9 @@ void UVTShipMovement::Step(const FVTPilotIntent& Value, bool Predict) {
  FVTPilotIntent Effective=S->Disabled ? FVTPilotIntent() : Value;
  if(auto* Intro=UVTIntroComponent::For(S))Intro->Filter(Effective);
  FVTShipStats Stats=S->Definition.Stats; Stats.Thrust*=S->Combat->SpeedScale; Stats.MaxSpeed*=S->Combat->SpeedScale;
- if(Sim->Data) {Stats.Thrust*=Sim->Data->FlightSpeedMultiplier; Stats.MaxSpeed*=Sim->Data->FlightSpeedMultiplier;}
+ if(Sim->Data) {const float Speed=Sim->Data->FlightSpeedMultiplier*Sim->Data->BoundarySpeed(S->SystemIndex,Motion.Position);Stats.Thrust*=Speed;Stats.MaxSpeed*=Speed;}
  const bool Passage=S->GatePassage->Integrate(Motion,Stats,Effective,Predict);
  if(!Frozen&&!Passage) VT::HelmStep(Motion, Stats, Effective, Reverse, VT::Step);
- if (!Frozen && Predict && Sim->Data && Sim->Data->Systems.IsValidIndex(S->SystemIndex)) {
-  float Radius = Sim->Data->Systems[S->SystemIndex].Radius;
-  const float Length = float(Motion.Position.Size());
-  if (Length > Radius) Motion.Velocity -= Motion.Position.GetSafeNormal() * ((Length - Radius) * Sim->Data->Rules.BoundsSpring * VT::Step);
- }
  Motion.Ack = Value.Sequence;
  Motion.SimulationTime=Predict ? Motion.SimulationTime+VT::Step : Sim->SimulationTime;
  if (Predict) {
@@ -255,11 +250,13 @@ void AVTController::ReadFlight(const FInputActionValue& Value, int32 Index) {
   else {if(LocalIntent.Buttons&Aim)LocalIntent.Buttons|=Fire;LocalIntent.Buttons&=~Aim;}
  } else {
   const uint16 Bit = uint16(1 << (Index - 3));
+  if(auto* Ship=Cast<AVTShip>(GetPawn())){FVTPilotIntent Check;Check.Buttons=Bit;VT::FilterEquipmentIntent(Check,Ship->Definition.Equipment);if(!(Check.Buttons&Bit)){LocalIntent.Buttons&=~Bit;return;}}
   if (Value.Get<bool>()) {LocalIntent.Buttons |= Bit;if(Bit&(VTButtons::Warp|VTButtons::Torpedo))LocalIntent.Buttons&=~(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Port|VTButtons::Starboard);} else LocalIntent.Buttons &= ~Bit;
  }
 }
 void AVTController::SetupInputComponent() {
  Super::SetupInputComponent();
+ InputComponent->BindKey(EKeys::G,IE_Pressed,this,&AVTController::ToggleFullMap);
  InputComponent->BindKey(EKeys::One,IE_Pressed,this,&AVTController::IntroChoiceA);
  InputComponent->BindKey(EKeys::Two,IE_Pressed,this,&AVTController::IntroChoiceB);
  InputComponent->BindKey(EKeys::Gamepad_FaceButton_Left,IE_Pressed,this,&AVTController::IntroChoiceA);
@@ -310,10 +307,11 @@ void AVTController::PlayerTick(float Dt) {
  Super::PlayerTick(Dt);
  if(InputContextState==0)LocalIntent.Throttle=ThrottleControl.Value();
  ValidationInput(Dt);
- if(UI&&UI->MenuOpen) {LocalIntent=FVTPilotIntent();}
+ if(UI&&(UI->MenuOpen||UI->FullMap)) {LocalIntent=FVTPilotIntent();}
  AVTShip* Ship = Cast<AVTShip>(GetPawn()); if (!IsLocalController() || !Ship) return;
- if((UI&&UI->MenuOpen)||Ship->Autopilot) LocalIntent=FVTPilotIntent();
+ if((UI&&(UI->MenuOpen||UI->FullMap))||Ship->Autopilot) LocalIntent=FVTPilotIntent();
  float MouseX=PlayerInput?PlayerInput->GetRawKeyValue(EKeys::MouseX):0,MouseY=PlayerInput?PlayerInput->GetRawKeyValue(EKeys::MouseY):0; if(FMath::Abs(MouseX)+FMath::Abs(MouseY)>0.1f) UsingGamepadAim=false;
+ VT::FilterEquipmentIntent(LocalIntent,Ship->Definition.Equipment);
  Intro->Filter(LocalIntent);
  const bool Broadside=UpdateBroadsideAim(MouseX,GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.controls,Ship->Movement->Motion.Heading,Ship->Definition.Arc);
  FVector Origin, Direction;
@@ -334,7 +332,7 @@ void AVTController::PlayerTick(float Dt) {
   LocalIntent.CursorOffset=(LocalIntent.CursorOffset+Delta*Controls.aim_cursor_rate*RealDt).GetClampedToMaxSize(Controls.aim_cursor_max); LocalIntent.Aim=LocalIntent.CursorOffset.GetSafeNormal();
  }
  bool Aiming=(LocalIntent.Buttons&(VTButtons::AimPort|VTButtons::AimStarboard|VTButtons::Warp))!=0;
- if(GetWorld()->GetNetMode()==NM_Standalone&&!(UI&&UI->MenuOpen)) {
+ if(GetWorld()->GetNetMode()==NM_Standalone&&!(UI&&(UI->MenuOpen||UI->FullMap))) {
   const auto& Time=GetWorld()->GetSubsystem<UVTSimulation>()->Data->Feel.time;
   float Target=Aiming&&AimBattery>0 ? Time.aim_timescale : 1;
   AimBattery=FMath::Clamp(AimBattery+(Target<1 ? -RealDt*Time.battery_drain_per_sec : RealDt*Time.battery_recharge_per_sec),0.f,Time.battery_max); AimDilation+=(Target-AimDilation)*(1-FMath::Exp(-10*RealDt));
@@ -384,7 +382,7 @@ void UVTSimulation::Initialize(FSubsystemCollectionBase& Collection) {
  if(Handle) Handle->WaitUntilComplete();
  Data=Cast<UVTGameData>(Manager.GetPrimaryAssetObject(FPrimaryAssetId(TEXT("VTGameData"),TEXT("DA_GameData"))));
  if(!Data) Data=LoadObject<UVTGameData>(nullptr,TEXT("/Game/Data/DA_GameData.DA_GameData"));
- if(Data) {Data->LoadCatalog();UVTIntroComponent::PrepareArenas(this);}
+ if(Data) {Data->LoadCatalog();Data=DuplicateObject<UVTGameData>(Data,this);Data->ApplyWorldScale();UVTIntroComponent::PrepareArenas(this);}
 }
 AVTShip* UVTSimulation::SpawnShip(FName Id, int32 System, const FVTMotion& Motion, bool NPC, FName Faction) {
  AVTShip* Ship = GetWorld()->SpawnActorDeferred<AVTShip>(Data&&Data->ShipClass.Get() ? Data->ShipClass.Get() : AVTShip::StaticClass(),FTransform(VT::ToWorld(Motion.Position,System)),nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
@@ -414,7 +412,8 @@ void UVTSimulation::Bootstrap(int32 Population,bool Synthetic) {
   const int32 PatrolLimit=Population>=0&&!Synthetic ? CivilianLimit+FMath::RoundToInt(float(Count)*Patrols/Baseline) : Civilians+Patrols;
   for (int32 N=0; N<Count; ++N) {
    const float Angle = VT::LcgNext(Random)*2*PI;
-   const float Radius = 200+VT::LcgNext(Random)*(Def.Radius*0.7f-200);
+   const float InnerRadius=200*Data->SystemDistanceScale;
+   const float Radius = InnerRadius+VT::LcgNext(Random)*(Def.Radius*0.7f-InnerRadius);
    FVTMotion Motion; Motion.Position = FVector2D(FMath::Cos(Angle),FMath::Sin(Angle))*Radius; Motion.Heading = Angle;
    auto* NPC=SpawnShip("house_patrol",I,Motion,true,N<CivilianLimit ? FName("Guild") : N<PatrolLimit ? Def.Owner : FName("Freebooters"));
    NPC->ShipRole=N<CivilianLimit ? 1 : N<PatrolLimit ? 2 : 0; NPC->Invulnerable=Population>=0&&Synthetic;
@@ -448,6 +447,7 @@ void UVTSimulation::FixedStep() {
   else if(S->Autopilot) {uint32 Ack=S->Movement->Authority.Ack;AVTShipAI::DecideShip(S,VT::Step);S->Intent.Sequence=Ack;}
   else {if(!S->InputQueue.IsEmpty()) {S->Intent=S->InputQueue[0]; S->InputQueue.RemoveAt(0);}
    if (GetWorld()->GetRealTimeSeconds() - S->LastInputTime > 0.25) { S->Intent.Throttle=0; S->Intent.Turn=0; S->Intent.Buttons=0; } auto* Intro=UVTIntroComponent::For(S);if(!Intro||!Intro->Active())AVTShipAI::CrewStep(S);}
+  VT::FilterEquipmentIntent(S->Intent,S->Definition.Equipment);
   if(auto* Intro=UVTIntroComponent::For(S))Intro->Filter(S->Intent);
   if(S->IntroFixture&&(!S->Controller||S->IntroFixture==1))S->Intent={};
  }
@@ -458,13 +458,8 @@ void UVTSimulation::FixedStep() {
  Phase(2);
  ContactStep(); LandmarkStep();
  Phase(3);
- // Bounds follows contacts, matching the legacy simulation ordering.
- for(AVTShip* S:Ships) if(IsValid(S)&&!S->Docked&&!S->Anchored) {
-  float Length=float(S->Movement->Motion.Position.Size()), Radius=Data->Systems[S->SystemIndex].Radius;
-  if(Length>Radius) S->Movement->Motion.Velocity-=S->Movement->Motion.Position.GetSafeNormal()*((Length-Radius)*Data->Rules.BoundsSpring*VT::Step);
- }
- for (AVTShip* S : Ships) if (IsValid(S)) S->Movement->Authority=S->Movement->Motion;
- for (AVTShip* S : Ships) if (IsValid(S)) {S->Combat->WeaponsStep();S->Intent.Buttons&=~(VTButtons::Port|VTButtons::Starboard);}
+ for(AVTShip* S:Ships)if(IsValid(S))S->Movement->Authority=S->Movement->Motion;
+ for(AVTShip* S:Ships)if(IsValid(S)){S->Combat->WeaponsStep();S->Intent.Buttons&=~(VTButtons::Port|VTButtons::Starboard);}
  Phase(4);
  ProjectileStep();
  Phase(5);
@@ -519,7 +514,7 @@ void AVTGameMode::PostLogin(APlayerController* NewPlayer) {
 void AVTGameMode::RestartPlayer(AController* Player) {
  auto* Sim = GetWorld()->GetSubsystem<UVTSimulation>(); Sim->Bootstrap();
  if (!Sim->Data || Sim->Data->Systems.IsEmpty()) return;
- FVTMotion Motion; Motion.Position = FVector2D(0,-200 - GetNumPlayers()*70);
+ FVTMotion Motion; Motion.Position = FVector2D(0,(-200 - GetNumPlayers()*70)*Sim->Data->SystemDistanceScale);
  const int32 System = FMath::Max(0,Sim->Data->FindSystem(Sim->Data->StartSystem));
  auto* GI=CastChecked<UVTGameInstance>(GetGameInstance());
  if(const auto* Scenario=Sim->ActiveScenario()) {Motion.Position=Scenario->Player.Position; Motion.Heading=Scenario->Player.Heading;}
@@ -673,7 +668,7 @@ void AVTCameraManager::UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) {
  bool Active=Mouse&&!PC->UsingGamepadAim&&(FVector2D(MX,MY)-LastCursor).Size()>1; LastCursor=FVector2D(MX,MY);
  const auto& Controls=Data->Feel.controls; auto Axis=[&](double V){return FMath::Abs(V)<=Controls.deadzone ? 0. : FMath::Clamp((FMath::Abs(V)-Controls.deadzone)/(Controls.saturation-Controls.deadzone),0.,1.)*FMath::Sign(V);};
  double SX=Axis(PC->GamepadAim.X),SY=Axis(PC->GamepadAim.Y); if(PC->UsingGamepadAim) Active=SX!=0||SY!=0;
- uint16 Buttons=PC->LocalIntent.Buttons; bool Menu=(PC->UI&&PC->UI->MenuOpen)||Ship->Docked,Locked=false;
+ auto CameraIntent=PC->LocalIntent;VT::FilterEquipmentIntent(CameraIntent,Ship->Definition.Equipment);uint16 Buttons=CameraIntent.Buttons; bool Menu=(PC->UI&&(PC->UI->MenuOpen||PC->UI->FullMap))||Ship->Docked,Locked=false;
  double Yaw=OrbitYaw,Pitch=C.pitch_base,Distance=C.distance;
  auto Lead=(M.Velocity*C.lead_secs).GetClampedToMaxSize(C.lead_max); FVector DesiredFocus=ShipPosition+FVector(Lead.X,-Lead.Y,0)*100;
  if(GateView) {DesiredFocus=Focus;Pitch=OrbitPitch;Distance=OrbitDistance;Locked=true;}
@@ -736,7 +731,7 @@ void AVTPlayerState::OnRep_UIState() {VTNotifyHUD(GetWorld());}
 void AVTGameState::OnRep_UIState() {VTNotifyHUD(GetWorld());}
 void AVTController::UpdateInputContexts() {
  if(!IsLocalController()||!GetLocalPlayer()) return;
- auto* Ship=Cast<AVTShip>(GetPawn()); int32 State=UI&&UI->MenuOpen ? 1 : Ship&&Ship->Docked ? 2 : 0;
+ auto* Ship=Cast<AVTShip>(GetPawn()); int32 State=UI&&(UI->MenuOpen||UI->FullMap) ? 1 : Ship&&Ship->Docked ? 2 : 0;
  if(Ship&&AudioListenerRoot.Get()!=Ship->GetRootComponent()) {AudioListenerRoot=Ship->GetRootComponent(); SetAudioListenerOverride(Ship->GetRootComponent(),FVector::ZeroVector,FRotator::ZeroRotator);}
  if(State==InputContextState) return;
  InputContextState=State; LocalIntent=FVTPilotIntent(); GamepadAim=FVector2D::ZeroVector;
@@ -757,4 +752,5 @@ bool AVTController::RemapControl(FName MappingName,FKey NewKey) {
  Settings->AsyncSaveSettings();Sub->RequestRebuildControlMappings();VTNotifyHUD(GetWorld());return true;
 }
 
+void AVTController::ToggleFullMap(){if(UI)UI->ToggleFullMap();}
 void AVTController::ToggleHUD(bool Chart){if(UI){if(Chart)UI->ToggleChart();else UI->ToggleControls();}}

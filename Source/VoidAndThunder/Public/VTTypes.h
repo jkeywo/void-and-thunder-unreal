@@ -479,3 +479,5 @@ namespace VT {
  VOIDANDTHUNDER_API float PlayerTurnInput(float Axis);
  VOIDANDTHUNDER_API FVector ToWorld(const FVector2D& Position, int32 System);
 }
+
+namespace VT { VOIDANDTHUNDER_API void FilterEquipmentIntent(FVTPilotIntent& Intent,const FVTEquipmentDefinition& Equipment); }
