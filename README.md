@@ -157,3 +157,5 @@ visible outside your current system. At the nearest star's system boundary, thru
 and maximum speed fade linearly from 1x to 0.01x over 100 m, identically on host and
 predicted clients. Ships, weapons, stations and gate apertures retain their sizes.
 Existing schema-6 campaigns migrate their spatial positions once when loaded.
+
+Docking and frontend menus use larger native text and controls, with wrapping loadout choices. `Scripts/HUDStyle.ps1 -MenuReadability` reapplies only the menu readability settings to WBP_UI; ordinary bootstrap preserves authored packages. `Scripts/Render.ps1 -Docked` captures a docked menu for visual validation.

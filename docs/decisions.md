@@ -173,3 +173,5 @@ than PASM. This choice does not alter the original game or vellum.
 - [ai] Preserve the existing M mine binding; G opens the full-screen chart. Landmark mesh visibility is local presentation rather than replicated actor hidden state, so each captain independently sees their current system.
 
 - [ai] Preserve piloting with the compact chart; only the full-screen map removes flight input. Clicks outside the compact chart pass through to gameplay.
+
+- [ai] Docking readability: raise shared menu body/choice text from 10 to 18 points, headings to 22, and button padding to 10 vertical units in WBP_UI. Wrap equipment choices and fit summaries within the menu width so long rows cannot shrink the entire panel. Preserve HUD typography and update only the menu package through an explicit targeted commandlet option.

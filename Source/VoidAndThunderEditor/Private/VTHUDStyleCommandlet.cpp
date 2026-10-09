@@ -32,11 +32,24 @@
 namespace {
 bool SaveHUD(UObject* A){auto* P=A->GetOutermost();P->MarkPackageDirty();FSavePackageArgs Args;Args.TopLevelFlags=RF_Public|RF_Standalone;auto File=FPackageName::LongPackageNameToFilename(P->GetName(),FPackageName::GetAssetPackageExtension());IFileManager::Get().MakeDirectory(*FPaths::GetPath(File),true);return UPackage::SavePackage(P,A,*File,Args);}
 UObject* ImportHUD(const FString& File,const FString& Name){auto* Task=NewObject<UAssetImportTask>();Task->Filename=File;Task->DestinationPath=TEXT("/Game/UI/Legacy");Task->DestinationName=Name;Task->bAutomated=true;Task->bReplaceExisting=true;Task->bSave=true;FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get().ImportAssetTasks({Task});return Task->GetObjects().IsEmpty()?nullptr:Task->GetObjects()[0];}
+void ReadableMenu(UWidgetBlueprint* BP){
+ auto* Menu=BP->WidgetTree->FindWidget(TEXT("MenuPanel"));
+ TArray<UWidget*> Widgets;BP->WidgetTree->GetAllWidgets(Widgets);
+ for(auto* W:Widgets){bool InMenu=false;for(auto* P=W;P;P=P->GetParent())if(P==Menu){InMenu=true;break;}if(!InMenu)continue;
+  if(auto* T=Cast<UTextBlock>(W)){auto F=T->GetFont();F.Size=W->GetFName()==TEXT("Title")?36:W->GetFName().ToString().EndsWith(TEXT("Heading"))?22:18;F.LetterSpacing=0;T->SetFont(F);if(W->GetFName()==TEXT("StatusText")){T->SetWrapTextAt(980);T->SetAutoWrapText(true);}}
+  if(auto* B=Cast<UButton>(W)){auto Style=B->GetStyle();Style.SetNormalPadding(FMargin(16,10));Style.SetPressedPadding(FMargin(16,11,16,9));B->SetStyle(Style);}
+  if(auto* C=Cast<UComboBoxString>(W)){auto F=C->GetFont();F.Size=18;F.LetterSpacing=0;*FindFProperty<FStructProperty>(C->GetClass(),TEXT("Font"))->ContainerPtrToValuePtr<FSlateFontInfo>(C)=F;C->SetContentPadding(FMargin(12,8));}
+  if(auto* E=Cast<UEditableTextBox>(W)){auto Style=E->GetWidgetStyle();auto F=Style.TextStyle.Font;F.Size=18;Style.SetFont(F);E->SetWidgetStyle(Style);}
+  if(auto* Bounds=Cast<USizeBox>(W))if(Bounds->GetWidthOverride()>0&&Bounds->GetWidthOverride()<500)Bounds->SetWidthOverride(280);
+ }
+}
+
 }
 UVTHUDStyleCommandlet::UVTHUDStyleCommandlet(){IsEditor=true;IsClient=false;IsServer=false;LogToConsole=true;}
 int32 UVTHUDStyleCommandlet::Main(const FString& Params){
  if(!FParse::Param(*Params,TEXT("Apply"))){UE_LOG(LogTemp,Error,TEXT("Use -Apply for the explicit original HUD style upgrade."));return 1;}
  auto* BP=LoadObject<UWidgetBlueprint>(nullptr,TEXT("/Game/UI/WBP_UI.WBP_UI"));if(!BP)return 2;
+ if(FParse::Param(*Params,TEXT("MenuReadability"))){ReadableMenu(BP);FKismetEditorUtilities::CompileBlueprint(BP);return BP->Status!=BS_Error&&SaveHUD(BP)?0:8;}
  TArray<TObjectPtr<UTexture2D>> Panels;
  for(const TCHAR* Name:{TEXT("pTop"),TEXT("pStatus"),TEXT("pCoords"),TEXT("pLeft"),TEXT("pRight")}){auto* T=Cast<UTexture2D>(ImportHUD(FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()/TEXT("SourceAssets/ui")/(FString(Name)+TEXT(".png"))),Name));if(!T)return 3;T->CompressionSettings=TC_EditorIcon;T->LODGroup=TEXTUREGROUP_UI;T->MipGenSettings=TMGS_NoMipmaps;T->NeverStream=true;T->SRGB=true;T->PostEditChange();if(!SaveHUD(T))return 4;Panels.Add(T);}
  auto* Face=LoadObject<UFontFace>(nullptr,TEXT("/Game/UI/Legacy/F_HUDMono.F_HUDMono"));
@@ -68,7 +81,7 @@ int32 UVTHUDStyleCommandlet::Main(const FString& Params){
  auto* Strings=LoadObject<UStringTable>(nullptr,TEXT("/Game/UI/ST_UI.ST_UI"));if(!Strings)return 7;
  FString Json;if(!FFileHelper::LoadFileToString(Json,*(FPaths::ProjectDir()/TEXT("SourceAssets/strings/en.json"))))return 7;TSharedPtr<FJsonObject> Source;if(!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json),Source))return 7;
  for(const auto& Pair:Source->Values){FString Existing;if(Pair.Value->Type==EJson::String&&!Strings->GetStringTable()->GetSourceString(FTextKey(Pair.Key),Existing))Strings->GetMutableStringTable()->SetSourceString(FTextKey(Pair.Key),Pair.Value->AsString(),TEXT("Original HUD source"));}if(!SaveHUD(Strings))return 7;
- FKismetEditorUtilities::CompileBlueprint(BP);if(BP->Status==BS_Error)return 7;
+ ReadableMenu(BP);FKismetEditorUtilities::CompileBlueprint(BP);if(BP->Status==BS_Error)return 7;
  auto* Defaults=Cast<UVTUI>(BP->GeneratedClass->GetDefaultObject());Defaults->TextTable=Strings;Defaults->HudPanels=Panels;Defaults->HudFont=FSlateFontInfo(FontAsset,10);if(!SaveHUD(BP))return 8;
  auto* Mapping=LoadObject<UInputMappingContext>(nullptr,TEXT("/Game/Input/IMC_Flight.IMC_Flight"));if(!Mapping)return 9;
  int I=0;for(const TCHAR* Name:{TEXT("HUDControls"),TEXT("HUDChart")}){FString Path=FString(TEXT("/Game/Input/IA_"))+Name;auto* A=LoadObject<UInputAction>(nullptr,*(Path+TEXT(".IA_")+Name));if(!A){A=NewObject<UInputAction>(CreatePackage(*Path),FName(FString(TEXT("IA_"))+Name),RF_Public|RF_Standalone);FAssetRegistryModule::AssetCreated(A);}A->ValueType=EInputActionValueType::Boolean;Mapping->UnmapAllKeysFromAction(A);Mapping->MapKey(A,I==0?EKeys::Tab:EKeys::F);Mapping->MapKey(A,I==0?EKeys::Gamepad_Special_Left:EKeys::Gamepad_RightThumbstick);if(!SaveHUD(A))return 10;++I;}

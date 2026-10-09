@@ -113,6 +113,7 @@ void UVTSimulation::ValidationTick() {
   if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController())) {if(auto* Pawn=Cast<AVTShip>(Player->GetPawn()))Pawn->Invulnerable=true;if(ProbeRole==TEXT("RenderIntro")&&FParse::Param(FCommandLine::Get(),TEXT("VTIntroChoices"))&&!ProbeScaled&&Player->GetPawn()){Player->Intro->Change(EVTIntroStage::BatteryChoice);ProbeScaled=true;}}
   double Now=FPlatformTime::Seconds(), Age=GetWorld()->GetRealTimeSeconds();
   if(LastRenderFrame>0&&Age>20) RenderFrameMilliseconds.Add((Now-LastRenderFrame)*1000); LastRenderFrame=Now;
+  if(ProbeRole==TEXT("RenderDocked")&&Age>2&&!ProbeScaled)if(auto* PC=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(PC->UI)if(auto* Ship=Cast<AVTShip>(PC->GetPawn())){Ship->Docked=true;Ship->Movement->Motion.Velocity=FVector2D::ZeroVector;Ship->Movement->Motion.Position=Data->Rules.StationPosition;Ship->Movement->Authority=Ship->Movement->Motion;PC->UI->SetMenu(true);ProbeScaled=true;}
   if(ProbeRole==TEXT("RenderNavigation")&&Age>2)if(auto* PC=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(PC->UI&&PC->GetPawn()){
    if(!ProbeScaled){PC->UI->SetChart(true,true);ProbeScaled=true;}
    if(PC->UI->RouteDestination.IsNone()){
