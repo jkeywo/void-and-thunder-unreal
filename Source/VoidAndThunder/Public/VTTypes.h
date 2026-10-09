@@ -377,13 +377,15 @@ struct FVTShipDefinition {
  UPROPERTY(EditAnywhere, BlueprintReadOnly) FVTShieldBanks ShieldMax = FVTShieldBanks(0,0,0,0);
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float ShieldRegen = 7;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) float ShieldDelay = 2.5f;
- UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftObjectPtr<UStaticMesh> Mesh;
+ UPROPERTY(EditAnywhere, BlueprintReadOnly,meta=(AssetBundles="Presentation")) TSoftObjectPtr<UStaticMesh> Mesh;
 };
 UENUM(BlueprintType)
 enum class EVTLoadoutSlot : uint8 { Broadside, Battery, Special };
 USTRUCT(BlueprintType)
 struct FVTLoadoutSelection {
  GENERATED_BODY()
+ UPROPERTY(EditAnywhere,BlueprintReadWrite) bool OverrideBatteries=false;
+ UPROPERTY(EditAnywhere,BlueprintReadWrite) bool OverrideSpecials=false;
  UPROPERTY(EditAnywhere,BlueprintReadWrite) FName Broadside;
  UPROPERTY(EditAnywhere,BlueprintReadWrite) FName Battery;
  UPROPERTY(EditAnywhere,BlueprintReadWrite) FName Special;
@@ -474,5 +476,8 @@ namespace VT {
  VOIDANDTHUNDER_API bool SequenceAdvanceAllowed(uint32 Next,uint32 Last,double SecondsSinceInput);
  VOIDANDTHUNDER_API bool ValidIntent(const FVTPilotIntent& Intent);
  VOIDANDTHUNDER_API FVector ArenaOrigin(int32 System);
+ VOIDANDTHUNDER_API float PlayerTurnInput(float Axis);
  VOIDANDTHUNDER_API FVector ToWorld(const FVector2D& Position, int32 System);
 }
+
+namespace VT { VOIDANDTHUNDER_API void FilterEquipmentIntent(FVTPilotIntent& Intent,const FVTEquipmentDefinition& Equipment); }

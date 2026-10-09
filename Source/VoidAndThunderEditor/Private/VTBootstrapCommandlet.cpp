@@ -1,4 +1,5 @@
 #include "VTBootstrapCommandlet.h"
+#include "VTNativeAssets.h"
 #include "VTGameData.h"
 #include "VTGameplay.h"
 #include "Misc/FileHelper.h"
@@ -60,7 +61,18 @@ static FVTEquipmentDefinition Equipment(const TSharedPtr<FJsonObject>& Loadout) 
 }
 UVTBootstrapCommandlet::UVTBootstrapCommandlet() { IsClient=false; IsServer=false; IsEditor=true; LogToConsole=true; }
 int32 UVTBootstrapCommandlet::Main(const FString& Params) {
+ if(auto* Existing=LoadObject<UVTGameData>(nullptr,TEXT("/Game/Data/DA_GameData.DA_GameData"))) {
+  if(FParse::Param(*Params,TEXT("UpgradeNative"))) return VTSeedNativeAssets(Existing) ? 0 : 10;
+  if(!FParse::Param(*Params,TEXT("Regenerate"))) {UE_LOG(LogTemp,Display,TEXT("Authored content retained. Use -UpgradeNative for additive integration or -Regenerate for explicit baseline replacement.")); return 0;}
+ }
+
  FString Json;
+ // A missing/corrupt catalogue must not turn a partially authored checkout into a fresh seed.
+ if(!FParse::Param(*Params,TEXT("Regenerate"))) {
+  for(const TCHAR* Path:{TEXT("/Game/Data/DA_GameData"),TEXT("/Game/Maps/Sandbox"),TEXT("/Game/Maps/Menu"),TEXT("/Game/UI/WBP_UI"),TEXT("/Game/Input/IMC_Flight")}) {
+   if(FPackageName::DoesPackageExist(Path)) {UE_LOG(LogTemp,Error,TEXT("Existing authored packages require restoring the missing catalogue or explicit -Regenerate; seed refused."));return 11;}
+  }
+ }
  const FString Input=FPaths::ProjectDir()/TEXT("Migration/resolved-baseline.json");
  if(!FFileHelper::LoadFileToString(Json,*Input)) { UE_LOG(LogTemp,Error,TEXT("Missing typed migration baseline: %s"),*Input); return 1; }
  TSharedPtr<FJsonObject> Root;
@@ -338,12 +350,12 @@ int32 UVTBootstrapCommandlet::Main(const FString& Params) {
  Text(Menu,TEXT("MountHeading"),TEXT("Additional mounts (limited by hull; crew works surplus mounts)"),14); auto* MountRow=Row();MountRow->Rename(TEXT("MountRow"),Tree); for(const TCHAR* Name:{TEXT("BatterySecond"),TEXT("BatteryThird"),TEXT("SpecialSecond"),TEXT("SpecialThird")}) MountRow->AddChild(Tree->ConstructWidget<UComboBoxString>(UComboBoxString::StaticClass(),FName(Name)));
  Text(Menu,TEXT("StationHeading"),TEXT("Station services"),18);auto* StationRow=Row(); Button(StationRow,TEXT("Recover"),TEXT("Recover disabled ship")); Button(StationRow,TEXT("Repair"),TEXT("Repair hull")); Button(StationRow,TEXT("PayHeat"),TEXT("Pay off local heat")); Button(StationRow,TEXT("Refit"),TEXT("Refit at station")); Button(StationRow,TEXT("Undock"),TEXT("Undock"));
  auto* GraphicsRow=Row();Text(GraphicsRow,TEXT("GraphicsStatus"),TEXT("Graphics"),14);Button(GraphicsRow,TEXT("GraphicsLow"),TEXT("Performance"));Button(GraphicsRow,TEXT("GraphicsBalanced"),TEXT("Balanced"));Button(GraphicsRow,TEXT("GraphicsHigh"),TEXT("High"));
- auto* SessionRow=Row(); Button(SessionRow,TEXT("Resume"),TEXT("Resume")); Button(SessionRow,TEXT("Autopilot"),TEXT("AI pilot: off")); Button(SessionRow,TEXT("Save"),TEXT("Save world")); Button(SessionRow,TEXT("Leave"),TEXT("Main menu")); Button(SessionRow,TEXT("Quit"),TEXT("Quit")); Text(Menu,TEXT("Status"),TEXT(""),16);
+ auto* SessionRow=Row(); Button(SessionRow,TEXT("Resume"),TEXT("Resume")); Button(SessionRow,TEXT("Autopilot"),TEXT("AI pilot: off")); Button(SessionRow,TEXT("Save"),TEXT("Save world")); Button(SessionRow,TEXT("Leave"),TEXT("Main menu")); Button(SessionRow,TEXT("Quit"),TEXT("Quit")); Text(Menu,TEXT("StatusText"),TEXT(""),16);
  auto* HUDBorder=Tree->ConstructWidget<UBorder>();HUDBorder->SetBrushColor(FLinearColor(0.015f,0.025f,0.04f,0.8f));HUDBorder->SetPadding(FMargin(14,10));auto* HUDSlot=CastChecked<UOverlaySlot>(Overlay->AddChild(HUDBorder));HUDSlot->SetHorizontalAlignment(HAlign_Left);HUDSlot->SetVerticalAlignment(VAlign_Top);HUDSlot->SetPadding(FMargin(18));auto* HUD=Tree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),TEXT("HUDPanel"));HUDBorder->SetContent(HUD);Text(HUD,TEXT("Flight"),TEXT(""),13);
  TArray<UWidget*> AuthoredWidgets; Tree->GetAllWidgets(AuthoredWidgets); for(auto* Widget:AuthoredWidgets) Widget->bIsVariable=false;
  FKismetEditorUtilities::CompileBlueprint(BP); if(!SaveAsset(BP,TEXT("/Game/UI/WBP_UI"))) return 9;
  UE_LOG(LogTemp,Display,TEXT("Imported %d ship classes and %d systems"),Data->Ships.Num(),Data->Systems.Num());
- return Saved ? 0 : 6;
+ return Saved&&VTSeedNativeAssets(Data) ? 0 : 6;
 }
 UVTBenchmarkCommandlet::UVTBenchmarkCommandlet() { IsClient=false; IsServer=true; IsEditor=true; LogToConsole=true; }
 int32 UVTBenchmarkCommandlet::Main(const FString& Params) {

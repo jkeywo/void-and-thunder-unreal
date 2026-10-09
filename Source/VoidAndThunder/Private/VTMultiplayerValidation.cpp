@@ -1,4 +1,5 @@
 #include "VTGameplay.h"
+#include "VTCombat.h"
 #include "VTGameplayProbe.h"
 #include "EngineUtils.h"
 #include "VTSaveSubsystem.h"
@@ -12,18 +13,69 @@
 #include "UnrealClient.h"
 #include "RHI.h"
 #include "VTUI.h"
+#include "VTWorldAnchor.h"
 #include "Components/Button.h"
+#include "Components/StaticMeshComponent.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Input/Events.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
+#include "Widgets/SViewport.h"
+#include "Widgets/SWindow.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
 
+#if !UE_BUILD_SHIPPING
+void VTIntroValidationInput(AVTController* PC);
+void VTIntroValidationTick(UVTSimulation* Sim,const FString& Role);
+#endif
 void AVTController::ValidationInput(float Dt) {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Intro"))){VTIntroValidationInput(this);return;}
  if(ProbeRole.StartsWith(TEXT("Soak"))) {LocalIntent=FVTPilotIntent();LocalIntent.Throttle=0.6f;LocalIntent.Turn=0.15f;return;}
  if(ProbeRole.StartsWith(TEXT("Gameplay"))) {for(TActorIterator<AVTGameplayProbe> It(GetWorld());It;++It){It->DriveLocal(this);break;}return;}
- if(ProbeRole.StartsWith(TEXT("Render"))) return;
+ if(ProbeRole==TEXT("RenderGate")){LocalIntent=FVTPilotIntent();if(auto* Ship=Cast<AVTShip>(GetPawn()))if(Ship->SystemIndex==0&&GetWorld()->GetRealTimeSeconds()>2)LocalIntent.Buttons=VTButtons::Interact;return;}
+ if(ProbeRole.StartsWith(TEXT("Render"))) {
+  if(FParse::Param(FCommandLine::Get(),TEXT("VTThrottleProbe"))&&GetPawn()) {
+   const double Age=GetWorld()->GetRealTimeSeconds();
+   const float Before[]={0.5f,0.f,0.f,0.f,0.5f,0.5f,1.f,1.f,0.5f,0.5f,0.f,0.f,-1.f,-1.f,-1.f};
+   const bool Down[]={true,true,false,true,false,true,false,true,false,true,false,true,false,true,false};
+   const FKey Keys[]={EKeys::S,EKeys::S,EKeys::S,EKeys::W,EKeys::W,EKeys::W,EKeys::W,EKeys::S,EKeys::S,EKeys::S,EKeys::S,EKeys::S,EKeys::S,EKeys::S,EKeys::S};
+   if(ThrottleProbeStage<UE_ARRAY_COUNT(Before)&&Age>3+ThrottleProbeStage*0.6) {
+    ThrottleProbePassed&=FMath::IsNearlyEqual(LocalIntent.Throttle,Before[ThrottleProbeStage]);
+    FKeyEvent Event(Keys[ThrottleProbeStage],FModifierKeysState(),0,ThrottleProbeStage==1,0,0);
+    if(Down[ThrottleProbeStage])FSlateApplication::Get().ProcessKeyDownEvent(Event);else FSlateApplication::Get().ProcessKeyUpEvent(Event);
+    ++ThrottleProbeStage;
+   }
+  }
+  if(FParse::Param(FCommandLine::Get(),TEXT("VTFlightProbe"))&&GEngine&&GEngine->GameViewport){auto* Ship=Cast<AVTShip>(GetPawn());const double Age=GetWorld()->GetRealTimeSeconds();auto View=GEngine->GameViewport->GetGameViewportWidget();auto Window=GEngine->GameViewport->GetWindow();if(Ship&&View.IsValid()&&Window.IsValid()){
+   const auto& Geometry=View->GetCachedGeometry();const auto Point=Geometry.LocalToAbsolute(Geometry.GetLocalSize()*FVector2D(0.7,0.35));auto Mouse=[&](bool Down){TSet<FKey> Keys;if(Down)Keys.Add(EKeys::LeftMouseButton);FPointerEvent Event(0,Point,Point,Keys,EKeys::LeftMouseButton,0,FModifierKeysState());if(Down)FSlateApplication::Get().ProcessMouseButtonDownEvent(Window->GetNativeWindow(),Event);else FSlateApplication::Get().ProcessMouseButtonUpEvent(Event);};
+   if(FlightProbeStage==0&&Age>20){FlightProbeOrigin=Ship->Movement->Motion.Position;FSlateApplication::Get().SetCursorPos(Point);FSlateApplication::Get().ProcessKeyDownEvent(FKeyEvent(EKeys::LeftShift,FModifierKeysState(),0,false,0,0));FlightProbeStage=1;}
+   else if(FlightProbeStage==1&&Age>20.5){FlightProbeHeld=(LocalIntent.Buttons&VTButtons::Warp)&&Ship->Definition.Equipment.Warp&&!Ship->Definition.Equipment.EMP;Mouse(true);FlightProbeStage=2;}
+   else if(FlightProbeStage==2&&Age>21){FlightProbeHeld&=(LocalIntent.Buttons&(VTButtons::AimPort|VTButtons::Port))==0;Mouse(false);FSlateApplication::Get().ProcessKeyUpEvent(FKeyEvent(EKeys::LeftShift,FModifierKeysState(),0,false,0,0));FlightProbeStage=3;}
+   else if(FlightProbeStage==3&&Age>22){FlightProbePassed=FlightProbeHeld&&Ship->Combat->EquipmentState.WarpCooldown>0&&(Ship->Movement->Motion.Position-FlightProbeOrigin).Size()>1&&Ship->PortReload==0&&Ship->Combat->PortCharge==0;FlightProbeStage=4;}
+  }}
+  if(FParse::Param(FCommandLine::Get(),TEXT("VTInteractionProbe"))) {
+   const double Age=GetWorld()->GetRealTimeSeconds();auto* Ship=Cast<AVTShip>(GetPawn());auto* PS=GetPlayerState<AVTPlayerState>();auto* Sim=GetWorld()->GetSubsystem<UVTSimulation>();
+   if(Ship&&PS&&InteractionProbeStage==0&&Age>24){auto* Sub=GetLocalPlayer()?ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()):nullptr;if(Sub)for(const UInputAction* Action:Actions)if(Action&&Action->GetFName()==FName(TEXT("IA_Interact")))for(const auto& Key:Sub->QueryKeysMappedToAction(Action))if(!Key.IsGamepadKey()){InteractionProbeKey=Key;break;}InteractionProbePrompt=VTInteractionHint(Ship,Sim).Kind==EVTInteractionHint::Loot;InteractionProbeBoarded=PS->Boarded;FSlateApplication::Get().ProcessKeyDownEvent(FKeyEvent(InteractionProbeKey,FModifierKeysState(),0,false,0,0));InteractionProbeStage=1;}
+   else if(Ship&&PS&&InteractionProbeStage==1&&Age>25.5){auto Hint=VTInteractionHint(Ship,Sim);InteractionProbePrompt&=Hint.Kind==EVTInteractionHint::Loot&&Hint.Progress>0;InteractionProbeStage=2;}
+   else if(Ship&&PS&&InteractionProbeStage==2&&Age>28.5){InteractionProbeLooted=PS->Boarded==InteractionProbeBoarded+1&&VTInteractionHint(Ship,Sim).Kind!=EVTInteractionHint::Loot;FSlateApplication::Get().ProcessKeyUpEvent(FKeyEvent(InteractionProbeKey,FModifierKeysState(),0,false,0,0));InteractionProbeStage=3;}
+  }
+  if(FParse::Param(FCommandLine::Get(),TEXT("VTBroadsideProbe"))&&GEngine&&GEngine->GameViewport) {
+   auto* Ship=Cast<AVTShip>(GetPawn());auto View=GEngine->GameViewport->GetGameViewportWidget();auto Window=GEngine->GameViewport->GetWindow();
+   if(Ship&&View.IsValid()&&Window.IsValid()) {
+    const double Age=GetWorld()->GetRealTimeSeconds();const auto& Geometry=View->GetCachedGeometry();const FVector2D Point=Geometry.LocalToAbsolute(Geometry.GetLocalSize()*0.5);
+    auto Mouse=[&](bool Down){TSet<FKey> Keys;if(Down)Keys.Add(EKeys::LeftMouseButton);FPointerEvent Event(0,Point,Point,Keys,EKeys::LeftMouseButton,0,FModifierKeysState());if(Down)FSlateApplication::Get().ProcessMouseButtonDownEvent(Window->GetNativeWindow(),Event);else FSlateApplication::Get().ProcessMouseButtonUpEvent(Event);};
+    if(BroadsideProbeStage==0&&Age>20){BroadsideProbeHeld=GEngine->GameViewport->GetMouseCaptureMode()==EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown;Mouse(true);BroadsideProbeStage=1;}
+    else if(BroadsideProbeStage==1&&Age>20.4){BroadsideProbeHeld&=(LocalIntent.Buttons&VTButtons::AimPort)!=0&&(LocalIntent.Buttons&VTButtons::Port)==0;Mouse(false);BroadsideProbeStage=2;}
+    else if(BroadsideProbeStage==2&&Age>20.8){BroadsideProbePassed=BroadsideProbeHeld&&(LocalIntent.Buttons&VTButtons::AimPort)==0&&(Ship->PortReload>0||Ship->Combat->PortCharge>0);BroadsideProbeStage=3;}
+    else if(BroadsideProbeStage==3&&Age>23){Mouse(true);BroadsideProbeStage=4;}
+    else if(BroadsideProbeStage==4&&Age>27){Mouse(false);BroadsideProbeStage=5;}
+   }
+  }
+  return;
+ }
  LocalIntent.Throttle=0.8f; LocalIntent.Turn=0.2f;
  FString Destination;
  if(GetWorld()->GetRealTimeSeconds()>4 && !ProbeJumped && FParse::Value(FCommandLine::Get(),TEXT("VTProbeSystem="),Destination)) {
@@ -34,6 +86,7 @@ void AVTController::ValidationInput(float Dt) {
 void UVTSimulation::ValidationTick() {
 #if !UE_BUILD_SHIPPING
  FString ProbeRole; if(!FParse::Value(FCommandLine::Get(),TEXT("VTProbe="),ProbeRole)) return;
+ if(ProbeRole.StartsWith(TEXT("Intro"))){VTIntroValidationTick(this,ProbeRole);return;}
  if(ProbeRole.StartsWith(TEXT("Soak"))) {SoakTick(ProbeRole);return;}
  if(ProbeRole.StartsWith(TEXT("Gameplay"))) {
   AVTGameplayProbe* Fixture=nullptr;for(TActorIterator<AVTGameplayProbe> It(GetWorld());It;++It){Fixture=*It;break;}
@@ -54,19 +107,52 @@ void UVTSimulation::ValidationTick() {
   }
   return;
  }
+
  if(ProbeRole.StartsWith(TEXT("Render"))) {
-  if(auto* Player=GetWorld()->GetFirstPlayerController()) if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) Pawn->Invulnerable=true;
+
+  if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController())) {if(auto* Pawn=Cast<AVTShip>(Player->GetPawn()))Pawn->Invulnerable=true;if(ProbeRole==TEXT("RenderIntro")&&FParse::Param(FCommandLine::Get(),TEXT("VTIntroChoices"))&&!ProbeScaled&&Player->GetPawn()){Player->Intro->Change(EVTIntroStage::BatteryChoice);ProbeScaled=true;}}
   double Now=FPlatformTime::Seconds(), Age=GetWorld()->GetRealTimeSeconds();
   if(LastRenderFrame>0&&Age>20) RenderFrameMilliseconds.Add((Now-LastRenderFrame)*1000); LastRenderFrame=Now;
+  if(ProbeRole==TEXT("RenderDocked")&&Age>2&&!ProbeScaled)if(auto* PC=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(PC->UI)if(auto* Ship=Cast<AVTShip>(PC->GetPawn())){Ship->Docked=true;Ship->Movement->Motion.Velocity=FVector2D::ZeroVector;Ship->Movement->Motion.Position=Data->Rules.StationPosition;Ship->Movement->Authority=Ship->Movement->Motion;PC->UI->SetMenu(true);ProbeScaled=true;}
+  if(ProbeRole==TEXT("RenderNavigation")&&Age>2)if(auto* PC=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(PC->UI&&PC->GetPawn()){
+   if(!ProbeScaled){PC->UI->SetChart(true,true);ProbeScaled=true;}
+   if(PC->UI->RouteDestination.IsNone()){
+    const auto Geometry=PC->UI->GetCachedGeometry();int Destination=0;if(auto* S=Cast<AVTShip>(PC->GetPawn()))if(S->SystemIndex==0)Destination=1;
+    auto Local=PC->UI->ChartPoint(Destination,Geometry.GetLocalSize());auto Screen=Geometry.LocalToAbsolute(Local);TSet<FKey> Keys;Keys.Add(EKeys::LeftMouseButton);
+    FPointerEvent Click(0,Screen,Screen,Keys,EKeys::LeftMouseButton,0,FModifierKeysState());PC->UI->NativeOnMouseButtonDown(Geometry,Click);
+    if(PC->UI->RouteDestination!=Data->Systems[Destination].Id){FPlatformMisc::RequestExitWithStatus(false,1);return;}
+   }
+   if(Age>4)if(auto* Ship=Cast<AVTShip>(PC->GetPawn()))for(TActorIterator<AVTWorldAnchor> It(GetWorld());It;++It)if(It->System!=Ship->SystemIndex){const bool Expected=It->Kind==0&&!UVTIntroComponent::IsArena(this,It->System);if(It->Mesh->IsVisible()!=Expected){FPlatformMisc::RequestExitWithStatus(false,1);return;}}
+   if(Age>5&&FParse::Param(FCommandLine::Get(),TEXT("VTWaypoint")))PC->UI->SetChart(false,false);
+  }
   if(ProbeRole==TEXT("Render")&&!ProbeScaled&&Age>1) {ConfigurePopulationFixture(500,FParse::Param(FCommandLine::Get(),TEXT("Busy")),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); if(FParse::Param(FCommandLine::Get(),TEXT("Busy"))) if(auto* Player=GetWorld()->GetFirstPlayerController()) if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) {Pawn->SystemIndex=0; Pawn->Movement->Motion.Position=FVector2D(0,-500); Pawn->Movement->Previous=Pawn->Movement->Motion; Pawn->Movement->Authority=Pawn->Movement->Motion;} ProbeScaled=true;}
-  if(ProbeRole==TEXT("RenderMenu")&&Age>22&&!UIProbeStarted){UIProbeStarted=true;if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(Player->UI)if(auto* Create=Player->UI->GetWidgetFromName(TEXT("Create"))){UIInitialFocus=Create->HasUserFocus(Player);FSlateApplication::Get().ProcessKeyDownEvent(FKeyEvent(EKeys::Gamepad_DPad_Right,FModifierKeysState(),0,false,0,0));}}
-  if(ProbeRole==TEXT("RenderMenu")&&Age>22.5&&!UIProbeFinished){UIProbeFinished=true;if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(Player->UI)if(auto* Continue=Player->UI->GetWidgetFromName(TEXT("Continue")))UINavigationPassed=UIInitialFocus&&Continue->HasUserFocus(Player);}
-  if(!ScreenshotRequested&&Age>25) {ScreenshotRequested=true; FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".png"),true,false);}
+  if(ProbeRole==TEXT("RenderEnvironment")&&!ProbeScaled&&Age>1) {if(auto* Player=GetWorld()->GetFirstPlayerController())if(auto* Pawn=Cast<AVTShip>(Player->GetPawn())) {Pawn->SystemIndex=0;Pawn->Movement->Motion=FVTMotion();Pawn->Movement->Motion.Position=FVector2D(-600,0);Pawn->Movement->Previous=Pawn->Movement->Motion;Pawn->Movement->Authority=Pawn->Movement->Motion;Pawn->Anchored=true;if(FParse::Param(FCommandLine::Get(),TEXT("VTFlightProbe"))){FVTLoadoutSelection Fit;Fit.OverrideBatteries=Fit.OverrideSpecials=true;Fit.Batteries={FName("loadout.boost")};Fit.Specials={FName("loadout.microwarp")};Pawn->ApplyFit(Fit,true);const auto Link=Data->Systems[0].Links[0];const auto Centre=JumpPosition(0,Link),Axis=Centre.GetSafeNormal();Pawn->Movement->Motion.Position=Centre-Axis*100;Pawn->Movement->Motion.Heading=FMath::Atan2(Axis.Y,Axis.X);Pawn->Movement->Previous=Pawn->Movement->Motion;Pawn->Movement->Authority=Pawn->Movement->Motion;auto* Shot=Pawn->Combat->SpawnDeviceProjectile(EVTProjectileKind::Torpedo,Centre+FVector2D(-Axis.Y,Axis.X)*40,FVector2D::ZeroVector,1,100,12);Shot->TargetId=Pawn->PersistentId;Shot->Position=Centre+FVector2D(-Axis.Y,Axis.X)*40;Shot->Height=30;Shot->Remaining=100;}
+if(FParse::Param(FCommandLine::Get(),TEXT("VTInteractionProbe"))){Bootstrap(0);FVTMotion M;M.Position=Pawn->Movement->Motion.Position+FVector2D(0,-65);auto* Prize=SpawnShip(TEXT("house_patrol"),Pawn->SystemIndex,M,true,Pawn->Faction);Prize->Disabled=true;Prize->Anchored=true;Prize->Invulnerable=false;}}ProbeScaled=true;}
+  if(ProbeRole==TEXT("RenderGateMarker"))if(auto* PC=GetWorld()->GetFirstPlayerController())if(auto* Pawn=Cast<AVTShip>(PC->GetPawn())) {
+   const auto Centre=JumpPosition(0,Data->Systems[0].Links[0]),Axis=Centre.GetSafeNormal();
+   if(!ProbeScaled&&Age>1){Pawn->SystemIndex=0;Pawn->Anchored=true;Pawn->Movement->Motion=FVTMotion();Pawn->Movement->Motion.Position=Centre-Axis*(Data->GateStartDistance()+40)+FVector2D(-Axis.Y,Axis.X)*60;Pawn->Movement->Motion.Heading=FMath::Atan2(Axis.Y,Axis.X);Pawn->Movement->Previous=Pawn->Movement->Authority=Pawn->Movement->Motion;ProbeScaled=true;}
+   for(TActorIterator<AVTWorldAnchor> It(GetWorld());It;++It)if(It->System==0&&It->Destination==Data->Systems[0].Links[0]&&It->GateStartArrow->IsVisible()) {
+    const auto Start=VT::ToWorld(Centre-Axis*Data->GateStartDistance(),0)+FVector(0,0,-100);
+    GateMarkerSeen|=It->GateStartArrow->GetComponentLocation().Equals(Start,1)&&It->GateStartArrow->GetStaticMesh()!=nullptr;
+    GateMarkerAnimated|=It->GatePreviewArrow->IsVisible()&&(It->GatePreviewArrow->GetComponentLocation()-Start).Size()>2000;
+   }
+  }
+  if(ProbeRole==TEXT("RenderGate"))if(auto* PC=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(auto* Pawn=Cast<AVTShip>(PC->GetPawn())){
+   if(!ProbeScaled&&Age>1){const auto Link=Data->Systems[0].Links[0];const auto Centre=JumpPosition(0,Link);Pawn->SystemIndex=0;Pawn->Anchored=false;Pawn->Movement->Motion=FVTMotion();Pawn->Movement->Motion.Position=Centre-Centre.GetSafeNormal()*Data->GateStartDistance();Pawn->Movement->Motion.Heading=FMath::Atan2(Centre.Y,Centre.X);Pawn->Movement->Motion.SimulationTime=SimulationTime;Pawn->Movement->Previous=Pawn->Movement->Authority=Pawn->Movement->Motion;FVTSavedShip GateRecord;GateRecord.JumpDestination=Link;GateRecord.JumpProgress=Data->Rules.JumpDwell;Pawn->GatePassage->Restore(GateRecord,SimulationTime);ProbeScaled=true;}
+   if(auto* Camera=Cast<AVTCameraManager>(PC->PlayerCameraManager)) {
+    if(Pawn->GatePassage->Departing()&&Camera->GateDepartureFocus){const auto Start=JumpPosition(0,Data->Systems[0].Links[0]);GateCameraDepartureSeen|=Camera->Focus.Equals(VT::ToWorld(Start-Start.GetSafeNormal()*Data->GateStartDistance(),0),200);}
+    if(Pawn->GatePassage->Arriving())GateCameraArrivalSeen|=Camera->Focus.Equals(VT::ToWorld(Pawn->GatePassage->Status().ArrivalTarget,Pawn->SystemIndex),1);
+   }
+   if(Pawn->SystemIndex!=0){GateBrakingSeen|=Pawn->GatePassage->Arriving();if(!Pawn->GatePassage->Arriving()&&GateBrakingSeen)GateArrivalPassed|=Pawn->Movement->Motion.Position.Equals(Pawn->GatePassage->Status().ArrivalTarget,0.05)&&Pawn->Movement->Motion.Velocity.Size()<1;if(PC->PlayerCameraManager&&PC->PlayerCameraManager->FadeAmount>0.9f&&PC->PlayerCameraManager->FadeColor.Equals(FLinearColor::White)){GateFlashSeen=true;if(!ScreenshotRequested){ScreenshotRequested=true;FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/TEXT("Validation/RenderGate.png"),true,false);}}}
+  }
+  if(ProbeRole==TEXT("RenderMenu")&&Age>22&&!UIProbeStarted){UIProbeStarted=true;if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(Player->UI)if(auto* Create=Player->UI->GetWidgetFromName(TEXT("Skirmish"))){UIInitialFocus=Create->HasUserFocus(Player);FSlateApplication::Get().ProcessKeyDownEvent(FKeyEvent(EKeys::Gamepad_DPad_Right,FModifierKeysState(),0,false,0,0));}}
+  if(ProbeRole==TEXT("RenderMenu")&&Age>22.5&&!UIProbeFinished){UIProbeFinished=true;if(auto* Player=Cast<AVTController>(GetWorld()->GetFirstPlayerController()))if(Player->UI)if(auto* Continue=Player->UI->GetWidgetFromName(TEXT("Range")))UINavigationPassed=UIInitialFocus&&Continue->HasUserFocus(Player);}
+  if((ProbeRole!=TEXT("RenderGateMarker")||GateMarkerAnimated)&&ProbeRole!=TEXT("RenderGate")&&!ScreenshotRequested&&Age>(FParse::Param(FCommandLine::Get(),TEXT("VTFlightProbe"))?19:25)) {ScreenshotRequested=true; FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".png"),true,false);}
   if(!ProbeWrote&&Age>35&&!RenderFrameMilliseconds.IsEmpty()) {
    ProbeWrote=true; auto Samples=RenderFrameMilliseconds; Samples.Sort(); double P95=Samples[FMath::FloorToInt(Samples.Num()*0.95)]; double Total=0; for(double Ms:Samples) Total+=Ms;
    FString Report=FString::Printf(TEXT("{\"frames\":%d,\"p95_frame_ms\":%.6f,\"mean_fps\":%.3f,\"width\":1920,\"height\":1080,\"population\":%d,\"gpu\":\"%s\",\"passed\":%s}"),Samples.Num(),P95,Samples.Num()*1000/Total,Ships.Num(),*GRHIAdapterName,P95<=1000./60 ? TEXT("true") : TEXT("false"));
    TSharedPtr<FJsonObject> Parsed; FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Report),Parsed); if(GEngine&&GEngine->GameViewport&&GEngine->GameViewport->Viewport){auto Size=GEngine->GameViewport->Viewport->GetSizeXY();Parsed->SetNumberField(TEXT("width"),Size.X);Parsed->SetNumberField(TEXT("height"),Size.Y);}
-   Parsed->SetBoolField(TEXT("initial_menu_focus"),UIInitialFocus);Parsed->SetBoolField(TEXT("controller_menu_navigation"),UINavigationPassed);const bool Passed=P95<=1000./60&&(ProbeRole!=TEXT("RenderMenu")||UINavigationPassed);Parsed->SetBoolField(TEXT("passed"),Passed);Parsed->SetNumberField(TEXT("simulation_time"),SimulationTime); Parsed->SetBoolField(TEXT("busy"),FParse::Param(FCommandLine::Get(),TEXT("Busy"))); Parsed->SetBoolField(TEXT("armed"),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); auto Times=StepMilliseconds; if(!Times.IsEmpty()) {Times.Sort(); Parsed->SetNumberField(TEXT("p95_simulation_ms"),Times[FMath::FloorToInt(Times.Num()*0.95)]);} FJsonSerializer::Serialize(Parsed.ToSharedRef(),TJsonWriterFactory<>::Create(&Report)); FFileHelper::SaveStringToFile(Report,*(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".json"))); FPlatformMisc::RequestExitWithStatus(false,Passed ? 0 : 1);
+   Parsed->SetBoolField(TEXT("initial_menu_focus"),UIInitialFocus);Parsed->SetBoolField(TEXT("controller_menu_navigation"),UINavigationPassed);const auto* Captain=Cast<AVTController>(GetWorld()->GetFirstPlayerController());const bool MousePassed=!FParse::Param(FCommandLine::Get(),TEXT("VTBroadsideProbe"))||(Captain&&Captain->BroadsideProbePassed);Parsed->SetBoolField(TEXT("broadside_first_press_release"),MousePassed);const bool InteractionPassed=!FParse::Param(FCommandLine::Get(),TEXT("VTInteractionProbe"))||(Captain&&Captain->InteractionProbePrompt&&Captain->InteractionProbeLooted);Parsed->SetBoolField(TEXT("interaction_prompt_and_loot"),InteractionPassed);const bool FlightPassed=!FParse::Param(FCommandLine::Get(),TEXT("VTFlightProbe"))||(Captain&&Captain->FlightProbePassed);Parsed->SetBoolField(TEXT("mapped_warp_release_and_exclusive_aim"),FlightPassed);bool TorpedoVisualPassed=true;if(ProbeRole==TEXT("RenderEnvironment")&&FParse::Param(FCommandLine::Get(),TEXT("VTFlightProbe"))){TorpedoVisualPassed=false;for(AVTProjectile* Shot:Projectiles)if(IsValid(Shot)&&Shot->Kind==EVTProjectileKind::Torpedo){auto* Mesh=Cast<UStaticMeshComponent>(Shot->GetRootComponent());TorpedoVisualPassed=Mesh&&Mesh->GetRelativeScale3D().Equals(FVector(2*Data->ProjectileVisualRadius),0.001)&&Mesh->GetMaterial(0)==Data->ProjectileMaterial.Get()&&FMath::IsNearlyEqual(Data->ProjectileVisualRadius,7.f);if(TorpedoVisualPassed)break;}}Parsed->SetBoolField(TEXT("equipment_torpedo_original_visuals"),TorpedoVisualPassed);const bool GateCameraPassed=ProbeRole!=TEXT("RenderGate")||(GateCameraDepartureSeen&&GateCameraArrivalSeen);Parsed->SetBoolField(TEXT("gate_camera_departure_and_arrival_focus"),GateCameraPassed);const bool GatePassed=ProbeRole!=TEXT("RenderGate")||(GateCameraPassed&&GateFlashSeen&&GateBrakingSeen&&GateArrivalPassed);Parsed->SetBoolField(TEXT("gate_white_flash_and_arrival"),GatePassed);const bool ThrottlePassed=!FParse::Param(FCommandLine::Get(),TEXT("VTThrottleProbe"))||(Captain&&Captain->ThrottleProbePassed&&Captain->ThrottleProbeStage==15&&FMath::IsNearlyEqual(Captain->LocalIntent.Throttle,-1.f));Parsed->SetBoolField(TEXT("tap_throttle_hold_release_and_repeat"),ThrottlePassed);const bool MarkerPassed=ProbeRole!=TEXT("RenderGateMarker")||(GateMarkerSeen&&GateMarkerAnimated);Parsed->SetBoolField(TEXT("gate_start_arrow_and_animation"),MarkerPassed);const bool Passed=MarkerPassed&&ThrottlePassed&&GatePassed&&TorpedoVisualPassed&&FlightPassed&&P95<=1000./60&&(ProbeRole!=TEXT("RenderMenu")||UINavigationPassed)&&MousePassed&&InteractionPassed;Parsed->SetBoolField(TEXT("passed"),Passed);Parsed->SetNumberField(TEXT("simulation_time"),SimulationTime); Parsed->SetBoolField(TEXT("busy"),FParse::Param(FCommandLine::Get(),TEXT("Busy"))); Parsed->SetBoolField(TEXT("armed"),FParse::Param(FCommandLine::Get(),TEXT("Armed"))); auto Times=StepMilliseconds; if(!Times.IsEmpty()) {Times.Sort(); Parsed->SetNumberField(TEXT("p95_simulation_ms"),Times[FMath::FloorToInt(Times.Num()*0.95)]);} FJsonSerializer::Serialize(Parsed.ToSharedRef(),TJsonWriterFactory<>::Create(&Report)); FFileHelper::SaveStringToFile(Report,*(FPaths::ProjectSavedDir()/TEXT("Validation/")+ProbeRole+TEXT(".json"))); FPlatformMisc::RequestExitWithStatus(false,Passed ? 0 : 1);
   }
   return;
  }

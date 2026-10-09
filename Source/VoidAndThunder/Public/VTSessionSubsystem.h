@@ -3,10 +3,13 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSessionSettings.h"
 #include "VTSessionSubsystem.generated.h"
+DECLARE_MULTICAST_DELEGATE(FVTSessionChanged);
 UCLASS()
 class VOIDANDTHUNDER_API UVTSessionSubsystem : public UGameInstanceSubsystem {
  GENERATED_BODY()
 public:
+ FVTSessionChanged OnChanged;
+ void SetStatus(const FString& Value) {Status=Value; OnChanged.Broadcast();}
  IOnlineSessionPtr Sessions;
  TSharedPtr<FOnlineSessionSearch> Search;
  FDelegateHandle CreateHandle,FindHandle,JoinHandle;

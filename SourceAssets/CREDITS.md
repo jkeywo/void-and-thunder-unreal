@@ -30,3 +30,7 @@ Authored for the sibling project *project-phoenix-v2* (same author); reused here
 Authored for *project-phoenix-v2* (same author); ported to V&T's Z-up camera.
 
 Native WAV files are offline renders of the MIT-licensed source synthesizers in vt_client/src/audio.rs. Niagara burst content derives from the installed Unreal Engine Niagara DirectionalBurst and FountainLightweight templates; Epic-provided content retains its Unreal Engine license.
+
+Original HUD metal/CRT artwork: exported from the MIT-licensed `vt_client/assets/ui/hud.html`; see `ui/SOURCE.md`. The native composite font packages Droid Sans Mono from the installed Unreal Engine font distribution (Android Open Source Project font); its original third-party license applies.
+
+Intro portraits: original AI-generated art created for this project on 2026-10-09 using image_gen. Source images and generation prompts are preserved in `ArtSource/Intro/README.md`. The engineer and enemy captain are role labels, not additions to the vendored setting.

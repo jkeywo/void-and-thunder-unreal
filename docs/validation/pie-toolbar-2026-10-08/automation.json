@@ -1,0 +1,834 @@
+﻿{
+	"devices": [
+		{
+			"deviceName": "NUMBER10",
+			"instance": "195E47B945553410BE00CFB364418B0E",
+			"instanceName": "NUMBER10-109348",
+			"platform": "WindowsEditor",
+			"oSVersion": "Windows 11 (25H2) [10.0.26200.9457] ",
+			"model": "Default",
+			"gPU": "Intel(R) Graphics",
+			"cPUModel": "Intel(R) Core(TM) Ultra 9 275HX",
+			"rAMInGB": 64,
+			"renderMode": "SM6",
+			"rHI": "",
+			"appInstanceLog": ""
+		}
+	],
+	"reportCreatedOn": "2026.10.08-12.27.23",
+	"succeeded": 22,
+	"succeededWithWarnings": 13,
+	"failed": 0,
+	"notRun": 0,
+	"inProcess": 0,
+	"totalDuration": 2.9040193557739258,
+	"comparisonExported": false,
+	"comparisonExportDirectory": "",
+	"tests": [
+		{
+			"testDisplayName": "LegacyBehaviorExpectations",
+			"fullTestPath": "VT.AI.LegacyBehaviorExpectations",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.1828027069568634,
+			"dateTime": "2026.10.08-12.27.19",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "NearestContactAndVolleyPriority",
+			"fullTestPath": "VT.AI.NearestContactAndVolleyPriority",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.062982305884361267,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "PlayerPilotAuthorityAndTransitions",
+			"fullTestPath": "VT.AI.PlayerPilotAuthorityAndTransitions",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.035411901772022247,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ArcAndSweptContact",
+			"fullTestPath": "VT.Combat.ArcAndSweptContact",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.013905700296163559,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "AuthoritativeVolley",
+			"fullTestPath": "VT.Combat.AuthoritativeVolley",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.033787600696086884,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Info",
+						"message": "Native asset shield 22.500 count 5",
+						"context": "",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.20"
+				},
+				{
+					"event":
+					{
+						"type": "Info",
+						"message": "Target hull 36.500 shields 0.000 22.500 max 22.500 heading -1.571 damage 12.000",
+						"context": "",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.20"
+				}
+			],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "DirectionalShields",
+			"fullTestPath": "VT.Combat.DirectionalShields",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.014215901494026184,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "EquipmentLifecycle",
+			"fullTestPath": "VT.Combat.EquipmentLifecycle",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.032845202833414078,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "Sandbox",
+			"fullTestPath": "VT.Editor.PlaySelectedMode.Sandbox",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.39129328727722168,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation-PIE-0.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.20"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "Skirmish",
+			"fullTestPath": "VT.Editor.PlaySelectedMode.Skirmish",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.20678800344467163,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation-PIE-0.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.20"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "Test Range",
+			"fullTestPath": "VT.Editor.PlaySelectedMode.Test Range",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.20281100273132324,
+			"dateTime": "2026.10.08-12.27.20",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation-PIE-0.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "PIESelections",
+			"fullTestPath": "VT.Editor.PIESelections",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.017488699406385422,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "AnisotropicDragAndClamp",
+			"fullTestPath": "VT.Flight.AnisotropicDragAndClamp",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.012856196612119675,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ThrustAndReverse",
+			"fullTestPath": "VT.Flight.ThrustAndReverse",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016665298491716385,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "BroadsideAimReleaseAndCancel",
+			"fullTestPath": "VT.Input.BroadsideAimReleaseAndCancel",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.025497499853372574,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LegacySpawnJitter",
+			"fullTestPath": "VT.Migration.LegacySpawnJitter",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016448497772216797,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "AsyncSaveRecovery",
+			"fullTestPath": "VT.Native.AsyncSaveRecovery",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.037843797355890274,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				},
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/NativeAsync-83D941D84BA3ADFAF6ACC1ACCAEF7A96.vts' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				},
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/NativeAsync-83D941D84BA3ADFAF6ACC1ACCAEF7A96-blocked.vts' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 3,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "BroadsideHoldRelease",
+			"fullTestPath": "VT.Native.BroadsideHoldRelease",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.02794400230050087,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ContextInteractionHints",
+			"fullTestPath": "VT.Native.ContextInteractionHints",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.036660399287939072,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "FixedStepGASLifecycle",
+			"fullTestPath": "VT.Native.FixedStepGASLifecycle",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.028662700206041336,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "FlightPlayability",
+			"fullTestPath": "VT.Native.FlightPlayability",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.029228299856185913,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LocalizedSelectionIdentity",
+			"fullTestPath": "VT.Native.LocalizedSelectionIdentity",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016594801098108292,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "OriginalHUDAssets",
+			"fullTestPath": "VT.Native.OriginalHUDAssets",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016760800033807755,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "PersistentBroadsideIntent",
+			"fullTestPath": "VT.Native.PersistentBroadsideIntent",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.029091499745845795,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "RadialGridNearestStar",
+			"fullTestPath": "VT.Native.RadialGridNearestStar",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016536600887775421,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "RejectDirectAbilityRPC",
+			"fullTestPath": "VT.Native.RejectDirectAbilityRPC",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.028758298605680466,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 1,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "IdentityReconnectAndRecovery",
+			"fullTestPath": "VT.Network.IdentityReconnectAndRecovery",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.041557502001523972,
+			"dateTime": "2026.10.08-12.27.21",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				},
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/AutomationIdentity-D9A7A58C4F54A1EA28A147BB40FADAA0.vts' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.21"
+				}
+			],
+			"warnings": 2,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "RejectInvalidIntent",
+			"fullTestPath": "VT.Network.RejectInvalidIntent",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016248099505901337,
+			"dateTime": "2026.10.08-12.27.22",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LegacyAIActionChoices",
+			"fullTestPath": "VT.Parity.LegacyAIActionChoices",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 1.1175678968429565,
+			"dateTime": "2026.10.08-12.27.22",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LegacyBroadsideBearings",
+			"fullTestPath": "VT.Parity.LegacyBroadsideBearings",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.0165724977850914,
+			"dateTime": "2026.10.08-12.27.23",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Info",
+						"message": "Golden beam max error 0.000000267",
+						"context": "",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.23"
+				}
+			],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LegacyFlightTrajectories",
+			"fullTestPath": "VT.Parity.LegacyFlightTrajectories",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016628500074148178,
+			"dateTime": "2026.10.08-12.27.23",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Info",
+						"message": "Golden trajectory maxima: position 0.00230217, velocity 0.00073933, heading 0.00000608, omega 0.00000060",
+						"context": "",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.23"
+				}
+			],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LegacyShieldBearings",
+			"fullTestPath": "VT.Parity.LegacyShieldBearings",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.016746301203966141,
+			"dateTime": "2026.10.08-12.27.23",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "AtomicSnapshotAndFallback",
+			"fullTestPath": "VT.Persistence.AtomicSnapshotAndFallback",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.052450798451900482,
+			"dateTime": "2026.10.08-12.27.23",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.23"
+				},
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Automation-B8B9D029409E2BD1CD830B9B770952BE.vts' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.23"
+				}
+			],
+			"warnings": 2,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LandmarksAndIntentAuthority",
+			"fullTestPath": "VT.World.LandmarksAndIntentAuthority",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.033478602766990662,
+			"dateTime": "2026.10.08-12.27.23",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "SandboxOwnershipAndTravel",
+			"fullTestPath": "VT.World.SandboxOwnershipAndTravel",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.040048301219940186,
+			"dateTime": "2026.10.08-12.27.23",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/Career-Automation.sav' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.23"
+				},
+				{
+					"event":
+					{
+						"type": "Warning",
+						"message": "LogStreaming: Failed to read file '../../../../../../Coding/void-and-thunder-unreal/Saved/SaveGames/AutomationWorld-7E806CF842F100E16E7EE8B32A4E2237.vts' error.",
+						"context": "log",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.10.08-12.27.23"
+				}
+			],
+			"warnings": 2,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "SoloScenarioParity",
+			"fullTestPath": "VT.World.SoloScenarioParity",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"195E47B945553410BE00CFB364418B0E"
+			],
+			"duration": 0.018839597702026367,
+			"dateTime": "2026.10.08-12.27.23",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		}
+	]
+}

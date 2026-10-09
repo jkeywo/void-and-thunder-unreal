@@ -23,3 +23,41 @@ public:
  UVTContentCommandlet();
  virtual int32 Main(const FString& Params) override;
 };
+
+UCLASS()
+class UVTPlayabilityCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTPlayabilityCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};
+
+UCLASS()
+class UVTHUDStyleCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTHUDStyleCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};
+
+UCLASS()
+class UVTPIEAuthoringCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTPIEAuthoringCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};
+UCLASS()
+class UVTFlightFixesCommandlet : public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTFlightFixesCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};
+UCLASS()
+class UVTIntroAssetsCommandlet:public UCommandlet {
+ GENERATED_BODY()
+public:
+ UVTIntroAssetsCommandlet();
+ virtual int32 Main(const FString& Params) override;
+};

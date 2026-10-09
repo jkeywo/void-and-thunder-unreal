@@ -86,3 +86,64 @@ claim, validity, faction and range checks remain live for every captain. These
 lists contain Actor pointers, not independent state, and are rebuilt at the phase
 where they are consumed. EMP rejects out-of-range contacts before angular tests.
 All systems and movement/combat still advance at 64 Hz.
+
+## Native integration revision
+
+Migration is an explicit editor operation, never a validation step. Seed mode preserves
+existing authored packages; replacement requires an explicit regeneration switch.
+C++ ship rules are assembled by configurable Blueprint pawn/UI classes. Primary
+asset catalogues expose ship, equipment, system and scenario definitions, with
+presentation bundles preloaded through Asset Manager before population spawning.
+
+Autosaves capture and serialize consistent snapshots on the game thread, then use
+a single immutable-byte background writer. Completion is observed on the game
+thread; load, manual save and orderly teardown flush pending writes. CRC, atomic
+replacement and last-good backups remain intact.
+
+HUD changes originate from GAS delegates, replicated state notifications, session
+events and authoritative simulation boundaries; updates are coalesced at 10 Hz.
+Widgets cache typed bindings and selections retain stable IDs independent of labels.
+Enhanced Input uses common/menu/flight/docked contexts. Ability tags gate activation,
+and fixed-step Ability Tasks own deterministic cooldown clocks; continuous battery
+costs retain their existing GAS attribute path. Audio attenuation/concurrency and
+Niagara Effect Types provide native presentation budgets without changing gameplay.
+
+The flight HUD uses authored UMG resource bars and ability readouts fed by the existing coalesced refresh path. A local native grid Actor follows the current system; sky remains camera-centered. Projectile visual radius and flight pace are independently editable on DA_GameData; collision radii remain simulation-owned.
+
+[ai] Restore the original amber CRT HUD composition using native Slate drawing within the authored UMG widget: five original panel frames exported as UI textures, native live gauges/tubes/shield edges, and matching amber menu styling. Static artwork retains source attribution; no HTML runtime is added. The sandbox chart remains available as a collapsible overlay rather than occupying the coordinate cluster.
+
+Broadside aim is a local arc offset while held, preserved through release and encoded as the existing authoritative aim intent. The tracking camera and preview consume that direction. Viewport capture forwards the first mouse press; painted tactical markers use viewport-relative pixel scaling into widget coordinates.
+
+Broadside previews and authoritative firing share the muzzle/velocity geometry function, including inherited ship momentum. Each gun projects its own trajectory.
+
+Contextual HUD interaction hints read replicated boarding targets and travel/docking state, recheck proximity, and resolve live Enhanced Input mappings. They display intent and progress without awarding loot or changing rules. The local reference-grid actor selects the nearest authored star in the current system and passes its world centre to a dynamic radial material; ring/spoke density remains editable in the native material.
+
+The editor module extends the native Play toolbar with mode, hull and checked loadout menus. Editor-only World Settings asset user data declares supported modes, while per-user editor settings retain the chosen fit. OnPIEMapReady applies selections after profile initialization and before gameplay spawning. PIE profile/career/campaign slots are isolated by PIE instance. Explicit empty equipment sets are distinguished from inherited hull defaults in the existing fit contract.
+
+Gate entry remains host-authoritative: a held interaction guides the shared ship helm to the inside staging point, aligns with the gate normal, then flies across the opening after charging. Travel requires a swept aperture crossing. Replicated entry phase supports client prediction and is cancelled on release/load. Native authored meshes/materials represent gates and torpedoes. Ships and camera share an interpolated presentation pose; replicated fits are resolved during initialization and class/fit notifications.
+
+Gate staging compares forward and reverse travel/turn estimates using the hull thrust, drag and turn rate. Reverse is restricted to the approach phase; charged passage retains the outward heading and swept crossing. Device projectiles and restored projectiles finish deferred spawning only after their type/state is assigned, and replicated type changes refresh presentation.
+
+Gate entry now uses a native authored acceleration surge to the ring, then teleports to the destination ring and follows a short quadratic braking curve inward. GateDistanceScale=2 doubles the staging distance and arrival offset (new arrivals stop at 0.70 of the destination ring position). Explicit arrival origin/time/target are replicated and saved; old arrivals retain their saved 0.85 endpoint and inferred origin. prediction samples the same curve against motion time, without mutating replicated phase timers. The local PlayerCameraManager starts a white fade in the same camera update that detects a system change. Torpedoes again share the original projectile presentation.
+
+## Deep gameplay modules
+
+[ai] Fit selection, projectile creation, phase-scoped ship queries, captain standings and gate passage hide their complete lifecycle rules behind domain interfaces. Frontend/PIE share a fit editor; live/restored projectiles share pre-BeginPlay initialization; simulation queries retain ordered Actor references; standings select one connected/disconnected owner; gate passage is a replicated native ship component with schema-6 snapshot adapters. The 64 Hz coordinator, GAS authority, native tuning and campaign identity remain unchanged.
+
+The fit preview is shared by runtime UMG and editor Slate adapters, including legacy primary-choice checkbox edits. Projectile specs establish full initial state before BeginPlay. Queries open/close spatial and boarding views at their phases while ordered membership remains available to presentation. Captain standings resolve live or disconnected records per operation, never retaining their mutable references. UVTGatePassage exposes read-only Blueprint status and owns replicated phase transitions plus schema-6 capture/restoration; restoring it does not reset unrelated docking progress.
+
+[ai] Keyboard helm uses a retained four-notch throttle, advanced by Enhanced Input Started edges. A local copy of the authored flight context replaces its keyboard throttle actions while preserving mapping names and remap settings; packages remain untouched. Gamepad throttle remains analogue and updates the nearest keyboard notch. Only the resulting scalar enters the existing predicted 64 Hz intent path.
+
+[ai] Gate staging and braking distances share an authored distance multiplier. Replicated/saved arrival origin removes the old target-to-origin ratio assumption; legacy schema-6 records infer their original 0.85 curve. Gate Actors present local, flat native mesh arrows at the shared staging point and sample a cosmetic passage loop without altering simulation.
+
+[ai] During gate acceleration the native PlayerCameraManager holds its focus at the presented departure position and suspends orbit/velocity lead changes. At teleport (or restored arrival), focus switches directly to the committed arrival target and stays there through braking. Normal tracking resumes after passage; this is local presentation only.
+
+## Narrative introduction [ai]
+
+A controller-owned UVTIntroComponent owns each captain's replicated checkpoint and observes the existing 64 Hz simulation. Four reserved arenas are appended to a world-local copy of the system catalogue; the ten sandbox systems retain their indices, populations and authored data. Arenas are excluded from population generation and the chart. Normal ship, combat, boarding and gate rules run inside them. Repair availability filters authoritative and predicted intent and ability activation. New intro captains start with empty optional mounts; two mutually exclusive engineer repair choices build their fit through FVTFitEditor, with actual-use trials before combat. The resulting fit and choices persist through saves and reconnects. A native Primary Data Asset owns dialogue, encounter tuning and portraits; a UMG widget displays crew/enemy speech and objectives. The protagonist has no dialogue.
+
+Schema-6 records gain optional intro progress (default Complete for pre-intro records). Saves retain the player's checkpoint; disposable encounter fixtures are reconstructed on reconnect/load and removed on departure. No fixtures or rewards can be farmed. Intro defeat restarts the current encounter. PIE has a persisted Skip intro checkbox; solo scenarios bypass the intro. Existing validation fixtures explicitly bypass it unless running the intro probe. Intro tests must cover actual projectile damage, repair restrictions, boarding, travel, save/reconnect and independent captains.
+
+Implementation authorized on 2026-10-09; portrait source art is preserved under ArtSource/Intro.
+
+[ai] Navigation is local presentation: a shared graph query returns an ordered gate route, UMG selects the destination and projects the next gate waypoint without committing travel. Faction rings read the local captain standings. World-local catalogue copies apply the authored layout multiplier once; fixed-step and predicted movement share the outer-boundary speed curve. Remote landmark visibility/relevancy exposes stars only.

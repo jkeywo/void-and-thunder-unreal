@@ -21,7 +21,7 @@ Guests return to Menu and can rejoin the same world with their saved identity/to
 
 | Action | Keyboard / mouse | Controller |
 |---|---|---|
-| Thrust / turn | W/S, A/D | Left stick |
+| Speed / turn | Tap W/S: reverse → halt → half → full; A/D steer | Left stick (analogue) |
 | Aim | Mouse | Right stick, while aiming a device |
 | Port / starboard broadside | Left / right mouse | Left / right trigger |
 | EMP disruptor | Q | X / square |
@@ -37,7 +37,7 @@ Guests return to Menu and can rejoin the same world with their saved identity/to
 | Recover a disabled sandbox ship | R or menu recovery button | D-pad down |
 
 Aim by steering to bring a broadside onto the target. Hold its mouse button or
-trigger to aim; release it to fire. Loaded aim beams are amber and reloading beams
+trigger to aim; move the mouse left/right (or use the right stick) to adjust within the bank's firing arc, then release to fire. A single press starts aiming. Loaded aim beams are amber and reloading beams
 are dim red. Shields have directional
 banks. EMP affects systems; point defence intercepts hostile shots; torpedoes
 launch from the current hull pose and arc above/below the plane. Equipment shares
@@ -75,3 +75,25 @@ by the automated keyboard/controller event probes.
 The optional AI pilot flies and operates your fitted ship while you retain the
 camera and captain identity. The host makes its decisions. Return to manual control
 with the same toggle; restored/reconnected ships start in manual mode.
+
+Nearby lootable ships and jump gates show the current keyboard/controller interaction buttons and hold progress beside the object. Looting prompts follow the host-selected eligible prize and disappear when it is claimed or leaves range. Stations show hold-position docking progress. The reference grid uses concentric distance rings and radial spokes from the nearest star in the current system.
+
+Jump gates are upright rings. Within interaction range, hold the mapped interact
+button (B / pad B) to guide the ship to the inner approach, align it and charge
+the jump. Keep holding while it flies through the opening. A charged ship parked
+near the gate does not travel; releasing cancels guided entry. Only that captain
+changes system.
+
+A fitted microwarp uses Left Shift / right shoulder: hold to aim, release to jump.
+The HUD displays the active mapped binding. Warp and torpedo aiming suppress
+broadside input and cancel an unfinished broadside wind-up. Optional loadout
+selectors offer Empty mount explicitly; checked fits survive frontend setup and
+replicated ship initialization. Torpedoes use the original projectile size and material.
+
+Gate alignment may reverse when that reaches the staging point faster. Passage through the ring always remains forwards.
+
+Torpedo visuals are restored to the original projectile size and material. Charged gate passage now surges forwards to the ring, flashes white at teleport, then brakes rapidly from the destination ring to the same previous arrival point.
+
+Near a jump ring, a flat arrow marks the staging point and points through the gate. A smaller arrow loops through the acceleration, teleport and braking path. Hold interact to line up and pass through; approach and arrival distances are twice their previous lengths.
+
+During gate acceleration the camera stays aimed at your departure position. At teleport it switches to the final stopping position and remains centred there during braking. Normal camera tracking then resumes.

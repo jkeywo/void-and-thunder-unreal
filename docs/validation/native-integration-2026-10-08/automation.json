@@ -1,0 +1,24 @@
+{
+  "reportCreatedOn": "2026.10.08-00.13.02",
+  "succeeded": 19,
+  "succeededWithWarnings": 6,
+  "failed": 0,
+  "notRun": 0,
+  "totalDuration": 2.1557981967926025,
+  "devices": [
+    {
+      "deviceName": "NUMBER10",
+      "instance": "9D414D664CD6D0C788382498FD9DB630",
+      "instanceName": "NUMBER10-13536",
+      "platform": "WindowsEditor",
+      "oSVersion": "Windows 11 (25H2) [10.0.26200.9457] ",
+      "model": "Default",
+      "gPU": "NVIDIA GeForce RTX 5090 Laptop GPU",
+      "cPUModel": "Intel(R) Core(TM) Ultra 9 275HX",
+      "rAMInGB": 64,
+      "renderMode": "SM6",
+      "rHI": "",
+      "appInstanceLog": ""
+    }
+  ]
+}

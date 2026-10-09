@@ -37,6 +37,10 @@ static bool Persist(UObject* Asset) {
 }
 UVTContentCommandlet::UVTContentCommandlet() {IsEditor=true; IsClient=false; IsServer=false; LogToConsole=true;}
 int32 UVTContentCommandlet::Main(const FString& Params) {
+ if(!FParse::Param(*Params,TEXT("Regenerate"))&&(FPackageName::DoesPackageExist(TEXT("/Game/Effects/Cues/GC_Fire"))||FPackageName::DoesPackageExist(TEXT("/Game/Effects/NS_ShipBurst"))||IFileManager::Get().DirectoryExists(*(FPaths::ProjectContentDir()/TEXT("Ships/challenger"))))) {
+  UE_LOG(LogTemp,Display,TEXT("Authored presentation retained. Use -Regenerate to explicitly replace imported content.")); return 0;
+ }
+
  auto* Data=LoadObject<UVTGameData>(nullptr,TEXT("/Game/Data/DA_GameData.DA_GameData")); if(!Data) return 1;
  auto& Tools=FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
  const TCHAR* Models[]={TEXT("challenger"),TEXT("imperial"),TEXT("dispatcher"),TEXT("bob"),TEXT("executioner")};

@@ -1,0 +1,99 @@
+{
+  "automation": {
+    "passed": 51,
+    "fixture_warnings": 27,
+    "failed": 0
+  },
+  "packaged_keyboard": {
+    "frames": 2974,
+    "p95_frame_ms": 7.2877,
+    "mean_fps": 198.196,
+    "width": 1920,
+    "height": 1080,
+    "population": 501,
+    "gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+    "passed": true,
+    "initial_menu_focus": false,
+    "controller_menu_navigation": false,
+    "broadside_first_press_release": true,
+    "interaction_prompt_and_loot": true,
+    "mapped_warp_release_and_exclusive_aim": true,
+    "equipment_torpedo_original_visuals": true,
+    "gate_white_flash_and_arrival": true,
+    "tap_throttle_hold_release_and_repeat": true,
+    "simulation_time": 35,
+    "busy": false,
+    "armed": false,
+    "p95_simulation_ms": 2.5641992688179016,
+    "requested_quality": 2
+  },
+  "busy_armed_500": {
+    "population": 500,
+    "systems": 10,
+    "samples": 1000,
+    "p95_ms": 2.9191,
+    "budget_ms": 8,
+    "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+    "passed": true
+  },
+  "multiplayer_150ms_2percent": {
+    "GameplayClient0": {
+      "observed_phases": 8190,
+      "failure": "",
+      "passed": true,
+      "reconciliation_samples": 437,
+      "correction_p95_units": 2.464357125582529,
+      "correction_max_units": 482.2446082817253,
+      "max_pending_inputs": 78,
+      "final_ack": 2845
+    },
+    "GameplayClient1": {
+      "observed_phases": 8190,
+      "failure": "",
+      "passed": true,
+      "reconciliation_samples": 475,
+      "correction_p95_units": 0,
+      "correction_max_units": 77.7923744082597,
+      "max_pending_inputs": 47,
+      "final_ack": 3956
+    },
+    "GameplayClient2": {
+      "observed_phases": 8190,
+      "failure": "",
+      "passed": true,
+      "reconciliation_samples": 490,
+      "correction_p95_units": 3.6977617495056023,
+      "correction_max_units": 50.05234649599295,
+      "max_pending_inputs": 45,
+      "final_ack": 3820
+    },
+    "GameplayHost": {
+      "checks": {
+        "same_faction_pvp_damage": true,
+        "remote_invalid_station_refit_rejected": true,
+        "pvp_profile_attribution": true,
+        "personal_crime_attribution": true,
+        "simultaneous_boarding_single_prize": true,
+        "simultaneous_boarding_single_bounty": true,
+        "boarded_captain_free_recovery": true,
+        "network_weapon_death_recovery": true,
+        "network_station_dwell": true,
+        "network_station_repair_heat_purchase": true,
+        "network_station_refit": true,
+        "network_station_undock": true,
+        "normal_charged_independent_jump": true,
+        "all_captains_moved_after_loss_burst": true,
+        "post_gameplay_snapshot": true,
+        "network_ai_pilot_keeps_captain_and_operates_guns": true,
+        "network_ai_pilot_returns_to_manual": true
+      },
+      "failure": "",
+      "passed": true,
+      "reconciliation_samples": 0,
+      "correction_p95_units": 0,
+      "correction_max_units": 0,
+      "max_pending_inputs": 0,
+      "final_ack": 4839
+    }
+  }
+}

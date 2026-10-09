@@ -1,37 +1,103 @@
 #pragma once
 #include "Blueprint/UserWidget.h"
 #include "VTTypes.h"
+#include "VTFitEditor.h"
+#include "Components/CheckBox.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Styling/SlateColor.h"
 #include "VTUI.generated.h"
+class AVTShip;
+class UVTSimulation;
+enum class EVTInteractionHint : uint8 { None,Loot,Jump,Dock };
+struct FVTInteractionHint { EVTInteractionHint Kind=EVTInteractionHint::None;FVector2D Position=FVector2D::ZeroVector;FText Label;float Progress=0; };
+VOIDANDTHUNDER_API FVTInteractionHint VTInteractionHint(const AVTShip* Ship,const UVTSimulation* Sim);
+class UVTUI;
+UCLASS() class VOIDANDTHUNDER_API UVTFitCheckBox : public UCheckBox {
+ GENERATED_BODY()
+public:
+ FName Equipment;TWeakObjectPtr<UVTUI> Editor;
+ UFUNCTION() void Changed(bool Checked);
+};
 class UTextBlock;
 class UComboBoxString;
 class UEditableTextBox;
 class UPanelWidget;
+struct FOnAttributeChangeData;
+UCLASS(BlueprintType) class VOIDANDTHUNDER_API UVTUIOption : public UObject {
+ GENERATED_BODY()
+public:
+ UPROPERTY(BlueprintReadOnly) FName Id;
+ UPROPERTY(BlueprintReadOnly) FText Label;
+ UPROPERTY(BlueprintReadOnly) FSlateFontInfo Font;
+ UPROPERTY(BlueprintReadOnly) FSlateColor Foreground;
+};
 UCLASS()
 class VOIDANDTHUNDER_API UVTUI : public UUserWidget {
  GENERATED_BODY()
 public:
+ UPROPERTY(EditDefaultsOnly,Category="HUD|Style") TArray<TObjectPtr<class UTexture2D>> HudPanels;
+ UPROPERTY(EditDefaultsOnly,Category="HUD|Style") FSlateFontInfo HudFont;
+ UPROPERTY(EditDefaultsOnly,Category="HUD|Style") TObjectPtr<class UStringTable> TextTable;
+ bool SessionOptions=false;
+ UFUNCTION() void ToggleSessionOptions();
+ bool ControlsOpen=false, ChartOpen=false,FullMap=false;
+ FName RouteDestination;
+ void ToggleFullMap();
+ void SetChart(bool Open,bool Full);
+ FVector2D ChartPoint(int32 System,const FVector2D& Size) const;
+ int32 PaintNavigation(const FGeometry& Geometry,FSlateWindowElementList& Elements,int32 Layer) const;
+ virtual FReply NativeOnMouseButtonDown(const FGeometry& Geometry,const FPointerEvent& Event) override;
+ virtual FReply NativeOnKeyDown(const FGeometry& Geometry,const FKeyEvent& Event) override;
+ void ToggleControls(){if(!MenuOpen)ControlsOpen=!ControlsOpen;}
+ void ToggleChart(){if(!MenuOpen)SetChart(!ChartOpen,false);}
+ int32 PaintFlightHUD(const FGeometry& Geometry,FSlateWindowElementList& Elements,int32 Layer) const;
  bool MenuOpen=false;
  bool FocusPending=false;
  int32 LastWorlds=-1;
- UPROPERTY() TObjectPtr<UTextBlock> StatusText;
- UPROPERTY() TObjectPtr<UTextBlock> FlightText;
- UPROPERTY() TObjectPtr<UPanelWidget> MenuPanel;
- UPROPERTY() TObjectPtr<UPanelWidget> HUDPanel;
- UPROPERTY() TObjectPtr<UComboBoxString> HullChoice;
- UPROPERTY() TObjectPtr<UComboBoxString> BatteryChoice;
- UPROPERTY() TObjectPtr<UComboBoxString> GunChoice;
- UPROPERTY() TObjectPtr<UComboBoxString> SpecialChoice;
- UPROPERTY() TObjectPtr<UComboBoxString> BatterySecond;
- UPROPERTY() TObjectPtr<UComboBoxString> BatteryThird;
- UPROPERTY() TObjectPtr<UComboBoxString> SpecialSecond;
- UPROPERTY() TObjectPtr<UComboBoxString> SpecialThird;
- UPROPERTY() TObjectPtr<UComboBoxString> LANChoice;
- UPROPERTY() TObjectPtr<UEditableTextBox> Address;
- UPROPERTY() TObjectPtr<UEditableTextBox> WorldName;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UTextBlock> StatusText;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UTextBlock> Flight;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UPanelWidget> MenuPanel;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UPanelWidget> HUDPanel;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> HullChoice;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> BatteryChoice;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> GunChoice;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> SpecialChoice;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> BatterySecond;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> BatteryThird;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> SpecialSecond;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> SpecialThird;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UComboBoxString> LANChoice;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UEditableTextBox> Address;
+ UPROPERTY(meta=(BindWidget)) TObjectPtr<UEditableTextBox> WorldName;
+ UPROPERTY(BlueprintReadOnly) TMap<FName,TObjectPtr<UVTUIOption>> ChoiceItems;
+ TMap<FName,TWeakObjectPtr<UWidget>> WidgetCache;
+ TWeakObjectPtr<class UAbilitySystemComponent> ObservedAbilities;
+ TArray<FDelegateHandle> AttributeHandles;
+ FTimerHandle RefreshTimer;
+ bool RefreshQueued=false;
+ UWidget* CachedWidget(FName Name) const;
+ void AddChoice(UComboBoxString* Box,FName Id,const FText& Label);
+ FName SelectedId(UComboBoxString* Box) const;
+ UFUNCTION() UWidget* GenerateChoice(FString Item);
+ UFUNCTION(BlueprintNativeEvent,Category="UI") UWidget* GenerateChoiceWidget(FName Item);
+ virtual UWidget* GenerateChoiceWidget_Implementation(FName Item);
+ UFUNCTION(BlueprintPure,Category="UI") UVTUIOption* GetChoiceItem(FName Key) const {const auto* Item=ChoiceItems.Find(Key);return Item ? Item->Get() : nullptr;}
+ void RequestRefresh();
+ void RefreshView();
+ void AttributeChanged(const FOnAttributeChangeData& Data);
+ virtual void NativeDestruct() override;
  virtual void NativeConstruct() override;
  virtual int32 NativePaint(const FPaintArgs& Args,const FGeometry& Geometry,const FSlateRect& Culling,FSlateWindowElementList& Elements,int32 Layer,const FWidgetStyle& Style,bool Enabled) const override;
  virtual void NativeTick(const FGeometry& Geometry,float Dt) override;
  void SetMenu(bool Open);
+ FVTFitEditor FitEditor;
+ bool FitUpdating=false;
+ UPROPERTY() TArray<TObjectPtr<UVTFitCheckBox>> FitChecks;
+ UPROPERTY() TObjectPtr<UTextBlock> FitSummary;
+ void BuildFitEditor();
+ void RefreshFitEditor(const FText& Reason=FText::GetEmpty());
+ void ToggleFit(FName Equipment);
+ UFUNCTION() void ChangeFitHull(FString Item,ESelectInfo::Type Type);
  bool StoreFit();
  void ApplyGraphics(int32 Preset);
  UFUNCTION() void PerformanceGraphics();

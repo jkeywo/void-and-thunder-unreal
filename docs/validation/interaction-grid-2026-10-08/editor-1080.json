@@ -1,0 +1,19 @@
+{
+  "frames": 4775,
+  "p95_frame_ms": 3.591701,
+  "mean_fps": 318.264,
+  "width": 1920,
+  "height": 1080,
+  "population": 1,
+  "gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+  "passed": true,
+  "initial_menu_focus": false,
+  "controller_menu_navigation": false,
+  "broadside_first_press_release": true,
+  "interaction_prompt_and_loot": true,
+  "simulation_time": 34.859375,
+  "busy": false,
+  "armed": false,
+  "p95_simulation_ms": 0.046800822019577026,
+  "requested_quality": 2
+}

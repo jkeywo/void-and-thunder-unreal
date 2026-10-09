@@ -35,8 +35,8 @@ bool UVTSimulation::BehaviorHostile(AVTShip* Mine,AVTShip* Other) const {
  if(Mine->Faction==Freebooters||Other->Faction==Freebooters) return true;
  if(Mine->Brain.LastAttacker==Other->PersistentId&&SimulationTime-Mine->Brain.AttackTime<Data->World.recent_attack_memory) return true;
  if(!Other->IsNPC) {
-  auto* PS=Other->GetPlayerState<AVTPlayerState>(); int I=Data->FactionIndex(Mine->Faction);
-  return PS&&I>=0&&((PS->Reputation.IsValidIndex(I)&&PS->Reputation[I]<Data->World.hostile_threshold)||(PS->Heat.IsValidIndex(I)&&PS->Heat[I]>=Data->World.heat_engage_threshold));
+  auto* PS=Other->GetPlayerState<AVTPlayerState>();const auto Standing=Standings.Read(PS?PS->Profile:FGuid(),Mine->Faction);
+  return Standing.Found&&(Standing.Reputation<Data->World.hostile_threshold||Standing.Heat>=Data->World.heat_engage_threshold);
  }
  if(Mine->ShipRole==0&&Mine->Faction==Houses) return true;
  return Data->StandingBetween(Mine->Faction,Other->Faction)<Data->World.hostile_threshold;
@@ -59,7 +59,7 @@ void AVTShipAI::DecideShip(AVTShip* Ship,float Dt) {
  TArray<Contact,TInlineAllocator<64>> OrderedTargets;
  AVTShip* NearestTarget=nullptr; double NearestDistance=DBL_MAX; bool NearestTied=false;
  float Threat=0,Danger=0;
- for(auto* Other:Sim->SystemShips[Ship->SystemIndex]) if(IsValid(Other)&&Other!=Ship&&!Other->Docked) {
+ for(auto* Other:Sim->Queries.Ordered(Ship->SystemIndex)) if(IsValid(Other)&&Other!=Ship&&!Other->Docked) {
   if(Other->Disabled) {if(!Other->Invulnerable&&Other->Faction!=Ship->Faction) Prizes.Add(Other); continue;}
   bool Hostile=Ship->ShipRole==1 ? Ship->Faction!=Other->Faction : Sim->BehaviorHostile(Ship,Other);
   // Ordinary skirmish enemies fight player ships without the campaign reputation gate.
@@ -81,13 +81,13 @@ void AVTShipAI::DecideShip(AVTShip* Ship,float Dt) {
  float Hull=Ship->Attributes->Hull.GetCurrentValue()/D.Hull;
  if(Ship->ShipRole==2) {
   AVTShip* Contact=nullptr; double Best=DBL_MAX;
-  for(auto* Other:Sim->SystemShips[Ship->SystemIndex]) if(IsValid(Other)&&!Other->IsNPC&&!Other->Docked&&!Other->Disabled) {double Distance=(Other->Movement->Motion.Position-M.Position).SizeSquared(); if(Distance<Best) {Contact=Other; Best=Distance;}}
+  for(auto* Other:Sim->Queries.Ordered(Ship->SystemIndex)) if(IsValid(Other)&&!Other->IsNPC&&!Other->Docked&&!Other->Disabled) {double Distance=(Other->Movement->Motion.Position-M.Position).SizeSquared(); if(Distance<Best) {Contact=Other; Best=Distance;}}
   if(Contact) {
    if(Brain.ScanTarget!=Contact->PersistentId) {Brain.ScanTarget=Contact->PersistentId; Brain.ScanProgress=0;}
    bool InRange=Best<=T.surround_radius*T.surround_radius&&!Sim->Occluded(Ship->SystemIndex,M.Position,Contact->Movement->Motion.Position);
    Brain.ScanProgress=FMath::Clamp(Brain.ScanProgress+(InRange ? Sim->Data->World.scan_rate : -Sim->Data->World.scan_decay_rate)*Dt,0.f,1.f);
    bool Hostile=Sim->BehaviorHostile(Ship,Contact);
-   if(Hostile&&Brain.ScanProgress>=1) {Target=Contact; if(InRange) for(auto* Patrol:Sim->SystemShips[Ship->SystemIndex]) if(Patrol->ShipRole==2&&Patrol->Faction==Ship->Faction) {Patrol->Brain.Alert=Contact->Movement->Motion.Position; Patrol->Brain.AlertTTL=Sim->Data->World.alert_ttl;}}
+   if(Hostile&&Brain.ScanProgress>=1) {Target=Contact; if(InRange) for(auto* Patrol:Sim->Queries.Ordered(Ship->SystemIndex)) if(Patrol->ShipRole==2&&Patrol->Faction==Ship->Faction) {Patrol->Brain.Alert=Contact->Movement->Motion.Position; Patrol->Brain.AlertTTL=Sim->Data->World.alert_ttl;}}
    else if(!Target) {if(Brain.ScanProgress<1&&InRange) Face(Ship,Contact->Movement->Motion.Position-M.Position,Best>FMath::Square(T.surround_radius*0.7f) ? 0.4f : 0.f,T); else if(Brain.AlertTTL>0) Face(Ship,Brain.Alert-M.Position,1,T); return;}
   } else if(!Target) {if(Brain.AlertTTL>0) Face(Ship,Brain.Alert-M.Position,1,T); return;}
  }
@@ -145,7 +145,7 @@ void AVTShipAI::DecideShip(AVTShip* Ship,float Dt) {
 void AVTShipAI::CrewStep(AVTShip* Ship) {
  if(Ship->Fit.CrewedDevices.IsEmpty()||Ship->Disabled||Ship->Docked||Ship->ShipRole==1) return;
  auto* Sim=Ship->GetWorld()->GetSubsystem<UVTSimulation>(); TArray<AVTShip*> Targets;
- for(auto* Other:Sim->SystemShips[Ship->SystemIndex]) if(IsValid(Other)&&!Other->Disabled&&Other!=Ship&&!Other->Docked&&(Ship->IsNPC ? Sim->BehaviorHostile(Ship,Other) : Other->Faction!=Ship->Faction||(Ship->Brain.LastAttacker==Other->PersistentId&&Sim->SimulationTime-Ship->Brain.AttackTime<Sim->Data->World.recent_attack_memory))) Targets.Add(Other);
+ for(auto* Other:Sim->Queries.Ordered(Ship->SystemIndex)) if(IsValid(Other)&&!Other->Disabled&&Other!=Ship&&!Other->Docked&&(Ship->IsNPC ? Sim->BehaviorHostile(Ship,Other) : Other->Faction!=Ship->Faction||(Ship->Brain.LastAttacker==Other->PersistentId&&Sim->SimulationTime-Ship->Brain.AttackTime<Sim->Data->World.recent_attack_memory))) Targets.Add(Other);
  for(auto Device:Ship->Fit.CrewedDevices) {
   if(Device==EVTDevice::Port||Device==EVTDevice::Starboard) {auto Solution=Gun(Ship,Targets,Device==EVTDevice::Port); if(Solution.Valid) Ship->Intent.Buttons|=Device==EVTDevice::Port ? VTButtons::Port : VTButtons::Starboard;}
   if(Device==EVTDevice::EMP) for(auto* Target:Targets) {auto Offset=Target->Movement->Motion.Position-Ship->Movement->Motion.Position; if(Offset.Size()<=Ship->Definition.Equipment.EMPRange&&FMath::Abs(FMath::UnwindRadians(float(FMath::Atan2(Offset.Y,Offset.X))-Ship->Movement->Motion.Heading))<=Ship->Definition.Equipment.EMPArc*0.5f) {Ship->Intent.Buttons|=VTButtons::EMP; break;}}

@@ -1,0 +1,235 @@
+{
+  "succeeded": 25,
+  "succeededWithWarnings": 32,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "VT.AI.LegacyBehaviorExpectations",
+      "state": "Success"
+    },
+    {
+      "name": "VT.AI.NearestContactAndVolleyPriority",
+      "state": "Success"
+    },
+    {
+      "name": "VT.AI.PlayerPilotAuthorityAndTransitions",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Combat.ArcAndSweptContact",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Combat.AuthoritativeVolley",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Combat.DirectionalShields",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Combat.EquipmentLifecycle",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Editor.PlaySelectedMode.Sandbox",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Editor.PlaySelectedMode.Skirmish",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Editor.PlaySelectedMode.Test Range",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Editor.PIESelections",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Flight.AnisotropicDragAndClamp",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Flight.ThrustAndReverse",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Input.BroadsideAimReleaseAndCancel",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Input.ThrottleLadderAndLegacyMapping",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Intro.AuthoredNarrativeAssets",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Intro.EMPAndTorpedoRepairPath",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Intro.IsolationSaveReconnectAndSkip",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Intro.ProgressRepairsAndCombat",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Migration.LegacySpawnJitter",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Modules.CaptainStandingsOwners",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Modules.FitAcceptedSelection",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Modules.GateAdvancedClockRestore",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Modules.LegacyFitCheckboxEdit",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Modules.PhaseScopedShipQueries",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Modules.ProjectileCreation",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Modules.SweptQueryCompleteness",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.PhysicalGatePassage.corsair_battleship",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.PhysicalGatePassage.corsair_cruiser",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.PhysicalGatePassage.corsair_frigate",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.AsyncSaveRecovery",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.BroadsideHoldRelease",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.ContextInteractionHints",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.ExclusiveSpecialAim",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.FitLifecycleAndFrontend",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.FixedStepGASLifecycle",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.FlightPlayability",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.GateCameraFocus",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.GateDistanceMarkerAndLegacyArrival",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.GateReverseApproach",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.GateSurgeArrivalAndSave",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.LocalizedSelectionIdentity",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.LocalPoseInterpolation",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.OriginalHUDAssets",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.PersistentBroadsideIntent",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.RadialGridNearestStar",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Native.RejectDirectAbilityRPC",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Network.IdentityReconnectAndRecovery",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Network.RejectInvalidIntent",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Parity.LegacyAIActionChoices",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Parity.LegacyBroadsideBearings",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Parity.LegacyFlightTrajectories",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Parity.LegacyShieldBearings",
+      "state": "Success"
+    },
+    {
+      "name": "VT.Persistence.AtomicSnapshotAndFallback",
+      "state": "Success"
+    },
+    {
+      "name": "VT.World.LandmarksAndIntentAuthority",
+      "state": "Success"
+    },
+    {
+      "name": "VT.World.SandboxOwnershipAndTravel",
+      "state": "Success"
+    },
+    {
+      "name": "VT.World.SoloScenarioParity",
+      "state": "Success"
+    }
+  ]
+}

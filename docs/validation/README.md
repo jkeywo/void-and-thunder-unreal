@@ -67,3 +67,11 @@ Screenshots were reviewed from the packaged native renderer:
 ![Native menu](transfer-2026-10-07/RenderMenu.png)
 
 ![Busy listen-host arena](transfer-2026-10-07/Render.png)
+
+PIE mode/ship/loadout selector validation: [2026-10-08](pie-toolbar-2026-10-08/README.md).
+
+Physical gate travel, smooth local poses and equipment control validation: [2026-10-08](flight-gates-2026-10-08/README.md).
+
+Reverse gate staging and actual fired torpedo visual fixes: [2026-10-08](gate-reverse-2026-10-08/README.md).
+
+Rapid gate passage, white flash and restored torpedo validation: [2026-10-08](gate-surge-2026-10-08/README.md).

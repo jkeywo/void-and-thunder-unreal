@@ -1,0 +1,12 @@
+{
+	"passed": true,
+	"wall_seconds": 210.00664909929037,
+	"simulation_seconds": 218.53125,
+	"initial_npcs": 0,
+	"save_load_cycles": 0,
+	"systems_advanced": 0,
+	"max_captains": 4,
+	"profile": "14331A9641A019C6C9A74F81220551D0",
+	"ship_id": "AD36BD794C0FD4777BBC3490C1606BFB",
+	"samples": []
+}

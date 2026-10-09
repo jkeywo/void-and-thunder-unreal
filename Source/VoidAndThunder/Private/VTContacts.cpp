@@ -2,7 +2,9 @@
 #include "VTCombat.h"
 void UVTSimulation::ContactStep() {
  const auto& R=Data->Rules;
- for(auto& Bucket:SystemShips) for(int I=0;I<Bucket.Num();++I) for(int J=I+1;J<Bucket.Num();++J) {
+ for(int System=0;System<Queries.SystemCount();++System) {
+  const auto& Bucket=Queries.Ordered(System);
+  for(int I=0;I<Bucket.Num();++I) for(int J=I+1;J<Bucket.Num();++J) {
   AVTShip* A=Bucket[I]; AVTShip* B=Bucket[J]; if(A->Docked||B->Docked) continue;
   auto& AM=A->Movement->Motion; auto& BM=B->Movement->Motion;
   FVector2D Delta=BM.Position-AM.Position; float Reach=A->Definition.Radius+B->Definition.Radius;
@@ -18,19 +20,18 @@ void UVTSimulation::ContactStep() {
   if(Damage<=0 || (A->IsNPC&&B->IsNPC&&A->Faction==B->Faction)) continue;
   A->Combat->Damage(Damage*(1+(B->Combat->BoostPowered ? 2.5f*FMath::Clamp(float(FVector2D::DotProduct(FVector2D(FMath::Cos(BM.Heading),FMath::Sin(BM.Heading)),-Normal)),0.f,1.f) : 0)),AM.Position+Normal*A->Definition.Radius,B);
   B->Combat->Damage(Damage*(1+(A->Combat->BoostPowered ? 2.5f*FMath::Clamp(float(FVector2D::DotProduct(FVector2D(FMath::Cos(AM.Heading),FMath::Sin(AM.Heading)),Normal)),0.f,1.f) : 0)),BM.Position-Normal*B->Definition.Radius,A);
+  }
  }
 }
 void UVTSimulation::PiracyStep() {
  // Build after crippling/death. Recheck live claims/validity after each award.
- TArray<TArray<AVTShip*>,TInlineAllocator<16>> Prizes;Prizes.SetNum(SystemShips.Num());
- for(int System=0;System<SystemShips.Num();++System)for(AVTShip* Ship:SystemShips[System])
-  if(IsValid(Ship)&&Ship->Disabled&&!Ship->Invulnerable)Prizes[System].Add(Ship);
+ Queries.BuildBoarding();
  auto Current=Ships;
  for(AVTShip* S:Current) if(IsValid(S)&&!S->Docked&&!S->Disabled&&S->ShipRole!=1) {
   auto* Combat=S->Combat.Get();
   AVTShip* Target=nullptr; double Best=Data->Rules.BoardRange*Data->Rules.BoardRange;
-  for(AVTShip* Other:Prizes[S->SystemIndex]) if(IsValid(Other)&&Other->PersistentId==Combat->BoardingTarget&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed&&(Other->Movement->Motion.Position-S->Movement->Motion.Position).SizeSquared()<=Best) {Target=Other; break;}
-  if(!Target) for(AVTShip* Other:Prizes[S->SystemIndex]) if(IsValid(Other)&&Other!=S&&(!S->IsNPC||Other->Faction!=S->Faction)&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed) {
+  for(AVTShip* Other:Queries.Boarding(S->SystemIndex)) if(IsValid(Other)&&Other->PersistentId==Combat->BoardingTarget&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed&&(Other->Movement->Motion.Position-S->Movement->Motion.Position).SizeSquared()<=Best) {Target=Other; break;}
+  if(!Target) for(AVTShip* Other:Queries.Boarding(S->SystemIndex)) if(IsValid(Other)&&Other!=S&&(!S->IsNPC||Other->Faction!=S->Faction)&&Other->Disabled&&!Other->Invulnerable&&!Other->Combat->Claimed) {
    double Distance=(Other->Movement->Motion.Position-S->Movement->Motion.Position).SizeSquared();
    if(Distance<=Best) {Best=Distance; Target=Other;}
   }
@@ -41,7 +42,7 @@ void UVTSimulation::PiracyStep() {
   if(Combat->BoardingProgress<Data->Rules.BoardDwell) continue;
   // Authority serializes claims: the next captain can never receive the same prize.
   Target->Combat->Claimed=true; S->Combat->Cue(TEXT("GameplayCue.Ship.Board"));
-  if(auto* PS=S->GetPlayerState<AVTPlayerState>()) {++PS->Boarded; PS->Credits+=Data->Rules.BoardingBounty;}
+  if(!UVTIntroComponent::IsArena(this,S->SystemIndex))if(auto* PS=S->GetPlayerState<AVTPlayerState>()) {++PS->Boarded; PS->Credits+=Data->Rules.BoardingBounty;}
   uint32 Random=uint32(WorldSeed)^GetTypeHash(Target->PersistentId); const auto& E=S->Definition.Equipment;
   auto Supply=[&](int Min,int Max){return Min+FMath::Min(Max-Min,int(VT::LcgNext(Random)*(Max-Min+1)));};
   S->Combat->EquipmentState.TorpedoMagazine=FMath::Min(E.TorpedoMagazine,S->Combat->EquipmentState.TorpedoMagazine+Supply(E.TorpedoResupplyMin,E.TorpedoResupplyMax));
@@ -51,6 +52,7 @@ void UVTSimulation::PiracyStep() {
   else if(auto* Mode=GetWorld()->GetAuthGameMode<AVTGameMode>()) Mode->RecoverShip(Target);
   Combat->BoardingTarget.Invalidate(); Combat->BoardingProgress=0;
  }
+ Queries.FinishBoarding();
 }
 
 bool UVTSimulation::Occluded(int32 System,const FVector2D& A,const FVector2D& B,float Height) const {

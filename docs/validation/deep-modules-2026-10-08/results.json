@@ -1,0 +1,309 @@
+{
+  "engine": "Unreal Engine 5.8.2",
+  "reference_cpu": "Intel Core Ultra 9 275HX",
+  "reference_gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+  "source_baseline": "06b518f",
+  "module_commits": [
+    "1b56841",
+    "504dda3",
+    "7c15539",
+    "e595423",
+    "4a774a9"
+  ],
+  "automation": {
+    "succeeded": 24,
+    "succeededWithWarnings": 26,
+    "failed": 0,
+    "notRun": 0
+  },
+  "benchmarks": {
+    "500": {
+      "before": {
+        "p95_runs_ms": [
+          3.147,
+          2.594,
+          2.519
+        ],
+        "median_p95_ms": 2.594
+      },
+      "after": {
+        "p95_runs_ms": [
+          2.261,
+          2.417,
+          2.354
+        ],
+        "median_p95_ms": 2.354
+      },
+      "change_percent": -9.252120277563602,
+      "regression_gate_passed": true
+    },
+    "1000": {
+      "before": {
+        "p95_runs_ms": [
+          7.487,
+          6.894,
+          8.957
+        ],
+        "median_p95_ms": 7.487
+      },
+      "after": {
+        "p95_runs_ms": [
+          7.497,
+          6.773,
+          6.773
+        ],
+        "median_p95_ms": 6.773
+      },
+      "change_percent": -9.536529985307872,
+      "regression_gate_passed": true
+    }
+  },
+  "authoring_protection": {
+    "mode": "seed-preserves-existing",
+    "checkedAt": "2026-10-08T20:33:45.5568389+01:00",
+    "packages": 107,
+    "passed": true
+  },
+  "RenderMenu": {
+    "frames": 6648,
+    "p95_frame_ms": 3.050599,
+    "mean_fps": 443.135,
+    "width": 1920,
+    "height": 1080,
+    "population": 0,
+    "gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+    "passed": true,
+    "initial_menu_focus": true,
+    "controller_menu_navigation": true,
+    "broadside_first_press_release": true,
+    "interaction_prompt_and_loot": true,
+    "mapped_warp_release_and_exclusive_aim": true,
+    "equipment_torpedo_original_visuals": true,
+    "gate_white_flash_and_arrival": true,
+    "simulation_time": 0,
+    "busy": false,
+    "armed": false,
+    "requested_quality": 2
+  },
+  "RenderGate": {
+    "frames": 4380,
+    "p95_frame_ms": 4.105501,
+    "mean_fps": 291.97,
+    "width": 1920,
+    "height": 1080,
+    "population": 53,
+    "gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+    "passed": true,
+    "initial_menu_focus": false,
+    "controller_menu_navigation": false,
+    "broadside_first_press_release": true,
+    "interaction_prompt_and_loot": true,
+    "mapped_warp_release_and_exclusive_aim": true,
+    "equipment_torpedo_original_visuals": true,
+    "gate_white_flash_and_arrival": true,
+    "simulation_time": 35,
+    "busy": false,
+    "armed": false,
+    "p95_simulation_ms": 0.19880011677742004,
+    "requested_quality": 2
+  },
+  "Render": {
+    "frames": 2315,
+    "p95_frame_ms": 8.833002,
+    "mean_fps": 154.233,
+    "width": 1920,
+    "height": 1080,
+    "population": 501,
+    "gpu": "NVIDIA GeForce RTX 5090 Laptop GPU",
+    "passed": true,
+    "initial_menu_focus": false,
+    "controller_menu_navigation": false,
+    "broadside_first_press_release": true,
+    "interaction_prompt_and_loot": true,
+    "mapped_warp_release_and_exclusive_aim": true,
+    "equipment_torpedo_original_visuals": true,
+    "gate_white_flash_and_arrival": true,
+    "simulation_time": 35,
+    "busy": true,
+    "armed": true,
+    "p95_simulation_ms": 3.463800996541977,
+    "requested_quality": 2
+  },
+  "gameplay_clean": {
+    "passed": true,
+    "reports": [
+      {
+        "role": "GameplayClient0",
+        "passed": true,
+        "failure": "",
+        "reconciliation_samples": 470,
+        "correction_p95_units": 0.26684791732377366,
+        "correction_max_units": 468.9097678410963,
+        "max_pending_inputs": 36
+      },
+      {
+        "role": "GameplayClient1",
+        "passed": true,
+        "failure": "",
+        "reconciliation_samples": 524,
+        "correction_p95_units": 0.01371722880675408,
+        "correction_max_units": 28.415260402290134,
+        "max_pending_inputs": 31
+      },
+      {
+        "role": "GameplayClient2",
+        "passed": true,
+        "failure": "",
+        "reconciliation_samples": 522,
+        "correction_p95_units": 1.6430622790564577,
+        "correction_max_units": 10.552511755857942,
+        "max_pending_inputs": 24
+      },
+      {
+        "role": "GameplayHost",
+        "passed": true,
+        "checks": {
+          "same_faction_pvp_damage": true,
+          "remote_invalid_station_refit_rejected": true,
+          "pvp_profile_attribution": true,
+          "personal_crime_attribution": true,
+          "simultaneous_boarding_single_prize": true,
+          "simultaneous_boarding_single_bounty": true,
+          "boarded_captain_free_recovery": true,
+          "network_weapon_death_recovery": true,
+          "network_station_dwell": true,
+          "network_station_repair_heat_purchase": true,
+          "network_station_refit": true,
+          "network_station_undock": true,
+          "normal_charged_independent_jump": true,
+          "all_captains_moved_after_loss_burst": true,
+          "post_gameplay_snapshot": true,
+          "network_ai_pilot_keeps_captain_and_operates_guns": true,
+          "network_ai_pilot_returns_to_manual": true
+        },
+        "failure": "",
+        "reconciliation_samples": 0,
+        "correction_p95_units": 0,
+        "correction_max_units": 0,
+        "max_pending_inputs": 0
+      }
+    ]
+  },
+  "gameplay_150ms_2percent": {
+    "passed": true,
+    "reports": [
+      {
+        "role": "GameplayClient0",
+        "passed": true,
+        "failure": "",
+        "reconciliation_samples": 444,
+        "correction_p95_units": 1.4588457085116109,
+        "correction_max_units": 478.39919102717255,
+        "max_pending_inputs": 43
+      },
+      {
+        "role": "GameplayClient1",
+        "passed": true,
+        "failure": "",
+        "reconciliation_samples": 491,
+        "correction_p95_units": 0,
+        "correction_max_units": 38.29381549890974,
+        "max_pending_inputs": 44
+      },
+      {
+        "role": "GameplayClient2",
+        "passed": true,
+        "failure": "",
+        "reconciliation_samples": 488,
+        "correction_p95_units": 4.3299115569831335,
+        "correction_max_units": 37.376653873929136,
+        "max_pending_inputs": 45
+      },
+      {
+        "role": "GameplayHost",
+        "passed": true,
+        "checks": {
+          "same_faction_pvp_damage": true,
+          "remote_invalid_station_refit_rejected": true,
+          "pvp_profile_attribution": true,
+          "personal_crime_attribution": true,
+          "simultaneous_boarding_single_prize": true,
+          "simultaneous_boarding_single_bounty": true,
+          "boarded_captain_free_recovery": true,
+          "network_weapon_death_recovery": true,
+          "network_station_dwell": true,
+          "network_station_repair_heat_purchase": true,
+          "network_station_refit": true,
+          "network_station_undock": true,
+          "normal_charged_independent_jump": true,
+          "all_captains_moved_after_loss_burst": true,
+          "post_gameplay_snapshot": true,
+          "network_ai_pilot_keeps_captain_and_operates_guns": true,
+          "network_ai_pilot_returns_to_manual": true
+        },
+        "failure": "",
+        "reconciliation_samples": 0,
+        "correction_p95_units": 0,
+        "correction_max_units": 0,
+        "max_pending_inputs": 0
+      }
+    ]
+  },
+  "reconnect_150ms_2percent": {
+    "passed": true,
+    "reports": [
+      {
+        "role": "Client0",
+        "passed": true,
+        "max_players": 4,
+        "ack": 819,
+        "npcs": 50,
+        "simulation_time": 33.359375,
+        "system": 1
+      },
+      {
+        "role": "Client0Rejoined",
+        "passed": true,
+        "max_players": 2,
+        "ack": 1550,
+        "npcs": 50,
+        "simulation_time": 63.78125,
+        "system": 1
+      },
+      {
+        "role": "Client1",
+        "passed": true,
+        "max_players": 4,
+        "ack": 835,
+        "npcs": 50,
+        "simulation_time": 33.46875,
+        "system": 2
+      },
+      {
+        "role": "Client2",
+        "passed": true,
+        "max_players": 4,
+        "ack": 836,
+        "npcs": 50,
+        "simulation_time": 33.46875,
+        "system": 6
+      },
+      {
+        "role": "Host",
+        "passed": true,
+        "max_players": 4,
+        "ack": 3841,
+        "npcs": 500,
+        "simulation_time": 80.015625,
+        "system": 9
+      }
+    ]
+  },
+  "builds": {
+    "development": "passed",
+    "shipping": "passed"
+  },
+  "shipping_four_player_possession_and_autosave": "passed",
+  "asset_validation": "passed",
+  "source_checks": "passed"
+}

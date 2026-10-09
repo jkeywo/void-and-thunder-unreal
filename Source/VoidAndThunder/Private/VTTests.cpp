@@ -73,7 +73,7 @@ bool FVTCombatIntegrationTest::RunTest(const FString& Params) {
  auto* Sim=World->GetSubsystem<UVTSimulation>(); Sim->Bootstrap(0);
  TestNotNull("Native cruiser definition imported",Sim->Data->FindShip("corsair_cruiser"));
  AddInfo(FString::Printf(TEXT("Native asset shield %.3f count %d"),Sim->Data->Ships[0].ShieldMax.X,Sim->Data->Ships.Num()));
- FVTMotion A; A.Position=FVector2D(500,-500); FVTMotion B; B.Position=FVector2D(500,-350); B.Heading=-PI/2;
+ FVTMotion A; A.Position=FVector2D(2000,-500); FVTMotion B; B.Position=FVector2D(2000,-350); B.Heading=-PI/2;
  auto* Shooter=Sim->SpawnShip("corsair_cruiser",0,A,false,"Corsairs");
  auto* Target=Sim->SpawnShip("corsair_cruiser",0,B,false,"Corsairs");
  Shooter->Intent.Aim=FVector2D(0,1); Shooter->Intent.Buttons=VTButtons::Port;
@@ -95,9 +95,9 @@ bool FVTSaveTest::RunTest(const FString& Params) {
  auto* Sim=World->GetSubsystem<UVTSimulation>(); Sim->Bootstrap(0);
  auto* Save=GI->GetSubsystem<UVTSaveSubsystem>();
  auto* Previous=NewObject<UVTWorldSave>(); Previous->Version=2; Previous->SimulationTime=12; FVTSavedShip OldShip; Previous->Ships.Add(OldShip);
- TestTrue("Prior Unreal schema migrates",Save->Migrate(Previous)); TestEqual("Migration advances schema",Previous->Version,5);
+ TestTrue("Prior Unreal schema migrates",Save->Migrate(Previous)); TestEqual("Migration advances schema",Previous->Version,6);
  TestEqual("Missing pose clock uses snapshot boundary",Previous->Ships[0].Motion.SimulationTime,12.);
- Previous->Version=6; TestFalse("Unknown future schema is rejected",Save->Migrate(Previous));
+ Previous->Version=7; TestFalse("Unknown future schema is rejected",Save->Migrate(Previous));
  Save->Slot=TEXT("Automation-")+FGuid::NewGuid().ToString(EGuidFormats::Digits);
  FVTMotion M; auto* Shooter=Sim->SpawnShip("corsair_cruiser",0,M,false,"Corsairs"); Shooter->IsNPC=true;
  M.Position=FVector2D(700,700); auto* Target=Sim->SpawnShip("house_patrol",0,M,false,"Guild"); Target->IsNPC=true;
@@ -172,8 +172,8 @@ bool FVTWorldTest::RunTest(const FString& Params) {
  for(int I=0;I<200;++I) Sim->FixedStep(); TestTrue("Distress broadcasts in an unoccupied system",Civilian->Brain.DistressSent); TestTrue("Background patrol receives distress",Patrol->Brain.AlertTTL>0);
  float Rep=AP->Reputation[Guild]; float Heat=AP->Heat[Guild]; Sim->RecordHit(Civilian,AS,30); Sim->FixedStep(); TestTrue("Crime heat is personal and decays",AP->Heat[Guild]>Heat); TestTrue("Decay converts to persistent standing loss",AP->Reputation[Guild]<Rep);
  int Origin=Sim->Data->FindSystem(Sim->Data->StartSystem); AS->SystemIndex=Origin; auto Destination=Sim->Data->Systems[Origin].Links[0]; AS->Movement->Motion.Position=Sim->JumpPosition(Origin,Destination); AS->Movement->Motion.Velocity=FVector2D::ZeroVector;
- AS->Intent.Buttons=VTButtons::Interact; for(int I=0;I<64;++I) Sim->FixedStep(); float Progress=AS->JumpProgress; AS->Intent.Buttons=0; for(int I=0;I<64;++I) Sim->FixedStep(); TestEqual("Released jump input freezes dwell",AS->JumpProgress,Progress);
- AS->Intent.Buttons=VTButtons::Interact; for(int I=0;I<330;++I) Sim->FixedStep(); TestEqual("Only initiating ship transfers",AS->SystemIndex,Sim->Data->FindSystem(Destination)); TestEqual("Other player remains in own system",BS->SystemIndex,0);
+ AS->Intent.Buttons=VTButtons::Interact; for(int I=0;I<64;++I) Sim->FixedStep(); float Progress=AS->GatePassage->Status().Charge; AS->Intent.Buttons=0; for(int I=0;I<64;++I) Sim->FixedStep(); TestEqual("Released jump input freezes dwell",AS->GatePassage->Status().Charge,Progress);
+ AS->Intent.Buttons=VTButtons::Interact; for(int I=0;I<64*30&&AS->SystemIndex==Origin;++I) Sim->FixedStep(); TestEqual("Only initiating ship transfers",AS->SystemIndex,Sim->Data->FindSystem(Destination)); TestEqual("Other player remains in own system",BS->SystemIndex,0);
  FVTLoadoutSelection Bad; Bad.Battery="invented"; TestFalse("Server rejects unknown equipment",AS->ApplyFit(Bad,true));
  FVTLoadoutSelection Multi; Multi.Batteries={FName("loadout.disruptor"),FName("loadout.boost"),FName("loadout.point_defense")}; Multi.Specials={FName("loadout.torpedoes"),FName("loadout.microwarp"),FName("loadout.mines")}; FVTShipDefinition Fit;
  TestTrue("Battleship accepts three authored mounts",Sim->Data->ResolveFit("corsair_battleship",Multi,Fit)); TestFalse("Frigate rejects oversized fit",Sim->Data->ResolveFit("corsair_frigate",Multi,Fit)); TestTrue("Surplus mount gives crew the screen",Sim->Data->CrewForFit("corsair_battleship",Multi).Contains(EVTDevice::PointDefense));
@@ -193,8 +193,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVTBoundaryTest,"VT.World.LandmarksAndIntentAut
 bool FVTBoundaryTest::RunTest(const FString& Params) {
  UWorld* World=UWorld::CreateWorld(EWorldType::Game,false,FName("VTBoundaryTest")); auto& Context=GEngine->CreateNewWorldContext(EWorldType::Game); Context.SetCurrentWorld(World); World->SetGameInstance(NewObject<UVTGameInstance>(GEngine)); World->SetGameMode(FURL()); World->InitializeActorsForPlay(FURL()); World->BeginPlay(); auto* Sim=World->GetSubsystem<UVTSimulation>(); Sim->Bootstrap(0);
  FVTMotion M; M.Position=FVector2D(50,0); M.Velocity=FVector2D(-20,5); auto* Ship=Sim->SpawnShip("corsair_cruiser",0,M,false,"Corsairs"); Sim->LandmarkStep();
- TestTrue("Star separates hull from solid surface",FMath::Abs(Ship->Movement->Motion.Position.Size()-(120+Ship->Definition.Radius))<0.001); TestTrue("Landmark removes inward velocity",FMath::Abs(Ship->Movement->Motion.Velocity.X)<0.001); TestEqual("Tangential velocity retained",Ship->Movement->Motion.Velocity.Y,5.);
- TestTrue("Star blocks scanner line of sight",Sim->Occluded(0,FVector2D(-200,0),FVector2D(200,0))); TestFalse("Clear scanner ray is unblocked",Sim->Occluded(0,FVector2D(-200,-400),FVector2D(200,-400)));
+ TestTrue("Star separates hull from solid surface",FMath::Abs(Ship->Movement->Motion.Position.Size()-(Sim->Data->Landmarks[0].Radius+Ship->Definition.Radius))<0.001); TestTrue("Landmark removes inward velocity",FMath::Abs(Ship->Movement->Motion.Velocity.X)<0.001); TestEqual("Tangential velocity retained",Ship->Movement->Motion.Velocity.Y,5.);
+ TestTrue("Star blocks scanner line of sight",Sim->Occluded(0,FVector2D(-200,0),FVector2D(200,0))); TestFalse("Clear scanner ray is unblocked",Sim->Occluded(0,FVector2D(-200,-800),FVector2D(200,-800)));
  auto* Shot=Ship->Combat->SpawnDeviceProjectile(EVTProjectileKind::Cannon,FVector2D(-200,0),FVector2D(30000,0),1,3,6); Sim->ProjectileStep(); TestFalse("Swept projectile cannot pass through star",IsValid(Shot));
  FVTPilotIntent Intent; Intent.Sequence=1; Intent.Throttle=0.5f; Ship->ServerIntent_Implementation(Intent); TestEqual("Valid intent is queued",Ship->InputQueue.Num(),1); Ship->ServerIntent_Implementation(Intent); TestEqual("Replay cannot enqueue twice",Ship->InputQueue.Num(),1);
  Intent.Sequence=2; Intent.Throttle=2; Ship->ServerIntent_Implementation(Intent); TestEqual("Invalid throttle rejected at authority",Ship->LastReceived,uint32(1)); Intent.Throttle=0.5f; Intent.Sequence=300; Ship->ServerIntent_Implementation(Intent); TestEqual("Sequence jump rejected",Ship->LastReceived,uint32(1));

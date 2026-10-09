@@ -99,3 +99,79 @@ than PASM. This choice does not alter the original game or vellum.
 - [ai] Preserve manual broadside hold-to-aim/release-to-fire in the input adapter. Distinguish aim flags from authoritative fire pulses; AI still supplies fire intent directly. Fire pulses are consumed once per simulation step, and cancelled input does not release a shot. Camera/solo aim effects and native beam previews read aim flags.
 
 - [ai] Optimise the 1,000-NPC stress case by removing unused simple-pilot sorts, caching utility sort distances, narrowing boarding candidates at its phase boundary, and ordering EMP range rejection before trigonometry. Preserve Actor/component ownership, simulation cadence, target ordering for utility weapons, and live contested-prize validation; do not lower AI frequency or change population/balance to pass the gate.
+
+- [ai] Implement native integration audit items 1�7. Protect authored packages by separating seed/regeneration from validation; retain aggregate baseline arrays as migration fallbacks while introducing separate primary definitions and presentation bundles. Configurable Blueprint classes assemble the same authoritative C++ ship.
+- [ai] Background only immutable world-save bytes; never access UObjects from worker threads. Serialize writers, preserve validated previous bytes, and flush for manual saves/load/teardown. Report autosave write failures and include capture cost in boundary timings.
+- [ai] Coalesce event-driven HUD refreshes at 10 Hz while retaining per-frame world-overlay paint. Store selection IDs separately from FText labels and use native widget bindings. Context changes cancel held flight input.
+- [ai] Use GAS tags and coordinator-driven Ability Tasks for deterministic ability timing. Do not substitute world-time GameplayEffect timers or periodic costs for the explicit 64 Hz clock. Native audio/Niagara budgets affect presentation only. CommonUI adoption remains optional pending a dedicated compatibility assessment; Enhanced Input contexts implement the requested input migration now.
+
+- [ai] Device cooldown GameplayEffects are infinite tag carriers removed by the authoritative fixed-step Ability Task when its saved duration expires. This uses native commit/cooldown/blocking semantics while avoiding an unrelated world-time expiry clock. Six tasks per ship require a bounded 12,064 task capacity for the existing 2,000-NPC development fixture; ended tasks decrement the engine count immediately.
+
+- [ai] Refuse baseline seeding when the catalogue is missing/corrupt but other authored packages exist. Partial-checkout recovery must restore the catalogue or explicitly regenerate; detecting an existing presentation import also protects partially imported meshes/effects.
+
+- [ai] Set GAS NetSecurityPolicy to ServerOnly as well as ServerOnly execution. Client GAS activation/termination RPCs must not bypass the validated pilot-intent/resource path or erase cooldowns. Add direct-RPC rejection coverage while preserving authoritative activation. Localized option widgets inherit their authored combobox font/foreground instead of default TextBlock styling.
+
+- [ai] Respond to the reported playability gaps with a configurable 2x flight thrust/speed scale (user-authorized balance change), negative player yaw intent for the reflected Unreal Y basis, a graphical UMG flight HUD, 7-unit emissive projectile visuals independent of hit radius, a native starfield cube material, an animated surface star material and a native translucent plane grid at z=-9. Keep simulation units, projectile hit radii and fixed-step ordering unchanged. Presentation upgrades replace only these targeted assets and retain menu authoring.
+
+- [ai] The 1,000-NPC regression exposed per-projectile presentation setup in headless execution. Preload the editable projectile material once through Asset Manager and skip visual setup in commandlets/NullRHI, retaining projectile registration and all authoritative state. This removes presentation work from the weapons phase without changing simulation behavior.
+
+- [ai] Skip redundant GAS activation requests for active broadside instances and cooling EMP devices. Inspect readiness after advancing existing fixed-step tasks, preserving expiry-step activation, held intent, windup and native authority. Guard this with persistent-intent windup/reload automation. No AI cadence or population reduction.
+
+[ai] Restore the original amber CRT HUD composition using native Slate drawing within the authored UMG widget: five original panel frames exported as UI textures, native live gauges/tubes/shield edges, and matching amber menu styling. Static artwork retains source attribution; no HTML runtime is added. The sandbox chart remains available as a collapsible overlay rather than occupying the coordinate cluster.
+
+[ai] Preserve the original HUD artwork dimensions in viewport pixels by compensating UMG DPI once in the native painter; fit windows narrower than 900 pixels. Title/menu controls retain native UMG scaling and hit testing.
+
+- [ai] Restore legacy broadside arc steering: mouse horizontal motion accumulates the authored sensitivity, right stick selects an absolute arc offset, release preserves the held direction. Do not plane-pick through the camera while it tracks that same broadside. Flight capture includes the initial mouse press; tactical overlays convert viewport pixels to local UMG units.
+
+- [ai] Share muzzle layout and inherited projectile velocity between broadside previews and volleys so aiming indicators follow actual trajectories at speed.
+
+- [ai] Read raw mouse deltas for the authored pixel-based broadside sensitivity; Unreal default legacy axis sensitivity (0.07) must not scale it a second time.
+
+- [ai] Show object-anchored, mapped keyboard/controller hold prompts for eligible ship looting and jump links, with replicated progress. Explain automatic docking as holding position, preserving existing rules.
+- [ai] Replace the Cartesian reference grid with anti-aliased rings and spokes centred on the nearest authored star in the viewer's current system. A targeted GridOnly authoring command updates just the grid material.
+
+- [ai] Keep all three gameplay modes on Sandbox; detect editor-supported modes from World Settings editor-only asset user data, leaving Frontend unsupported for direct-mode overrides. Toolbar selections use per-user editor settings and never replace the loaded map.
+- [ai] Checkbox-selected equipment replaces optional hull equipment, including an explicitly empty set. Preserve legacy default-fit behavior when override flags are absent. Validate mount counts through ResolveFit and prune extra modules in catalogue order on a smaller hull.
+- [ai] Isolate PIE profiles, career statistics and campaign slots per instance so previews cannot overwrite normal saves or reuse simultaneous captain identities.
+- [ai] Selecting a solo PIE mode also selects Unreal standalone networking with one player. Sandbox retains the editor networking choices. Explicit optional-fit flags default false in existing tagged saves; checked custom fits preserve empty mounts through native save serialization.
+
+- [ai] Replace stationary jump dwell completion with physical ring approach, alignment and aperture crossing while holding interact. Retain authored charge duration; keep phase separate from saved held actions and expose geometry/approach tuning in the native data asset.
+- [ai] Interpolate local fixed-step ship poses as well as remote poses, using the local prediction remainder for clients and the world remainder for authority. Camera focus consumes the same pose; teleports reset interpolation history.
+- [ai] Treat warp/torpedo aiming as exclusive of broadside aiming/activation, including authoritative combat validation. Preserve mapped Shift/right-shoulder hold and release for warp, and show live device bindings on the HUD.
+- [ai] Resolve replicated fits throughout ship initialization; restore checked equipment arrays into frontend selectors and represent explicit empty mounts without inheriting hull equipment. Author a smaller red torpedo presentation independently of cannon shots.
+- [ai] A broadside-only toolbar selection is also an explicit checkbox fit: unchecked optional equipment is empty. This corrects the earlier AI implementation, which cleared hull-default equipment for optional-module selections but left hidden default EMP/torpedoes when only a gun variant was selected.
+
+- [ai] Permit reverse gate staging when estimated travel plus turning time is lower, while always driving forward through the aperture. Use existing hull reverse thrust and native gate tuning.
+- [ai] Fix torpedo presentation at its actual lifecycle boundary: equipment and save restoration must assign projectile kind before BeginPlay, with RepNotify refreshing client visuals. The earlier deferred-only render fixture missed the live equipment spawn bug. Halve the authored radius again to 1.25 and remove green/blue from the red material.
+
+- [ai] User reverses the torpedo size/red change: restore the common 7-unit projectile radius and original projectile material, remove the separate red asset/properties, and retain the corrected deferred spawning lifecycle.
+- [ai] User requests rapid gate acceleration and braking with unchanged endpoints. Keep reverse staging, charge and aperture validation; accelerate at 1200 source units/s squared, teleport at the gate to the destination gate, and brake over 0.35 seconds to the former gate-times-0.85 arrival position. These timings are native data tuning.
+- [ai] Cover the system/camera transition with a native white camera fade that starts opaque on the detecting frame and fades out over 0.3 seconds. Only the travelling captain's camera flashes. Persist committed arrival state in save schema 6; legacy schema 5 starts without an arrival phase.
+
+- [ai] Implement the approved five-module deepening in fit/projectile/query/standings/gate order. Valid fit edits update previews immediately and invalid edits retain the accepted selection. Preserve gameplay except demonstrated defects and requested loadout feedback; measure busy armed 500/1000 populations before and after. Preserve schema-6 fields at the save seam rather than introducing incompatible campaign records.
+
+- [ai] Integration tests exposed two lifecycle details worth concentrating at the seams: legacy primary fits must be converted before checkbox toggling, and gate restoration must retain unrelated docking progress while clearing held actions. Close spatial/boarding query views explicitly after consumption so development assertions reject stale-phase access. Preserve authored UI fonts/colors for the native checkbox preview.
+
+- [ai] Restore original tap W/S throttle: reverse, halt, half and full, initially half, saturating at either end. Retain the notch across key release and menu/docking context changes; suppress intent while menus are open. Keep analogue stick centring at halt and inherit its nearest notch when returning to keyboard. Adapt legacy authored keyboard mappings in a local Enhanced Input context without overwriting native packages.
+
+- [ai] Double departure/arrival distances with GateDistanceScale=2; expand gate eligibility by the same scale so staging remains reachable. Preserve acceleration, braking duration and flash. Show nearby stationary start arrows and repeating accelerate/teleport/brake preview arrows using native static meshes. Save explicit arrival origin as an optional schema-6 field; legacy absent fields retain the old curve and endpoint.
+
+- [ai] User requests stationary departure framing and destination-endpoint framing at teleport. Capture departure focus when the replicated passage enters Departing, freeze orbit inputs during the passage, and select the saved/replicated arrival target immediately during Arriving. Keep the existing traveller-only white flash and normal camera behavior outside passage.
+
+- [ai] Narrative intro: an engineer guides the silent protagonist from a damaged ship whose captain has died, through helm/debris/repairs, a confrontation with the attacker, salvage and gate escape. Character names are role labels; no new canonical setting facts are introduced. Portraits are generated original game art.
+- [ai] Reserve four private intro arenas in a world-local catalogue, outside the ten populated systems. This preserves live multiplayer while encounters remain independently paced. Checkpoints recreate disposable opponents on reconnect instead of advancing an unattended tutorial; normal sandbox simulation still advances.
+- [ai] New sandbox captains start the intro; existing campaign records default to completed. Explicit runtime Skip and per-user PIE Skip intro are available. No automatic local completion preference suppresses a deliberately created new campaign. Initial helm is Halt; the chosen hull is retained and systems progressively restored through the repair choices below. Story boarding pays no credits.
+
+- [ai] Revised at the user's request: intro captains choose no fit beforehand. They retain their selected hull and default broadsides, start with explicit empty optional mounts, then choose boost versus EMP and torpedoes versus microwarp. Each mutually exclusive repair consumes that stage's parts, persists with the captain and must be tried before the next stage. The host validates choices through FVTFitEditor. PIE loadout editing is disabled while the intro is enabled; sandbox creation hides pre-fit controls. Skipping PIE retains normal fit selection.
+
+- [ai] User requests 5x system distances and celestial sizes, 10x inter-system separation, relation-coloured outer rings and a clickable full-screen route map. Preserve ship, station and gate aperture sizes and weapon ranges. Scale authored spawn/layout positions; preserve save schema 6 through an optional layout-scale migration.
+- [ai] Confirmed by the user: full speed inside the nearest star's system radius; linearly reduce thrust and maximum speed to 0.01 over the next 100 metres. This replaces the invisible boundary spring and uses the same rule for predicted and authoritative ships. Gate passage remains committed motion.
+- [ai] F opens the compact chart; G or its expand control opens a full-screen chart. Clicking a system selects a shortest gate route; waypoint guidance advances after each jump. Unfitted equipment input is removed before aim/camera or authoritative action processing.
+
+- [ai] Preserve close-range tutorial encounter spacing and move its wreck field clear of the enlarged star; its private system radius grows with the others. Ship combat ranges and training targets retain their existing teaching distances. Legacy volley-test fixtures move clear of the new stellar surface without changing their relative placement or damage assertions.
+
+- [ai] Preserve the existing M mine binding; G opens the full-screen chart. Landmark mesh visibility is local presentation rather than replicated actor hidden state, so each captain independently sees their current system.
+
+- [ai] Preserve piloting with the compact chart; only the full-screen map removes flight input. Clicks outside the compact chart pass through to gameplay.
+
+- [ai] Docking readability: raise shared menu body/choice text from 10 to 18 points, headings to 22, and button padding to 10 vertical units in WBP_UI. Wrap equipment choices and fit summaries within the menu width so long rows cannot shrink the entire panel. Preserve HUD typography and update only the menu package through an explicit targeted commandlet option.

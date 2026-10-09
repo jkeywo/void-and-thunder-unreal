@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/DataAsset.h"
 #include "VTTypes.h"
+#include "VTDefinitionAssets.h"
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
@@ -9,6 +10,38 @@ UCLASS(BlueprintType)
 class VOIDANDTHUNDER_API UVTGameData : public UPrimaryDataAsset {
  GENERATED_BODY()
 public:
+ virtual FPrimaryAssetId GetPrimaryAssetId() const override {return FPrimaryAssetId(TEXT("VTGameData"),GetFName());}
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTShipAsset>> ShipAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTEquipmentAsset>> EquipmentAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTSystemAsset>> SystemAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay")) TArray<TSoftObjectPtr<UVTScenarioAsset>> ScenarioAssets;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Gameplay,Presentation")) TSoftClassPtr<class AVTShip> ShipClass;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(AssetBundles="Presentation")) TSoftClassPtr<class UVTUI> UIClass;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Flight",meta=(ClampMin="0.1",ClampMax="4")) float FlightSpeedMultiplier=2.f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(ClampMin="1",ClampMax="20")) float ProjectileVisualRadius=7.f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(AssetBundles="Presentation")) TSoftObjectPtr<class UMaterialInterface> ProjectileMaterial= TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Environment/M_Projectile.M_Projectile")));
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="50")) float GateOpeningRadius=80;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateApproachDistance=80;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1",ClampMax="4")) float GateDistanceScale=2;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(ClampMin="1")) float GateMarkerSize=30;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Presentation",meta=(ClampMin="0.1")) float GateMarkerPause=0.6f;
+ float GateStartDistance() const{return GateApproachDistance*GateDistanceScale;}
+ float GateInteractionRange() const{return Rules.JumpRange*GateDistanceScale;}
+ float GateArrivalFraction() const{return 0.15f*GateDistanceScale;}
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateCruiseSpeed=45;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GatePassageAcceleration=1200;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.05")) float GateArrivalDuration=0.35f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.05")) float GateFlashDuration=0.3f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="1")) float GateArrivalTolerance=12;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Travel",meta=(ClampMin="0.01",ClampMax="0.5")) float GateAlignmentTolerance=0.18f;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="World scale",meta=(ClampMin="1")) float SystemDistanceScale=5;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="World scale",meta=(ClampMin="1")) float BoundaryFadeDistance=100;
+ UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="World scale",meta=(ClampMin="0.001",ClampMax="1")) float BoundaryMinimumSpeed=0.01f;
+ void ApplyWorldScale();
+ float BoundarySpeed(int32 System,const FVector2D& Position) const;
+ void LoadCatalog();
+ TSharedPtr<struct FStreamableHandle> CatalogHandle,PresentationHandle;
+ bool CatalogLoaded=false;
  UPROPERTY(EditAnywhere,BlueprintReadOnly) TMap<FName,int32> PopulationProfiles={{FName("Authored"),-1},{FName("Shared sandbox"),500}};
  UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FVTShipDefinition> Ships;
  UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FVTSystemDefinition> Systems;

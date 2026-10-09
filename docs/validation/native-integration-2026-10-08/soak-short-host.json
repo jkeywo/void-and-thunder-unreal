@@ -1,0 +1,40 @@
+{
+	"passed": true,
+	"wall_seconds": 180.01421360298991,
+	"simulation_seconds": 180,
+	"initial_npcs": 500,
+	"save_load_cycles": 0,
+	"systems_advanced": 10,
+	"max_captains": 4,
+	"profile": "B20E2787442A957DA11105AC5DE3A819",
+	"ship_id": "721EA1EF4F3749E7A4820ABA25BF891B",
+	"samples": [
+		{
+			"wall_seconds": 60.013489600270987,
+			"simulation_seconds": 60,
+			"captains": 4,
+			"ships": 430,
+			"projectiles": 4,
+			"used_physical_mb": 402.83984375,
+			"step_p95_ms": 0.903300940990448
+		},
+		{
+			"wall_seconds": 120.00700220093131,
+			"simulation_seconds": 120,
+			"captains": 4,
+			"ships": 413,
+			"projectiles": 32,
+			"used_physical_mb": 399.703125,
+			"step_p95_ms": 0.75300037860870361
+		},
+		{
+			"wall_seconds": 180.01421360298991,
+			"simulation_seconds": 180,
+			"captains": 1,
+			"ships": 404,
+			"projectiles": 4,
+			"used_physical_mb": 409.05859375,
+			"step_p95_ms": 0.86950138211250305
+		}
+	]
+}

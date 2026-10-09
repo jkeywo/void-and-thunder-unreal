@@ -1,0 +1,15 @@
+{
+	"repair_choices_and_fit_retained": false,
+	"passed": true,
+	"owner_only_arena_relevancy": true,
+	"wake_seen": true,
+	"motion_seen": true,
+	"four_private_arenas": true,
+	"independent_skip": true,
+	"saved": true,
+	"reconnect": false,
+	"stage": 2,
+	"system": 10,
+	"simulation_time": 85,
+	"captains": 4
+}

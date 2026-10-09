@@ -1,5 +1,10 @@
 #pragma once
+#include "VTShipQueries.h"
+#include "VTIntro.h"
+#include "VTGatePassage.h"
+#include "VTCaptainStandings.h"
 #include "CoreMinimal.h"
+#include "VTThrottle.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameStateBase.h"
@@ -27,6 +32,7 @@ class AVTShip;
 class AVTProjectile;
 class UVTCombatComponent;
 
+VOIDANDTHUNDER_API void VTNotifyHUD(UWorld* World);
 UCLASS()
 class VOIDANDTHUNDER_API UVTAttributes : public UAttributeSet {
  GENERATED_BODY()
@@ -65,6 +71,7 @@ public:
  TArray<double> CorrectionDistances;
  uint32 MaxPendingObserved=0;
  void Step(const FVTPilotIntent& Intent, bool Predict);
+ FVTMotion PresentationPose() const;
  void ApplyPose();
  UFUNCTION() void OnRep_Authority();
  virtual void TickComponent(float Dt, ELevelTick Tick, FActorComponentTickFunction* Fn) override;
@@ -75,6 +82,7 @@ UCLASS()
 class VOIDANDTHUNDER_API AVTShip : public APawn, public IAbilitySystemInterface {
  GENERATED_BODY()
 public:
+ UFUNCTION() void OnRep_UIState();
  AVTShip();
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UVTShipMovement> Movement;
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UVTCombatComponent> Combat;
@@ -85,16 +93,19 @@ public:
  UPROPERTY(VisibleAnywhere) TObjectPtr<UCameraComponent> Camera;
  UPROPERTY() TArray<TObjectPtr<class UNiagaraComponent>> EngineTrails;
  void PresentEngines();
- UPROPERTY(Replicated, BlueprintReadOnly) int32 SystemIndex = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) FName ClassId = "corsair_cruiser";
- UPROPERTY(Replicated, BlueprintReadOnly) FName Faction = "Corsairs";
- UPROPERTY(Replicated, BlueprintReadOnly) FGuid PersistentId;
- UPROPERTY(Replicated, BlueprintReadOnly) bool Docked = false;
- UPROPERTY(Replicated, BlueprintReadOnly) bool Disabled = false;
- UPROPERTY(Replicated, BlueprintReadOnly) float PortReload = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) float StarboardReload = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) int32 SystemIndex = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_ClassId, BlueprintReadOnly) FName ClassId = "corsair_cruiser";
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FName Faction = "Corsairs";
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FGuid PersistentId;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool Docked = false;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool Disabled = false;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) float PortReload = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) float StarboardReload = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_IntroFixture) uint8 IntroFixture=0;
+ UFUNCTION() void OnRep_IntroFixture();
  UPROPERTY(ReplicatedUsing=OnRep_Fit,BlueprintReadOnly) FVTLoadoutSelection Fit;
  UFUNCTION() void OnRep_Fit();
+ UFUNCTION() void OnRep_ClassId();
  UPROPERTY(ReplicatedUsing=OnRep_Autopilot,BlueprintReadOnly) bool Autopilot=false;
  UFUNCTION() void OnRep_Autopilot();
  bool ApplyFit(const FVTLoadoutSelection& Selected,bool Refill);
@@ -103,14 +114,13 @@ public:
  TArray<FVTPilotIntent> InputQueue;
  uint32 LastReceived = 0;
  double LastInputTime = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) bool IsNPC = false;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) bool IsNPC = false;
  bool Invulnerable = false;
  bool Anchored = false;
- UPROPERTY(Replicated,BlueprintReadOnly) int32 ShipRole=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) int32 ShipRole=0;
  FVTBrainState Brain;
- UPROPERTY(Replicated,BlueprintReadOnly) float DockProgress=0;
- UPROPERTY(Replicated,BlueprintReadOnly) float JumpProgress=0;
- UPROPERTY(Replicated,BlueprintReadOnly) FName JumpDestination;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) float DockProgress=0;
+ UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UVTGatePassage> GatePassage;
  virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return Abilities; }
  virtual void PossessedBy(AController* NewController) override;
  virtual void OnRep_Controller() override;
@@ -137,11 +147,12 @@ UCLASS()
 class VOIDANDTHUNDER_API AVTPlayerState : public APlayerState {
  GENERATED_BODY()
 public:
- UPROPERTY(Replicated, BlueprintReadOnly) int32 Credits = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) int32 Boarded = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) FGuid Profile;
- UPROPERTY(Replicated, BlueprintReadOnly) TArray<float> Reputation;
- UPROPERTY(Replicated, BlueprintReadOnly) TArray<float> Heat;
+ UFUNCTION() void OnRep_UIState();
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) int32 Credits = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) int32 Boarded = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) FGuid Profile;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) TArray<float> Reputation;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) TArray<float> Heat;
  virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 };
 
@@ -149,11 +160,12 @@ UCLASS()
 class VOIDANDTHUNDER_API AVTGameState : public AGameStateBase {
  GENERATED_BODY()
 public:
- UPROPERTY(Replicated, BlueprintReadOnly) double SimulationTime = 0;
- UPROPERTY(Replicated, BlueprintReadOnly) TArray<int32> Populations;
- UPROPERTY(Replicated,BlueprintReadOnly) int32 Wave=0;
- UPROPERTY(Replicated,BlueprintReadOnly) int32 EnemiesRemaining=0;
- UPROPERTY(Replicated,BlueprintReadOnly) FString Outcome;
+ UFUNCTION() void OnRep_UIState();
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) double SimulationTime = 0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState, BlueprintReadOnly) TArray<int32> Populations;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) int32 Wave=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) int32 EnemiesRemaining=0;
+ UPROPERTY(ReplicatedUsing=OnRep_UIState,BlueprintReadOnly) FString Outcome;
  virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out) const override;
 };
 
@@ -162,7 +174,7 @@ class VOIDANDTHUNDER_API AVTCameraManager : public APlayerCameraManager {
  GENERATED_BODY()
 public:
  virtual void UpdateViewTarget(FTViewTarget& OutVT,float DeltaTime) override;
- bool RigReady=false;
+ bool RigReady=false,GateDepartureFocus=false;
  FGuid RigShip; int32 RigSystem=-1;
  double LastCameraReal=0,OrbitYaw=0,OrbitPitch=0,OrbitDistance=0,OrbitFov=0,FreeYaw=0,FreePitch=0,LookIdle=0,MenuOrbit=0;
  FVector Focus=FVector::ZeroVector,ImpactKick=FVector::ZeroVector;
@@ -176,6 +188,11 @@ class VOIDANDTHUNDER_API AVTController : public APlayerController {
  GENERATED_BODY()
 public:
  AVTController();
+ UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UVTIntroComponent> Intro;
+ UPROPERTY() TObjectPtr<class UVTIntroWidget> IntroWidget;
+ void AdvanceIntro();
+ void IntroChoiceA();
+ void IntroChoiceB();
  UPROPERTY() TObjectPtr<class UVTUI> UI;
  void ToggleMenu();
  void ToggleAutopilot();
@@ -187,13 +204,34 @@ public:
  void CancelFlight(const FInputActionValue& Value,int32 Index);
  virtual void PlayerTick(float Dt) override;
  UPROPERTY() TObjectPtr<UInputMappingContext> FlightMapping;
+ UPROPERTY() TObjectPtr<UInputMappingContext> CommonMapping;
+ UPROPERTY() TObjectPtr<UInputMappingContext> MenuMapping;
+ UPROPERTY() TObjectPtr<UInputMappingContext> DockedMapping;
+ int32 InputContextState=-1;
+ void UpdateInputContexts();
+ TWeakObjectPtr<class USceneComponent> AudioListenerRoot;
+ UFUNCTION(BlueprintCallable,Category="Input") bool RemapControl(FName MappingName,FKey NewKey);
  UPROPERTY() TArray<TObjectPtr<UInputAction>> Actions;
  FVTPilotIntent LocalIntent;
+ FVTThrottleControl ThrottleControl;
+ UPROPERTY() TObjectPtr<UInputAction> ThrottleUp;
+ UPROPERTY() TObjectPtr<UInputAction> ThrottleDown;
+ void StepThrottle(const FInputActionValue& Value,int32 Delta);
+ UInputMappingContext* PrepareFlightMapping(UInputMappingContext* Authored);
+ float BroadsideOffset=0;
+ bool UpdateBroadsideAim(float MouseDelta,const FVTFeelControls& Controls,float Heading,float Arc);
  uint32 NextSequence = 0;
  float AimBattery=5, AimDilation=1, HitStop=0, CameraTrauma=0;
  double LastRealTick=0;
  bool UsingGamepadAim=false;
  FVector2D GamepadAim=FVector2D::ZeroVector;
+ int32 InteractionProbeStage=0,InteractionProbeBoarded=0;
+ bool InteractionProbePrompt=false,InteractionProbeLooted=false;
+ FKey InteractionProbeKey;
+ int32 ThrottleProbeStage=0;bool ThrottleProbePassed=true;
+ int32 FlightProbeStage=0;bool FlightProbeHeld=false,FlightProbePassed=false;FVector2D FlightProbeOrigin;
+ int32 BroadsideProbeStage=0;
+ bool BroadsideProbeHeld=false,BroadsideProbePassed=false;
  bool ProbeJumped=false;
  void ValidationInput(float Dt);
  float SendAccumulator = 0;
@@ -204,6 +242,8 @@ public:
  UFUNCTION(Client,Reliable) void ClientAcceptIdentity(FGuid World,FGuid Token);
  UFUNCTION(Server,Reliable,BlueprintCallable) void ServerStationAction(FName Action);
  UFUNCTION(Server,Reliable,BlueprintCallable) void ServerRefit(FName Hull,FVTLoadoutSelection Selection);
+ void ToggleHUD(bool Chart);
+ void ToggleFullMap();
  UFUNCTION(Exec) void VTRecover();
  UFUNCTION(Server,Reliable) void ServerRecover();
  UFUNCTION(Exec) void VTJump(FString Destination);
@@ -222,12 +262,8 @@ public:
  UPROPERTY() TObjectPtr<UVTGameData> Data;
  UPROPERTY() TArray<TObjectPtr<AVTShip>> Ships;
  UPROPERTY() TArray<TObjectPtr<AVTProjectile>> Projectiles;
- TArray<TArray<AVTShip*>> SystemShips;
- // Broad phase only: Actors and their components remain the gameplay owners.
- TArray<TMap<FIntPoint,TArray<AVTShip*>>> ShipCells;
- float LargestShipRadius=0;
- void RebuildShipCells();
- void QueryShips(int32 System,const FVector2D& Min,const FVector2D& Max,TArray<AVTShip*>& Result) const;
+ FVTShipQueries Queries;
+ FVTCaptainStandings Standings;
  FVector2D JumpPosition(int32 System,FName Destination) const;
  void TravelShip(AVTShip* Ship,int32 Destination);
  void RecordHit(AVTShip* Victim,AVTShip* Attacker,float Amount,FGuid Profile=FGuid(),FName AttackerFaction=NAME_None);
@@ -249,6 +285,9 @@ public:
  TArray<double> RenderFrameMilliseconds;
  double LastRenderFrame=0;
  bool ScreenshotRequested=false;
+ bool GateMarkerSeen=false,GateMarkerAnimated=false;
+ bool GateCameraDepartureSeen=false,GateCameraArrivalSeen=false;
+ bool GateFlashSeen=false,GateBrakingSeen=false,GateArrivalPassed=false;
  bool UIProbeStarted=false,UIProbeFinished=false,UIInitialFocus=false,UINavigationPassed=false;
  double Accumulator = 0;
  double SimulationTime = 0;
@@ -299,6 +338,7 @@ public:
 #endif
  UPROPERTY(BlueprintReadOnly) FString PlayMode=TEXT("sandbox");
  UPROPERTY(BlueprintReadOnly) bool ContinueWorld=false;
+ UPROPERTY(BlueprintReadWrite) bool SkipIntro=false;
  UPROPERTY(BlueprintReadWrite) FName PopulationProfile=TEXT("Shared sandbox");
  int32 NewWorldPopulation=-1;
  bool ValidationSessionStarted=false,ValidationDiscoveryStarted=false;
